@@ -18,17 +18,28 @@ Suggested reading:
    limitations. Use your personal prefix. Do not edit Terraform-owned entries.
 2. Use the supported MCP asset shape if available. The lab's reference is a
    **REST record with MCP discovery links**; do not label it native MCP-kind
-   registration. Record the representation you actually used.
+   registration. Record the representation you actually used. In the organizer
+   rehearsal, **Register an asset -> MCP server** saved the asset/version but
+   returned HTTP 400 creating its definition. A listed MCP asset therefore did
+   not prove complete registration. Keep that partial result and use a REST
+   record through **Register an asset -> API**, or the helper below; do not keep
+   retrying the native wizard.
 3. Find the reference documentation entry and inspect its independent-toolkit
    discovery link. Examine the actual endpoint, owner, contract and limitations.
    Export/retrieve the registered OpenAPI definition rather than substituting the
-   copy in the source repository.
+   copy in the source repository. In **Versions**, expand the version's chevron
+   and open **OpenAPI definition -> Download**. Clicking the version title
+   instead opens its metadata editor.
 4. Ask: would you attach this endpoint to a production agent? What is missing
    from its metadata or access contract?
 5. Add the discovered toolkit to a new version of your steward, using the
    existing `<workload>-<team>-toolkit` project-managed-identity connection.
    Inspect the actual discovered operations: `generate_context_diagram`,
-   `lint_document` and `compare_with_inventory`.
+   `lint_document` and `compare_with_inventory`. In Playground use **Tools ->
+   Add -> Add tools -> Configured**, select that existing connection and
+   **Add tool**. Under its **Actions -> Configure**, restrict allowed tools to
+   those three names and auto-approve only those read-only operations. Preserve
+   the documentation tool's proposal-approval requirement, then **Save**.
 6. Ask for a context diagram of a system returned by inventory, then compare a
    draft with the inventory. Inspect genuine toolkit calls/results and native
    tool spans. Its results complement the authoritative documentation API.

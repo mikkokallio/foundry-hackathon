@@ -72,7 +72,25 @@
     MCP paths differ from the helper's slash-separated convention. Agent
     creation and catalog registration now read the owned connection's actual
     target and verify its gateway, prefix, identity and audience. This does not
-    establish that the remaining M4 portal journey has passed.
+    establish that the remaining M4 portal journey has passed. The updated
+    helper suite passes 45 tests; Ruff and Pyright are clean.
+- M4: the native MCP wizard saved the owned asset/version but failed with
+    HTTP 400 creating its definition. Its partially registered MCP remains
+    visible; that is not complete registration. The documented REST-record
+    workaround succeeded through the helper, with separate owned environment
+    and deployment metadata added through CLI. The reference toolkit link was
+    inspected in the portal and its actual registered OpenAPI downloaded there.
+    This was not a pure-UI registration completion.
+- The toolkit was first attached through the portal to owned steward version 3,
+    restricted to its three actual read-only operations. Its diagram answer has
+    a matching response ID, version and successful native toolkit span. The trace
+    also contains two error-marked transport/discovery spans, not yet classified.
+    A later draft-comparison question hit a real model-gateway 429; that activity
+    is not yet verified.
+- Four immutable model/instruction candidates have been created with the same
+    actual documentation/toolkit connections and explicit low reasoning.
+    Fresh twelve-case collection has started for the first candidate; it is
+    still incomplete and is not qualification.
 
   **Still required:** remaining actual portal rehearsal,
   non-admin authoring/connection/export tests, direct/routed trace correlation,

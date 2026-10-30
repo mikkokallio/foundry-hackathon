@@ -46,11 +46,13 @@ For your assigned `$model` and `$prompt`:
 $model = 'chat-small' # Your row above.
 $prompt = 'instructions'
 $docsOwner = 'alpha-p1' # Replace with your team's chosen real practice owner.
-lab agent --name "$prefix-comparison" --model $model --prompt $prompt --docs practice --docs-owner $docsOwner --toolkit --output "out\$prefix-comparison.json"
+lab agent --name "$prefix-comparison" --model $model --prompt $prompt --docs practice --docs-owner $docsOwner --toolkit --reasoning low --output "out\$prefix-comparison.json"
 lab eval --binding "out\$prefix-comparison.json" --comparison
 ```
 
 The helper prints the actual `.foundry\results\...` evidence destination.
+All four candidates explicitly use the same `low` reasoning setting; do not
+change it for only one matrix cell.
 Start collection as soon as the final configurations exist; use the waiting
 time to inspect cases and predict likely failure modes. Stagger team runs if
 shared gateway/model limits require it.
