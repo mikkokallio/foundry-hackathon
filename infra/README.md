@@ -1,9 +1,9 @@
 # Infrastructure ownership contract
 
-> [!WARNING]
-> **PREVIEW.** Initial setup may still need targeted fixes during deployment
-> validation. See the [repository preview notice and deployment checklist](../README.md)
-> and [known blockers](../docs/exercise-readiness.md) before planning or applying.
+> [!NOTE]
+> **Preview.** Deployment testing may lead to targeted setup fixes.
+> See the [deployment checklist](../README.md) and
+> [deployment notes](../docs/exercise-readiness.md) for practical guidance.
 
 ## Composition
 

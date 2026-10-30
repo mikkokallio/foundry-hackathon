@@ -1,11 +1,10 @@
-# Coach guide: evidence, ownership and recovery
+# Coach guide
 
 ## Before the event
 
 The customer event is a full day with **4.5 hours of hands-on work**, sixteen
-people in four teams of four. Provisioning is outside participant time. Do not
-copy the earlier thirteen-person roster or count deployment/breaks as hands-on.
-Rehearse actual elapsed learning/collection effort; headings are not proof of fit.
+people in four teams of four. Provisioning is outside participant time. Plan
+breaks separately and allow for model calls, tracing and evaluation collection.
 
 Terraform owns the hack-ready starting resources and reference implementations.
 Participants are encouraged to author their own APIs, MCPs, agents, connections,
@@ -26,10 +25,9 @@ Check with a **non-admin participant identity**, not only the deployer:
 | Extensions (B2) | Build/push image; create app in extension group; attach preassigned pull identity/environment. |
 | Librarian | Separate authorized human can review/publish; participants/agents cannot impersonate that role. |
 
-Current Foundry User grants do not explicitly include ARM connection writes.
-Prove the supported path with a participant; report a scoped access defect if
-denied. Do not silently substitute reference-only work or ask them to use an
-administrator account. Reference connection existence does not prove this.
+Include MCP connection creation in the participant access check: Foundry User
+does not explicitly grant ARM connection writes. If the supported portal path is
+denied, arrange a scoped permission review before the event.
 
 ## Module facilitation
 
@@ -49,8 +47,8 @@ cells. Do not leave three people idle watching a driver unless they choose that.
 **Reference catch-up:** inspect current state; add missing owned objects or attach
 the unchanged reference to a new owned agent. Never delete an attempt. Record
 what was bypassed; reference use does not certify the participant's integration.
-`lab practice status` reports actual owned API presence, not a blanket checkpoint
-pass or participant-permission certificate.
+`lab practice status` helps identify which owned API objects already exist.
+Check their behavior and participant access separately.
 
 ## Gateway and tracing distinctions
 
@@ -71,17 +69,13 @@ Central, not France Central. Mention the emerging option; it is not a required
 migration or a change to the lab.
 
 The explicit APIM model connection is not the native Manage -> AI Gateway
-association. The latter is not secretly introduced as a required participant
-setup in M3. Do not add a native link or a new APIM under curriculum approval.
+association. The native association is not required for M3.
 
-The browser rehearsal reached **Add AI Gateway -> select the France Foundry
-resource -> Use existing -> apim-ai-lab-r1029b**. Add was enabled for the
-organizer's Owner account; the wizard was cancelled without submission.
 The [native setup prerequisites](https://learn.microsoft.com/en-us/azure/foundry/configuration/enable-ai-api-management-gateway-portal)
 require Foundry resource administration plus APIM Service Contributor/Owner.
 Association is resource-wide, with existing projects enabled separately.
-It is therefore not a verified participant task. Enabling it would require
-separate authorization, role verification and a rerun of routing controls.
+Keep this an overview rather than a participant setup task: changing the
+association would need an infrastructure/role review and routing checks.
 
 Server-side tracing starts after Insights linkage; allow ingestion time. Verify
 the existing connection's portal recognition. Do not create duplicates or turn
@@ -117,13 +111,9 @@ Attempted M5 is sufficient for B1/B3/B6; it is not release qualification. No
 backend/evaluator bypass is needed or authorized. B6 still demonstrates a strict
 production-style CI gate: failed/incomplete evidence blocks promotion.
 
-The existing rehearsal already provides enough attempts: p1/p2/p4 each collected
-12 rows but verified native provenance for only 9/8/8 respectively; p3 stopped
-on 429 after 8 rows. Steward v4 smoke verified native proof for all 4 rows but
-missed expected tools. Distinguish missing facts/tools (quality), missing native
-provenance and incomplete 429 collection; do not describe all as prompt
-difficulty. Keep failed results failed and incomplete results incomplete.
-Inspect manifests directly; do not rank incomplete evidence with `lab compare`.
+Distinguish missing facts/tools (quality), missing native provenance and
+incomplete collection caused by 429s. These need different follow-up actions.
+Inspect incomplete manifests directly rather than ranking them with `lab compare`.
 
 **Across all teams:** record collection closure only after every team's
 frozen-corpus attempts completed or were explicitly stopped, before any librarian
@@ -155,10 +145,10 @@ One repair attempt per failed live activity, then preserve evidence/report and
 move to independent work. Missing prerequisite or shared infrastructure/access
 defect requires an explicit scoped exception, not hidden deployment changes.
 
-## Go/no-go reporting
+## Final preparation
 
-Track written, locally checked, docs-checked, portal-walked, non-admin verified,
-live-gate passed and blocked separately. B6 remains live-blocked until separately
-approved delivery setup. B3/B9 are participant builds, not prebuilt applications.
-An organizer's pass is not non-admin proof, and a deployment receipt is not a
-full-day curriculum rehearsal. Consult [current readiness](exercise-readiness.md).
+Check the participant path with a non-admin account, including connections,
+authoring, export and save/readback. B6 needs its separate delivery setup.
+B3/B9 invite participant implementation; B9 also has an optional local reference.
+Consult [preview notes and troubleshooting](exercise-readiness.md) for current
+exercise guidance.

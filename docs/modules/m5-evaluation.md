@@ -10,12 +10,11 @@ Suggested reading:
 - [Evaluate agents](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/evaluate-agent).
 - [Cloud evaluation](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/cloud-evaluation).
 
-The lab deliberately pins task-adherence evaluator **v2** on its inherited
+The lab pins task-adherence evaluator **v2** on its
 numeric scale, plus custom fact/tool/template/safety/provenance checks. Do not
 copy newer default evaluators or change thresholds to obtain a pass.
-Cowork also proposed intent resolution, tool-call accuracy, relevance and
-coherence; those additional built-in diagnostics are **not implemented in the
-current runner**. Do not claim their custom-check counterparts are those built-ins.
+Additional built-in diagnostics such as intent resolution, tool-call accuracy,
+relevance and coherence are outside this exercise's current runner.
 
 ## Build and measure
 

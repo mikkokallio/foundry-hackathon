@@ -1,41 +1,19 @@
 # AI platform hackathon
 
-> [!WARNING]
-> **PREVIEW - for customer review and controlled deployment testing.**
-> Minor changes to the M1-M5 exercises and instructions are likely.
-> Some initial setup / Module 0 changes may also be needed as deployment
-> validation continues. This is not a final, fully verified workshop release.
-> Review the [known blockers and verification status](docs/exercise-readiness.md)
-> before deploying. Pin the reviewed commit and re-review affected plans when
-> applying updates; do not change source or inputs during an active apply.
+> [!NOTE]
+> **Preview.** Minor updates to M1-M5 are likely. Initial setup may receive
+> targeted infrastructure fixes if deployment testing identifies a need.
 
-This repository is the replacement implementation. Earlier sibling projects
-were reference material, not the deployment source.
+A full-day Microsoft Foundry hackathon with **4.5 hours of hands-on work**.
+Build an architecture documentation agent, connect tools, explore gateway
+governance, discover reusable APIs and evaluate different agent configurations.
+The exercises use synthetic business data.
 
-**Customer handoff: Module 0 is available for a controlled deployment trial,
-not yet a fully verified clean-deployment release.** The latest fresh instance
-applied its foundation and access stages and built its images. Workload
-provisioning is blocked by repeated Azure API Management MCP-tool HTTP 502
-responses; an earlier Microsoft Graph timeout also required a reviewed resume
-plan. See the [current evidence and known blockers](docs/exercise-readiness.md).
-Do not treat a partial apply as success.
-
-Module 0 deployment readiness is separate from M1-M5 curriculum qualification.
-Customers can test their subscription's deployment compatibility before the
-later exercises are fully qualified. Operational prerequisites and actual
-participant access must still be checked before running the affected exercises.
-Infrastructure changes remain limited to explicitly reviewed targeted fixes,
-not a redesign or an implied guarantee of no further fixes.
-
-For the participant curriculum, start with [Participant: start here](PARTICIPANT-START.md).
-The curriculum is work in progress: live browser rehearsal and genuine Foundry
-smoke/regression qualification are still in progress. A Git push is a source
-backup, not a readiness or deployment approval.
-
-Local environments, Terraform state/inputs, exported packs, Foundry runtime
-evidence/caches and the original organizer handoff ZIP/notes are intentionally
-not committed. Export fresh packs for the actual deployment; do not reconstruct
-credentials or acceptance evidence from this repository.
+- **Participants:** start with [Participant: start here](PARTICIPANT-START.md).
+- **Deployment teams:** review the component checklist below, then follow
+  [Module 0](docs/module-0.md).
+- **Facilitators:** use the [coach guide](docs/coach-guide.md) and
+  [preview notes and troubleshooting](docs/exercise-readiness.md).
 
 ## Customer deployment: components and policy checklist
 
@@ -84,12 +62,12 @@ group, and shared-service authoring is not hard team isolation.
 - **Operator rights:** resource creation, custom-role definition and assignment
   rights at the plan's actual scopes, subscription cost reads, and tenant-approved
   Graph/app-registration/app-role operations. Resource-group Contributor alone
-  is insufficient. Have administrators approve/register missing providers;
-  preflight does not silently register them or repair permissions.
+  is insufficient. Have administrators approve/register missing providers
+  before deployment.
 - **Quota and network access:** model deployments/TPM, Search, APIM and container
   capacity; operator/participant access to Azure, Entra, package sources and
   required public service endpoints. No private-endpoint/VNet alternative is
-  provided by the frozen profile.
+  included in this lab profile.
 - **Shared-subscription spending and deletion:** current protection uses EUR and
   whole-subscription month-to-date costs, including unrelated existing spend.
   Customer-approved limits, reserve and expiry must fit that subscription;
@@ -97,17 +75,16 @@ group, and shared-service authoring is not hard team isolation.
   only the new enrolled disposable groups and their data on cutoff, expiry or
   cost-visibility failure. The monitoring group survives; delayed billing means
   this is not a guaranteed hard cap. Review the saved plan's exact scopes.
-- **Execution and evidence:** run [Module 0](docs/module-0.md)'s read-only
+- **Deployment:** run [Module 0](docs/module-0.md)'s read-only
   preflight, then review separate foundation/access/workload plans before any
-  apply. Retain private state and failure receipts. The fresh MCP 502 blocker
-  remains open; a successful preflight is not proof of a complete deployment.
+  apply. Keep state and deployment inputs private. Deployment-specific
+  troubleshooting is in the [preview notes](docs/exercise-readiness.md).
 
-Linux/Cloud Shell commands are supplied but **not deployment-tested**; the
-actual Cloud Shell trial could not establish an approved processing region and
-used the authorized local Windows fallback. Cloud Shell storage is an optional,
-separately approved portal prerequisite, not silently added by these Terraform
-roots. B6 remote-state/OIDC integration and B9 hosting are also not automatically
-provisioned by Module 0; the optional B9 reference runs locally.
+Windows deployment commands have been tested. Linux/Cloud Shell alternatives
+are included but have not yet been deployment-tested; see
+[Module 0](docs/module-0.md#linux-workstations-and-azure-cloud-shell).
+Cloud Shell persistent storage is configured separately. B6 remote-state/OIDC
+integration is an optional follow-on stage; the B9 reference runs locally.
 
 ## Deployment boundaries
 
@@ -125,10 +102,8 @@ The architecture-docs scenario requires Azure AI Search. Optional participation
 in the knowledge exercise does **not** make its prerequisites optional.
 
 Start with [Module 0's inventory and acceptance requirements](docs/module-0.md).
-The [infrastructure contract](infra/README.md) defines the separation. Neither
-document is a claim of working code or live verification.
-The [exercise-readiness audit and input pack](docs/exercise-readiness.md) covers
-all core/bonus activities, reusable materials and the remaining post-TF work.
+The [infrastructure guide](infra/README.md) explains the deployment stages;
+the [component design notes](docs/reuse-evidence.md) explain key choices.
 
 ## Current code
 
@@ -141,16 +116,11 @@ all core/bonus activities, reusable materials and the remaining post-TF work.
 - [Scenario-selecting entry point](infra/scripts/Invoke-Deployment.ps1) supports
   local inspection/validation and separate saved plans. It has no automatic
   apply operation.
-- [Reference reuse record](docs/reuse-evidence.md) distinguishes evidence from
-  assumptions and components not yet adopted.
-
 Runtime applications, API/MCP/catalog wiring, Search ingestion/knowledge setup,
 extension authoring permissions, Content Safety/model-pool prerequisites,
-read-only preflight and independent spending/expiry protection are implemented
-locally. Current-source images built in the existing ACR and passed local
-startup/authentication checks. Isolated replacement deployment, cloud protection
-and several real runtime paths are verified; complete lifecycle cleanup,
-non-admin participant rehearsal and genuine Foundry acceptance remain unaccepted.
+read-only preflight and spending/expiry protection are included in the
+deployment. Participants build their own integrations alongside the supplied
+reference implementations.
 
 The optional Redis branch is selectable with
 `workload_inputs.semantic_cache_enabled: true`; it defaults to off and requires
@@ -165,16 +135,9 @@ real or fictional name. There is no default company name. Both apps receive
 standard use it. Lab business data remains synthetic and contact addresses use
 the reserved `.invalid` domain.
 
-## Authority and safety
+## Working together
 
-The organizer's decisions override the original handoff and earlier code.
-Conflicting requirements are surfaced, not silently dropped. The supplied ZIP,
-notes and attached editor snapshots are reference material and remain unchanged.
-
-No whole-repository copying, copied Terraform state, migration of the old lab,
-automatic apply, production-data access, publication, or new paid environment is
-authorized by the local build. Old infrastructure still incurs charges until
-separately reviewed; its costs cannot be ignored when considering a new deployment.
-The protector deletes explicitly enrolled disposable resource groups, including
-their document data, on expiry, buffered-cost cutoff or cost-visibility failure. Its monitoring group
-survives. Delayed PAYG billing means it is not a guaranteed hard spending cap.
+Use the assigned participant identities and team-prefixed resource names.
+Keep Terraform-owned references unchanged while building your own integrations.
+Proposal saving requires exact-text approval; publication is a separate
+human librarian action coordinated across teams.

@@ -19,7 +19,7 @@ Suggested reading:
 | Home | Your project/context and entry points into building. | Check where your work will be created and what the organizer supplied. |
 | Discover | Model catalog/cards, capabilities and tool offerings. | Compare models now; ask what information would justify your choice. Tool discovery returns in M4. Do not deploy new models. |
 | Build | Models/playgrounds, agents, instructions, tools and evaluations. | Build the baseline here, add documentation tools in M2, toolkit in M4 and evaluations in M5. |
-| Operate | Overview, Assets and Compliance across your selected context. | Explore fleet-level monitoring/governance; individual agent traces are under Build, not here in the rehearsed portal. |
+| Operate | Overview, Assets and Compliance across your selected context. | Explore fleet-level monitoring/governance; individual agent traces are under Build. |
 | Manage | Project details, connections, permissions, quotas, AI Gateway. | Understand shared dependencies and where centralized governance is configured. |
 
 Locate the team's existing model deployments and connections. Ask: what is shared
@@ -27,12 +27,11 @@ across your four agents, and what belongs to one agent version?
 
 **AI Gateway is not configured in Manage?** This lab supplies an explicit
 APIM-backed model connection. That is different from Foundry's native
-Manage -> AI Gateway association. Native linking is not a hidden prerequisite
-later in the exercises. M3 verifies the existing explicit route.
+Manage -> AI Gateway association. M3 uses the existing explicit route; native
+linking is not required.
 You may inspect **Add AI Gateway -> Use existing**, then **Cancel**; do not
 submit the association. This is resource-level governance setup, not an
-agent-local connection. Participant permissions have not been proven sufficient,
-and enabling native routing could change the direct-call control.
+agent-local connection, and enabling it could change the direct-call comparison.
 
 **Is this the APIM "Add API -> Microsoft Foundry" setup?** It is the same
 model-proxy architecture, authored through Terraform rather than the wizard.
@@ -53,7 +52,7 @@ Central and East US 2, not France Central. This lab keeps its existing APIM tier
 ### 1. Check tracing before collecting answers
 
 Open **Build -> Agents** and check for the notice **"This project logs traces
-to help you monitor and improve your agents."** In the rehearsed portal, traces
+to help you monitor and improve your agents."** Traces
 are reached through **Build -> Agents -> open an agent -> Traces**. There is no
 project-wide Traces tab on the Agents list or Tracing item under Operate.
 After creating your agent below, inspect its trace list before opening a run.
@@ -73,7 +72,7 @@ Choose **New agent -> Build an agent**, enter your own `...-baseline-direct`
 name, retain **Text** mode, then **Create agent and open playground**.
 Use the pack's baseline prompt as Instructions.
 
-**Check the defaults before sending anything.** In rehearsal, a new agent had
+**Check the defaults before sending anything.** A new agent may have
 **Web search enabled** and a connected medium model selected. Remove Web search
 using **Actions for Web search -> Remove**. Confirm the Tools list is empty;
 otherwise this is not a no-tools baseline and may make paid web calls.
@@ -85,13 +84,13 @@ Create `...-baseline-small` with identical instructions but the **admin-connecte
 small model**, using the supplied APIM model connection. Repeat the same request.
 
 The model picker separates **Admin-connected**, **Deployments** and **Models**.
-In the current rehearsal:
+Use your exported pack's actual names:
 
 | Route | Picker choice | Check |
 |---|---|---|
-| Direct small | Deployments: `archdocs-france-chat-small` | Underlying model `gpt-5.4-nano`; not the connected choice. |
-| Connected small | Admin-connected: `gpt-5.4-nano` | `archdocs-france-alpha-models/chat-small`, routed through `apim-ai-lab-r1029b`. |
-| Connected medium | Admin-connected: `gpt-5.4-mini` | `archdocs-france-alpha-models/chat-medium`, routed through the same APIM. |
+| Direct small | Deployments: `<workload>-chat-small` | Underlying model `gpt-5.4-nano`; not the connected choice. |
+| Connected small | Admin-connected: `gpt-5.4-nano` | `<workload>-<team>-models/chat-small`, routed through the assigned APIM. |
+| Connected medium | Admin-connected: `gpt-5.4-mini` | `<workload>-<team>-models/chat-medium`, routed through the same APIM. |
 
 Names differ for other workload/team exports: `model_variants` contains your
 exact IDs. Inspect the connection/route detail, not just the model label.

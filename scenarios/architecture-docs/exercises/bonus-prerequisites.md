@@ -1,4 +1,4 @@
-# Bonus prerequisites, not completed exercises
+# Bonus prerequisites
 
 The [module manifest](modules.json) lists all core/bonus activities and their
 inputs. Working reference infrastructure does not mean the learner's artifacts
@@ -62,9 +62,9 @@ is not team isolation.
 - **B8:** generated MCP config prompts for a short-lived participant Entra token;
   it contains no token. A coding-agent subscription is optional. REST via the
   OpenAPI contract is the no-license alternative. Keep write confirmations on.
-- **B9:** prompt/spec is supplied, not a completed frontend. Participants build
-  a local client with server-side participant authentication and actual agent
-  binding. Additional Azure hosting is not selected or required.
+- **B9:** participants build a local client using the prompt/spec, with an
+  optional reference implementation for comparison. Use server-side participant
+  authentication and the actual agent binding. Azure hosting is a separate extension.
 
 ## Data and evaluation cautions
 
@@ -82,10 +82,9 @@ Retain the corpus boundary: later changed-corpus runs are not the original
 baseline. Do not weaken expectations or silently reset documents. Real projects
 retain stricter release requirements.
 
-The 25 inherited evaluation cases and numeric thresholds are retained. Only two
-ground-truth mailbox addresses follow the already-neutralized `.invalid`
-inventory. Prompts are adapted for configurable branding/reference date and
-explicit exact-text approval; they need fresh live acceptance.
+The 25 regression cases use fixed numeric thresholds and synthetic `.invalid`
+contact addresses. Prompts use configurable branding/reference dates and
+explicit exact-text approval.
 
 The exporter derives explicit four-case `smoke.jsonl`, twelve-case
 `comparison-12.jsonl` (5 QA, 3 gap, 1 draft, 3 guardrails), their portal mappings

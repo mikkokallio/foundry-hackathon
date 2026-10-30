@@ -97,26 +97,16 @@ Use the browser for this experiment:
    Respect the observed retry interval and propagation, then make one fresh
    read-only call to verify recovery.
 
-**Observed browser result: 429 during MCP discovery/enumeration; recovery after
-restoration.** The owned 1/minute policy was followed by a 429 during Foundry's
-**tool enumeration**, with body `Rate limit is exceeded. Try again in 60 seconds.`
-Gateway attribution is strongly supported by the controlled policy change and
-error body, but is **not independently trace-confirmed**.
-Foundry displayed a service error before inventory
-execution/approval, not a generated agent explanation. Earlier six-response
-probes had completed their entire save/probe/restore cycle in only 12–13
-seconds; their 200s did not establish that the edited policy had propagated.
-The browser result supports limiter enforcement, not fully proven origin or the
-exact cause of those earlier misses. One bounded tool-only conditional-policy correction reached a real
-inventory result but did **not** demonstrate a business-tool 429; its approval
-automation also encountered the menu/running-state boundary. Both experiments
-restored the exact original policy, independently hash-verified after a reload.
-A subsequent browser call returned 13 systems, confirmed in the native tool
-trace. This recovery was **human-assisted**: the organizer selected
-**Approve once** after automation repeatedly toggled the approval menu without
-choosing its item. It is not proof of autonomous approval handling.
-A post-discovery `tools/call` throttle remains a
-separate check; do not mark it passed from the enumeration error.
+**Observe where the throttle occurs.** A low limit may produce a 429 during
+Foundry's **tool enumeration**, before inventory execution or approval, with a
+message such as `Rate limit is exceeded. Try again in 60 seconds.` In that case,
+you may see a service error rather than an agent explanation. Distinguish this
+from a later business-operation `tools/call` throttle.
+
+Allow time for policy propagation before drawing conclusions. After restoring
+the policy, make a fresh inventory request and confirm recovery in its tool trace.
+Use **Approve -> Approve once** when asked; opening the Approve menu alone does
+not approve the call.
 
 If browser editing or playground use is blocked, record the exact blocker.
 A coach-approved direct MCP probe is a diagnostic fallback, not proof of the

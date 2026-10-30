@@ -36,9 +36,9 @@ full explanations. Use a fresh exported pack, not the backend's original spec.
 
 After **Create**, wait for the import to finish and **Design** to show your API.
 The form can remain visible briefly while the asynchronous import runs; do not
-click Create repeatedly. The fresh browser retry succeeded with **14 operations**
-and matching operation IDs/display names, including `listSystems`, `getSystem`
-and `validateDocument`. Import success alone is not a working or secured backend:
+click Create repeatedly. Expect **14 operations** with matching operation
+IDs/display names, including `listSystems`, `getSystem` and `validateDocument`.
+Import success alone is not a working or secured backend:
 continue with the Settings and policy steps below.
 
 ### 2. Secure and test the REST path
@@ -54,7 +54,7 @@ auth error is not fixed by deleting the validation policy. Test an anonymous
 request separately: it must be rejected.
 
 The Test console does **not** automatically send your portal sign-in as a
-workload token. Without Authorization, the rehearsed result is **401: A valid
+workload token. Without Authorization, expect **401: A valid
 workload Entra token is required**. For an authenticated check without copying a
 token into the browser, use Azure CLI and PowerShell (Python is not required):
 
@@ -84,8 +84,8 @@ change the answer you received in M1?
 
 APIM -> **MCP Servers -> Create MCP server -> Expose an API as an MCP server**.
 Select your REST API and the documentation operations. Set the display name and
-Name (`$prefix-docs-mcp`), then Create. The rehearsed form has no path field: it
-generated `https://<gateway>/$prefix-docs-mcp/mcp`. Retain the **actual server URL**;
+Name (`$prefix-docs-mcp`), then Create. The form generates a URL such as
+`https://<gateway>/$prefix-docs-mcp/mcp`. Retain the **actual server URL**;
 do not substitute the reference's or the code helper's different path.
 
 Exclude `health` and **`publishProposal`**. Include reads, `validateDocument` and
@@ -117,7 +117,7 @@ the gateway app ID from the reference documentation connection: the middle
 component of the pack's `api://APP_ID/Lab.Access` scope, not the entire scope.
 Select **Connect**. This creates a RemoteTool connection, visible afterwards in
 **Manage -> Project details -> Connected resources**. That page's **Add connection**
-picker did not offer MCP in the rehearsal. No copied credentials.
+picker may not offer MCP; use the agent's tool picker above.
 
 If your own identity cannot create this connection, stop and tell the coach:
 this is an access defect, not permission to borrow an organizer account.
@@ -126,10 +126,9 @@ Add **only your documentation MCP** at this stage. On its **Actions -> Configure
 enter the twelve selected tool names under **Allowed ... tools**. Choose
 **Never auto-approve tools**; this requires confirming reads as well as saves.
 For each expected read, choose **Approve -> Approve once**, not an Always option.
-The rehearsed portal's selective-autoapproval policy omitted the explicit
-write-approval rule required by this repository's gate. The helper's reviewed
-policy supports selective read approval; do not weaken the gate to accept a
-different policy. Never choose **Always auto-approve all tools**. Apply, Save
+This keeps the explicit write-approval rule required by the evaluation gate.
+The helper also supports selective read approval. Never choose
+**Always auto-approve all tools**. Apply, Save
 and confirm the new agent version. Publication must not appear at all.
 
 Ask:

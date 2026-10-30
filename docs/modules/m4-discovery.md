@@ -21,19 +21,16 @@ Suggested reading:
    explanations in Summary/Description. Add a **Remote** using your actual M2
    connection endpoint and select your existing development environment. Set
    version title/identification and Development lifecycle, then **Create**.
-   The organizer's browser retry confirmed a portal defect: generated definition
-   titles add `SSE Definition for ` or `Streamable Definition for `, but the
-   service limits definition titles to 50 characters. A longer asset title
-   saved the asset/version, then returned HTTP 400:
+   Generated definition titles add `SSE Definition for ` or
+   `Streamable Definition for `; the service limits definition titles to 50
+   characters. A longer asset title can save the asset/version, then return HTTP 400:
    `The field Title must be a string or array type with a maximum length of '50'.`
-   One correction using a short title on the same owned asset ID succeeded.
+   If this occurs, shorten the title on the same owned asset and retry.
    Verify the saved version, **both definitions** and deployment runtime URL;
    an asset appearing in the list or a success notification alone is insufficient.
 
-   **Contract limitation:** the retry downloaded the actual generated OpenAPI
-   definitions. They advertised root `/sse` and `/message`, not the registered
-   APIM MCP path. Native metadata registration succeeded, but those generated
-   contracts are **not verified invocation contracts**. Assess their paths,
+   **Check the generated contract:** OpenAPI definitions may advertise root
+   `/sse` and `/message` rather than the registered APIM MCP path. Assess their paths,
    authentication and transport against the actual endpoint before reuse.
    The unchanged lab reference is a **REST record with MCP discovery links**.
    For an accurate REST contract plus MCP discovery metadata, use **Register an

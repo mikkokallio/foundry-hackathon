@@ -4,9 +4,8 @@ A full-day hackathon with **4.5 hours of hands-on work**. Build an architecture
 documentation steward, connect real tools, govern traffic, discover reusable
 capabilities and compare agent configurations. All business data is synthetic.
 
-**Candidate curriculum:** deployment success is not participant acceptance.
-The [readiness record](docs/exercise-readiness.md) distinguishes written/local
-checks from live, portal and non-admin verification.
+**Preview:** minor updates to the M1-M5 exercises are likely.
+Your coach provides the environment details and helps with any setup issues.
 
 ## What is already there, and what you build
 
@@ -41,7 +40,7 @@ interpret what you observe; a plausible answer is not evidence of tool execution
 | [Core: review and save](docs/modules/core-approval.md) | Exact-text approval, persisted proposal and separate human-only publication. This is not a bonus. |
 
 Try building first. The **reference implementations** and code/checkpoint paths
-help if you get stuck; using them does not prove your attempted integration works.
+help if you get stuck. If you use one, compare it with your own integration.
 Catch-up never deletes your work.
 
 ## Optional local code path
@@ -84,8 +83,8 @@ Do not edit receipts or set `runtime_accepted` to true.
 [coding client](docs/bonus/b8-coding-client.md) /
 [local app](docs/bonus/b9-local-app.md).
 
-Bonuses have explicit prerequisites; not all are ready merely because the shared
-services exist. Publication changes everyone's corpus: coordinate it **after all
+Check each bonus's prerequisites before starting. Publication changes everyone's
+corpus: coordinate it **after all
 teams' frozen-corpus evaluations**. Saving a proposal does not publish it.
 
 ## When something fails

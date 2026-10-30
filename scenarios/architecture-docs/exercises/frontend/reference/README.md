@@ -27,7 +27,7 @@ No Linux startup/deployment acceptance is claimed.
 
 **Identity matters:** the Python server uses its Azure CLI identity, displayed
 at the top of the UI. Signing the browser into another account does not change
-it. For a non-admin rehearsal, use a separate terminal with an isolated
+it. For non-admin testing, use a separate terminal with an isolated
 `AZURE_CONFIG_DIR`, sign in as the actual participant, and launch the server
 from that terminal. Do not overwrite another terminal's organizer credentials.
 
@@ -51,7 +51,7 @@ Reviews expire after five minutes. Cancellation clears pending consent and
 discards late read/validation results; it cannot revoke an already submitted
 write. Reconcile an uncertain write before starting another save.
 
-## Verification and boundaries
+## Testing
 
 The local adapter contracts run with:
 
@@ -59,18 +59,12 @@ The local adapter contracts run with:
 .\.venv\Scripts\python.exe -m pytest scenarios\architecture-docs\tests\test_frontend_reference.py -q
 ```
 
-Those tests use explicit service doubles; they are not live acceptance evidence.
-Browser rehearsal separately demonstrated genuine gaps, agent invocation and
-approved inventory retrieval, valid/invalid validation, denial, edit invalidation,
-cancellation and actual Mermaid rendering. Script/event-handler probes did not
-execute. That rehearsal used the organizer's server identity and performed no
-writes to the original instance.
+These are local adapter contract tests using service doubles. When checking your
+live setup, verify inventory reads, agent/tool calls, valid/invalid validation,
+approval denial, edit invalidation, cancellation and Markdown/Mermaid rendering.
+Complete save/readback with your own participant identity. Use M5 for agent
+quality evaluation.
 
-Configuration checks, local tests and browser operation do not grant full agent
-qualification. Agent/output-parser/rendering changes still require applicable
-genuine evaluation and native provenance evidence.
-
-**Hosting continuation:** do not put this development server in ACA as-is.
-It binds to loopback and intentionally uses the local person's CLI identity.
-A hosted version needs a separately reviewed user sign-in/delegation/consent
-design; a shared managed identity must not silently impersonate participants.
+**Hosting extension:** this server is designed for local loopback use with the
+local person's CLI identity. An Azure-hosted version needs user sign-in,
+delegation and consent rather than a shared server identity.

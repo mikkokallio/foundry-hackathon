@@ -1,24 +1,17 @@
 # Module 0 - Review and deploy the foundation and selected workload
 
-> [!WARNING]
-> **PREVIEW.** Initial setup may still need targeted changes as deployment
-> validation continues. Minor M1-M5 exercise/instruction changes are also likely.
-> Check the [repository preview notice](../README.md) before starting.
+> [!NOTE]
+> **Preview.** Minor M1-M5 updates are likely. Deployment testing may lead to
+> targeted infrastructure fixes.
 
-**Status: available for a controlled customer deployment trial, not yet accepted
-as a fully repeatable clean deployment.** The fresh rehearsal applied foundation
-and access and built images; workload MCP-tool creation is currently blocked by
-Azure APIM HTTP 502 responses after a separate Graph timeout/reviewed resume.
-See [current evidence](exercise-readiness.md) and the main page's
-[customer resource and policy checklist](../README.md#customer-deployment-components-and-policy-checklist).
-No deployment-time target, resources, costs or role assignments are approved
-by this document.
+Prepare the subscription, deploy the shared services and scenario, then verify
+participant access. Start with the
+[resource and policy checklist](../README.md#customer-deployment-components-and-policy-checklist)
+and agree the target environment, costs and permissions with your deployment team.
 
-The organizer reviews every part before we deploy together. Customer deployment
-testing can start before M1-M5 curriculum qualification is complete.
-Do not start an affected participant exercise until its infrastructure and
-effective participant access have been verified. Deployment acceptance and
-agent qualification are separate; neither substitutes for the other.
+Module 0 can be tested independently of the later exercises. Deployment-specific
+issues and recovery guidance are collected in the
+[preview notes](exercise-readiness.md).
 
 ## Required inventory
 
@@ -43,50 +36,35 @@ agent qualification are separate; neither substitutes for the other.
 | Explicit human approval, separate librarian authorization | Workload | Core write-back; never an agent publication tool |
 | Search index, ingestion, embedding/vectorizer, knowledge source/base and connection | Workload/B1 exercise | Working knowledge exercise, with permissions provisioned before the event |
 | Two usable model backends and content-safety prerequisites | Workload | B4 resilience and safety exercise |
-| Optional semantic-cache infrastructure and complete identity/network configuration | Explicit workload option | B4 cache branch; disabled must mean clearly unavailable, not silently simulated |
-| Price inputs and caller/team token dimensions | Workload/operations | B5; never fabricated prices or a promise that TPM is a billing cap |
+| Optional semantic-cache infrastructure and complete identity/network configuration | Explicit workload option | B4 cache branch, when selected |
+| Price inputs and caller/team token dimensions | Workload/operations | B5 usage and cost investigation |
 | OIDC/remote-state setup and evaluation-gated CI | Optional delivery integration | B6; no secret credentials committed or demanded in chat |
 | Coding-agent MCP configuration and CLI alternative | Workload exercise | B8; no Copilot license required for the core |
-| Local-front-end prompt pack and API contract, not a prebuilt app | Workload exercise | B9 |
+| Local-front-end prompt pack, API contract and optional reference implementation | Workload exercise | B9 |
 | Teardown, preservation boundaries and soft-delete/redeployment procedure | Operations | Jointly reviewed destruction; no automatic deletion after success |
 
-## Scope decisions that override the old handoff
+## Workshop scope
 
 - All five core modules remain required.
-- Human-approved proposal saving is core, not deferred to B7.
+- Human-approved proposal saving is part of the core journey.
 - Publication is a separate human operation, never an agent tool.
-- AI Search and B1 prerequisites must be deployable as part of this scenario.
-- Model deployments belong to the workload, not a foundation default.
-- Public, identity-protected endpoints are the agreed sandbox profile, not a
-  production network landing zone.
-- No participant-wide resource-group Contributor by default.
-- No event-time permission repair or invented placeholder users.
-- No production license, public-repository release or automatic publication is
-  inferred from the old handoff.
-- The old "Search must never use Sweden Central" assertion requires current
-  availability/capacity verification; it is not a permanent technical rule.
-- Cold-start, model-capacity, API export and telemetry-publishing lessons from the
-  earlier deployment must be reflected explicitly and verified again.
+- AI Search and B1 prerequisites are included in this scenario.
+- Model deployments belong to the workload.
+- The lab uses public, identity-protected endpoints.
+- Participant permissions are scoped to the required learning activities.
+- Resolve and check the actual participant roster before the event.
 
-## Access decisions to show before implementation
+## Participant access
 
-Reading tools alone is not enough: M2/M3 require API-management changes, M4
-requires catalog writes, B1 needs Search authoring, and B2 needs application
-creation. The earlier read/export-only participant grants did not cover those
-learning activities.
+M2/M3 require API-management changes, M4 requires catalog writes, B1 needs Search
+authoring, and B2 needs application creation. Review each operation, principal,
+role and scope before applying the access plan.
 
-The permissions matrix must list each operation, principal, role and scope.
-Shared-service authoring can let participants alter another team's lab resources;
-that tradeoff must be approved explicitly. Do not hide it behind "least privilege"
-or silently assign resource-group Contributor.
-
-The organizer approved **service-scoped authoring on shared lab services**,
-including the cross-team configuration risk. No blanket resource-group
-Contributor is approved. The access Terraform accepts team membership as UPNs
+The lab uses **service-scoped authoring on shared services**, rather than
+resource-group Contributor. The access Terraform accepts team membership as UPNs
 or tenant object IDs and resolves the actual users with the AzureAD provider.
-It is a separate reviewed stage, not hidden side effects in the foundation.
-Guest invitation acceptance and effective non-admin sign-in still require
-explicit preflight/rehearsal; Azure role declarations alone do not prove them.
+Access is a separate deployment stage. Check guest invitation acceptance and
+sign in with a non-admin participant account to verify effective access.
 
 The actual built-in APIM, API Center and Search service-contributor definitions
 also permit foundation-service deletion or reconfiguration. They are therefore
@@ -98,9 +76,9 @@ apply, and the deployment operator needs role-definition creation rights as well
 as assignment rights. Existing unrelated grants are not automatically revoked.
 Search document data access remains explicit and shared for the synthetic lab.
 
-**Workshop warning:** teams can change other teams' shared APIM/API Center/Search
-configuration and synthetic Search data. Use team-prefixed names and coordinate
-shared changes. These grants are not team isolation.
+**Shared authoring:** teams share APIM/API Center/Search configuration and
+synthetic Search data. Use team-prefixed names and coordinate shared changes;
+the authoring grants do not isolate teams.
 APIM policy authors can also alter gateway-enforced controls, including team and
 librarian checks. Treat them as trusted lab operators, not isolated tenants.
 
@@ -109,15 +87,11 @@ authoring, ACA-environment join and ACR build/push grants. Teams can modify each
 other's extension apps, but these grants exclude the trusted backend/toolkit
 group and identities and do not permit role assignments.
 
-Guidance to prepare after Module 0: keep participant and coach instructions
-concise and role-specific (actions, expected results, relevant troubleshooting
-and this warning), without engineering logs or unrelated implementation history.
-
-## Local implementation checks
+## Deployment tools
 
 ### Preferred: native Terraform
 
-Open a **fresh terminal** so the earlier shell `TF_DATA_DIR` setting is not
+Open a **fresh terminal** so an existing shell `TF_DATA_DIR` setting is not
 inherited. From the `hackathon` folder:
 
 ```powershell
@@ -135,8 +109,8 @@ Terraform does not provide a recursive Bicep-style object wizard.
 
 This uses the foundation root's normal local backend/state. Do not mix it with
 the optional wrapper's separate `out/` state for the same deployment. Stop at
-the plan: the destructive protector and every resource/permission still need
-joint approval. The foundation creates no models.
+the plan to review resources, permissions and the spending protector with your
+deployment team. The foundation creates no models.
 
 The workload now selects GA GPT-5.4 nano/mini/full candidates and embeddings,
 not Legacy GPT-4.1. Their exact versions, regional support and free quota were
@@ -159,8 +133,8 @@ terraform -chdir=scenarios\architecture-docs\infra validate
 
 The inspector selects the actual workload root and displays its model
 requirements separately from the foundation. Its result explicitly says
-`deployment_ready: false`. Local initialization/validation is not a live plan,
-working application, completed Module 0, or authorization to apply.
+`deployment_ready: false` because inspection checks configuration only.
+Continue with preflight and planning to check the actual environment.
 
 The composition entry point has `Inspect`, `Validate`, `Preflight`, `Plan`,
 `BuildImages` and `InitializeKnowledge` operations.
@@ -174,10 +148,9 @@ ignored `out/`; protect them and do not commit them.
 Workload inputs are declared by the selected scenario, not imposed by the
 foundation. Architecture-docs currently requires two immutable ACR images and
 explicit librarian UPNs/object IDs, with a scenario-owned reference-date default.
-No application is silently omitted when an image is missing. The workload plan
+Both application images are required. The workload plan
 uses the real access-stage output and rejects a different foundation or stale
-roster. Applied state is not proof of effective access; the non-admin rehearsal
-remains mandatory.
+roster. Verify effective access with a non-admin participant account after applying.
 
 The [runtime declaration](../scenarios/architecture-docs/infra/runtime.tf) gives
 backend and toolkit distinct identities. Both can pull from the selected ACR;
@@ -188,14 +161,13 @@ creates its own API application, team/project grants and separate human-only
 librarian role. The CLI delegated scope is explicitly pre-authorized; no secret
 client credential or automatic operator/librarian grant is created.
 
-Application sources, gateway/catalog/tool wiring, Search ingestion and explicit
-knowledge initialization are implemented locally. Existing-ACR image builds and
-local startup checks passed; replacement Azure behavior remains unverified.
+The workload configures the applications, gateway/catalog/tools, Search ingestion
+and knowledge initialization.
 Runtime and extension groups are explicitly enrolled in the independent
 foundation spending protector. Cutoff deletes enrolled groups and their data;
 the monitoring group survives. Billing is delayed: this is not a hard cap.
 Native project tracing connections and ingestion grants are declared in the
-foundation; live trace/provenance checks remain mandatory.
+foundation; verify ingestion by opening a real agent trace.
 
 The B4 cache branch is a real opt-in workload deployment:
 `workload_inputs.semantic_cache_enabled: true`. It creates Balanced_B0 Redis
@@ -207,10 +179,8 @@ secret-management role is declared too. No cache policy is pre-solved; the
 exercise must use `embeddings-backend-auth="system-assigned"`. Another workload's
 active external cache is rejected rather than overwritten.
 
-Cache provider registration, cost/secret exception approval and genuine live
-cache verification are required before enabling this branch. Current target:
-Microsoft.Cache is not registered; no registration was performed. Cost-visibility
-failure also triggers the destructive protector; review that tradeoff before apply.
+Before enabling this branch, check `Microsoft.Cache` provider registration,
+approve its cost/key-auth requirements and plan a live cache test.
 
 ## Linux workstations and Azure Cloud Shell
 
@@ -229,12 +199,10 @@ Keep the checkout, `out/`, plans, receipts and state on the mounted drive.
 Existing Azure sign-in does not prove Graph consent or deployment permission.
 See [Cloud Shell persistence](https://learn.microsoft.com/en-us/azure/cloud-shell/persisting-shell-storage).
 
-**Untested Linux deployment commands:** the Windows portability tests passed,
-but these commands have not been validated on Linux or through a Cloud Shell
-deployment. Cloud Shell actually reported `ACC_LOCATION=EASTUS2` despite a
-France Central preference and France-based storage; no private source or inputs
-were uploaded. The isolated rehearsal uses the authorized local Windows runner.
-Check `$ACC_LOCATION` in Bash (or `$env:ACC_LOCATION` in PowerShell) before upload.
+**Linux/Cloud Shell deployment commands have not yet been tested end to end.**
+Use the tested Windows path if needed. Cloud Shell processing can be in a
+different region from its storage account: check `$ACC_LOCATION` in Bash
+(or `$env:ACC_LOCATION` in PowerShell) before uploading private inputs.
 
 From the repository directory, these are **Bash** launch commands:
 
@@ -255,9 +223,8 @@ pwsh -NoLogo -NoProfile -File ./infra/scripts/Invoke-Deployment.ps1 \
 
 In PowerShell on Linux, use the same commands as below with `/` in paths.
 Do not copy Windows `C:\...` paths or Bash `export` statements into that shell.
-For a private repository, authenticate Git normally or upload a clean source
-archive from an identified commit and verify its hash. Never transfer another
-machine's credential store or commit private deployment inputs.
+Clone the repository or use a source archive from the selected commit. Keep
+private deployment inputs and machine credentials out of source control.
 
 Planning prints the exact backend/state, `TF_DATA_DIR`, plan path and SHA256.
 All reviewed applies must retain those exact values; do not use an ambient
@@ -265,9 +232,6 @@ default backend. A Cloud Shell disconnect is not proof a process stopped.
 Before resuming, inspect the original process, state lock and any recorded ACR
 run ID. Do not blindly force-unlock state or queue duplicate builds. Persistent
 local state is not a shared remote backend.
-
-**Validation boundary:** all Linux alternatives above remain untested. The
-Cloud Shell placement failure is not a successful Linux deployment rehearsal.
 
 ## Review order
 
@@ -308,7 +272,7 @@ The foundation command prints the exact saved-plan path, SHA256, state path and
 terraform -chdir=infra\foundation show -no-color 'C:\EXACT\PRINTED\Foundation-TIMESTAMP.tfplan'
 ```
 
-Stop after review; no apply is authorized by these commands. Check:
+Before applying the saved plan, check:
 
 - Correct tenant/subscription, regions, names, team projects and expiry.
 - APIM/Search/ACR/ACA SKUs, warm replicas and **all** ongoing costs.
@@ -344,10 +308,10 @@ Do not share state, full plan JSON or private roster files with participants.
 7. Joint apply, with explicit approval at each mutation boundary.
 8. Readiness evidence and non-admin acceptance.
 
-## Deployment acceptance, not just successful apply
+## Verify the deployment
 
-- Customer compatibility/preflight testing is a valid handoff milestone, not a
-  claim that the following complete-deployment checks have already passed.
+- Start with subscription compatibility and preflight; check the following
+  after applying the foundation, access and workload stages.
 - No unexplained or functional Terraform changes on a fresh repeat plan.
 - Every actual assignment is checked; propagation and non-admin effective access
   are tested separately from configured-role existence.
@@ -355,16 +319,13 @@ Do not share state, full plan JSON or private roster files with participants.
 - Search service authentication and embedding access work; B1 has a real,
   executable indexing/knowledge path. Exercise steps may build their intended
   artifacts, but may not require unplanned infrastructure or elevated grants.
-- No skipped, mocked, cached-response, incomplete or cancelled acceptance is a pass.
-- Deployment duration and repeatability are measured, not promised as 30 minutes.
-- Customer-specific quotas, subscription policy and billing currency limitations
-  are reported explicitly.
+- Record any incomplete checks so the deployment team can follow up.
+- Allow time for provisioning, role propagation and service checks.
+- Note environment-specific quotas, subscription policy and billing currency.
 
-## Separate curriculum and agent qualification
+## Continue to the exercises
 
-M1-M5 and bonus rehearsal, including genuine Foundry smoke/regression evaluations,
-remain separate from handing over Module 0 for customer deployment testing.
-Agent qualification still requires unchanged thresholds, real response IDs,
-matching agent versions and actual tool spans. Evidence, evaluation IDs and
-failure clusters stay under the selected agent's `.foundry/`. A failed or stopped
-evaluation is not a qualification pass, even when workshop progression is allowed.
+Export a team pack using the [export steps](exercise-readiness.md#export-after-the-workload-is-applied)
+and share [Participant: start here](../PARTICIPANT-START.md).
+M1-M5 build and test the agents after deployment. M5 explains how to interpret
+evaluation results and continue the workshop when an attempted run does not pass.

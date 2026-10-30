@@ -12,16 +12,15 @@ Read [Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concept
 and [knowledge base concepts](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base).
 The organizer already created the reference knowledge base. Do not recreate it.
 
-The organizer repaired the reference configuration through targeted Terraform.
-A fresh candidate retrieved real standard/template passages through the shared
-connection. This proves retrieval, not that every generated answer is correct.
+The reference connection supports retrieval from the published standards and
+templates. You will inspect both the retrieved sources and the answer's accuracy.
 
 ## Build
 
 1. Inspect the existing `<workload>-<team>-knowledge` connection in your project.
    Confirm its actual Search knowledge endpoint and project-managed-identity auth.
    Indexing success alone does not establish successful agent retrieval.
-   In the rehearsed portal it appears under **Tools -> Add -> Add tools ->
+   In the portal it appears under **Tools -> Add -> Add tools ->
    Configured** as a RemoteTool connection. The separate Knowledge menu offered
    **Connect to Foundry IQ**; do not create a resource, enter a key or change a
    shared association to replace the existing MCP connection.
@@ -29,17 +28,16 @@ connection. This proves retrieval, not that every generated answer is correct.
    prompt or chat is not a new candidate; creating an identical version can
    return the existing version. Add the existing knowledge/MCP
    connection through the supported tool UI. It appears under Knowledge, but
-   the rehearsed card offered only Details/Remove, not approval/allowlist controls.
+   the card may offer only Details/Remove, not approval/allowlist controls.
    Saving produced an auto-approved MCP definition with no tool allowlist.
    Before inference, use the helper below (or have the coach help) to create and
    inspect a candidate restricted to the actual read-only
    `knowledge_base_retrieve` operation, requiring approval.
-   Post-repair discovery accepts 1-3 queries, each at most 150 characters.
+   The retrieval tool accepts 1-3 queries, each at most 150 characters.
    For this workshop, use exactly one short query, at most 150 characters and
    under twelve words. This is a workshop policy, not the API's query-count limit.
    Do not assume the native card has established those controls. Use a fresh
-   candidate after any connection repair: an older candidate still failed
-   enumeration in rehearsal while a newly created one worked.
+   candidate after connection changes if an existing one cannot enumerate tools.
 
    From the configured participant terminal, use the saved immutable steward
    binding, an unused agent name and a new output file:
@@ -52,10 +50,8 @@ connection. This proves retrieval, not that every generated answer is correct.
    Substitute your actual steward binding filename. This clones the actual
    immutable base rather than rebuilding or overwriting it, checks the existing
    project connection and records a new candidate. Reusing an existing name or
-   output is refused. The corrected helper was browser-rehearsed with actual
-   retrieval and **Approve -> Approve once**, without human assistance. Its first
-   attempt omitted the required MCP `server_url` and failed; that was repaired,
-   not an infrastructure change. Qualification is still not granted by creation.
+   output is refused. Review the proposed query, then use
+   **Approve -> Approve once** to allow that retrieval.
 3. Ask the same narrative question before/after, for example: "Explain the
    architecture-documentation standard's expectations for interfaces and unknown
    operational details. Retrieve using exactly one query, cite the source filename
