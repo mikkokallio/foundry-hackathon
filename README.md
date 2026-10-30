@@ -9,6 +9,27 @@ Build an architecture documentation agent, connect tools, explore gateway
 governance, discover reusable APIs and evaluate different agent configurations.
 The exercises use synthetic business data.
 
+## What we're building
+
+A **toy architecture-documentation assistant** for an imaginary organization.
+You use it to:
+
+- Ask which systems exist, who owns them and how they connect.
+- Find missing or inconsistent architecture documentation.
+- Draft a document and check it against an inventory and documentation standard.
+- Review a proposed update and explicitly approve saving it for human review.
+  Publication is a separate human action.
+
+The MCP servers expose **mock business-system interfaces backed by synthetic
+inventory and documents**. Tool calls run against the lab services, not real
+business systems or production data. You interact with the agent in Foundry;
+an optional bonus adds a small local frontend.
+
+The goal is to learn how agents, tools, governance, traces and evaluations fit
+together, not to finish the day with a production-ready application.
+
+## Get started
+
 - **Participants:** start with [Participant: start here](PARTICIPANT-START.md).
 - **Deployment teams:** review the component checklist below, then follow
   [Module 0](docs/module-0.md).
