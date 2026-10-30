@@ -49,7 +49,7 @@ Azure subscription permissions alone do not authorize these tenant operations.
 Participant grants are direct roster assignments, not membership in a workshop
 group, and shared-service authoring is not hard team isolation.
 
-**Before applying in a customer subscription, check:**
+**Before deploying, check:**
 
 - **Policy and regions:** allow the listed resource providers, child-resource
   types, SKUs and public endpoints, including Storage, Key Vault, Search, ACR,
