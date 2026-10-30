@@ -1,0 +1,8 @@
+# Frozen inherited thresholds. Both live smoke and regression suites must pass.
+# Source-check CI is not the live release gate. Missing scores fail closed.
+on_missing: fail
+checks:
+  task_adherence:
+    min_mean: 3.0
+  template_compliance:
+    min_mean: 0.5

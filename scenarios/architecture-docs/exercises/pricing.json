@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "dated-retail-inputs-not-a-bill-or-complete-cost-envelope",
+  "retrieved_date": "2026-10-29",
+  "source": "https://prices.azure.com/api/retail/prices",
+  "currency": "EUR",
+  "arm_region": "francecentral",
+  "deployment_sku": "GlobalStandard",
+  "service_name": "Foundry Models",
+  "rates": [
+    {"model": "gpt-5.4-nano", "direction": "input", "meter_id": "662d8c9d-9f5b-5478-9020-2d1397beb535", "meter_name": "5.4 nano Inp Gl 1M Tokens", "price_eur": 0.176, "unit_tokens": 1000000, "eur_per_million_tokens": 0.176},
+    {"model": "gpt-5.4-nano", "direction": "output", "meter_id": "8c0438ed-f636-5289-924e-5a632941ee41", "meter_name": "5.4 nano Opt Gl 1M Tokens", "price_eur": 1.1, "unit_tokens": 1000000, "eur_per_million_tokens": 1.1},
+    {"model": "gpt-5.4-mini", "direction": "input", "meter_id": "9406463c-1034-57b1-b0f9-142fa67664f3", "meter_name": "5.4 mini Inp Gl 1M Tokens", "price_eur": 0.66, "unit_tokens": 1000000, "eur_per_million_tokens": 0.66},
+    {"model": "gpt-5.4-mini", "direction": "output", "meter_id": "87635a58-0044-5898-8c41-7c02bcfa938e", "meter_name": "5.4 mini Opt Gl 1M Tokens", "price_eur": 3.9599, "unit_tokens": 1000000, "eur_per_million_tokens": 3.9599},
+    {"model": "gpt-5.4", "direction": "input", "meter_id": "68927800-0788-5ac6-ae97-28e9653948da", "meter_name": "5.4 inp Gl 1M Tokens", "price_eur": 2.1999, "unit_tokens": 1000000, "eur_per_million_tokens": 2.1999},
+    {"model": "gpt-5.4", "direction": "output", "meter_id": "54099e8c-e862-5e2c-9fad-945f35d28e27", "meter_name": "5.4 opt Gl 1M Tokens", "price_eur": 13.1996, "unit_tokens": 1000000, "eur_per_million_tokens": 13.1996},
+    {"model": "text-embedding-3-large", "direction": "input", "meter_id": "3a1ddc6b-93c4-57e8-83ac-4fc8fddd403e", "meter_name": "text-embedding-3-large-glbl Tokens", "price_eur": 0.0001, "unit_tokens": 1000, "eur_per_million_tokens": 0.1}
+  ],
+  "use": [
+    "Verify actual model, version, deployment SKU, region, currency and current negotiated/retail meter before calculating.",
+    "Estimated inference EUR = input_tokens/1000000*input_rate + output_tokens/1000000*output_rate; sum all tool-loop/model calls for a task.",
+    "Reasoning tokens billed as output are generally already included in output token totals: report them separately without double-counting.",
+    "Judge calls are separate costs, not the tested agent's input/output usage.",
+    "These uncached, non-batch rates do not apply cached-input discounts; label any full-input estimate accordingly.",
+    "Do not infer routed model identity from the client alias or APIM URL; verify actual deployment/trace.",
+    "Missing usage/price is unknown, never zero. Include failed/retried calls when actually billed."
+  ],
+  "excludes": ["shared service charges", "existing resources", "Search transactions", "Content Safety", "storage/network", "logging/automation", "optional Redis"],
+  "complete_estimate": false,
+  "hard_cap_guaranteed": false
+}

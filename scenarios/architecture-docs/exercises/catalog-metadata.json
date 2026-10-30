@@ -1,0 +1,12 @@
+{
+  "owner-team": {
+    "type": "string",
+    "title": "Owner team",
+    "description": "Use the actual workshop team key or agreed service owner, not a fictional email."
+  },
+  "known-limitations": {
+    "type": "string",
+    "title": "Known limitations",
+    "description": "Document sandbox scope, supported transport/authentication and tested limitations honestly."
+  }
+}

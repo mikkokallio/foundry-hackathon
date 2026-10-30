@@ -1,0 +1,13 @@
+// Application Insights query context; use after invoking actual model routes.
+customMetrics
+| where timestamp > ago(1h)
+| where tostring(customDimensions["Namespace"]) == "FoundryLab"
+    or tostring(customDimensions["Team"]) != ""
+| project timestamp, name, value, valueSum, valueCount,
+    team=tostring(customDimensions["Team"]),
+    api=tostring(customDimensions["API"]),
+    dimensions=customDimensions
+| order by timestamp desc
+// Discover the actual emitted metric names/dimensions before aggregation.
+// Empty data is "not yet evidenced", not zero usage/cost. These routes emit Team
+// and API, not per-caller identity or a trustworthy routed-model price meter.

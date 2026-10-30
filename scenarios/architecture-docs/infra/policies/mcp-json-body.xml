@@ -1,0 +1,49 @@
+<choose>
+  <when condition="@{
+      if (context.Request.Method != &quot;POST&quot; || !context.Request.Headers.GetValueOrDefault(&quot;Content-Type&quot;, &quot;&quot;).StartsWith(&quot;application/json&quot;)) {
+          return false;
+      }
+      var request = context.Request.Body.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+      var name = (string)request[&quot;params&quot;]?[&quot;name&quot;];
+      return (string)request[&quot;method&quot;] == &quot;tools/call&quot; &amp;&amp; (name == &quot;validateDocument&quot; || name == &quot;submitProposal&quot;);
+  }">
+    <set-variable name="docsMcpRequestId" value="@(context.Request.Body.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true)[&quot;id&quot;].ToString(Newtonsoft.Json.Formatting.None))" />
+    <send-request mode="new" response-variable-name="docsJsonResponse" timeout="120" ignore-error="false">
+      <set-url>@{
+          var request = context.Request.Body.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+          var path = (string)request["params"]["name"] == "validateDocument" ? "/validate" : "/proposals";
+          return "https://" + context.Request.OriginalUrl.Host + "/${docs_path}" + path;
+      }</set-url>
+      <set-method>POST</set-method>
+      <set-header name="Authorization" exists-action="override">
+        <value>@(context.Request.Headers.GetValueOrDefault("Authorization", ""))</value>
+      </set-header>
+      <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+      <set-body>@{
+          var request = context.Request.Body.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
+          var arguments = request["params"]["arguments"] as Newtonsoft.Json.Linq.JObject;
+          return (arguments ?? new Newtonsoft.Json.Linq.JObject()).ToString(Newtonsoft.Json.Formatting.None);
+      }</set-body>
+    </send-request>
+    <return-response>
+      <set-status code="200" reason="OK" />
+      <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+      <set-body>@{
+          var response = (IResponse)context.Variables["docsJsonResponse"];
+          return new Newtonsoft.Json.Linq.JObject(
+              new Newtonsoft.Json.Linq.JProperty("jsonrpc", "2.0"),
+              new Newtonsoft.Json.Linq.JProperty("id", Newtonsoft.Json.Linq.JToken.Parse((string)context.Variables["docsMcpRequestId"])),
+              new Newtonsoft.Json.Linq.JProperty("result", new Newtonsoft.Json.Linq.JObject(
+                  new Newtonsoft.Json.Linq.JProperty("isError", response.StatusCode &gt;= 400),
+                  new Newtonsoft.Json.Linq.JProperty("content", new Newtonsoft.Json.Linq.JArray(
+                      new Newtonsoft.Json.Linq.JObject(
+                          new Newtonsoft.Json.Linq.JProperty("type", "text"),
+                          new Newtonsoft.Json.Linq.JProperty("text", response.Body.As&lt;string&gt;())
+                      )
+                  ))
+              ))
+          ).ToString(Newtonsoft.Json.Formatting.None);
+      }</set-body>
+    </return-response>
+  </when>
+</choose>

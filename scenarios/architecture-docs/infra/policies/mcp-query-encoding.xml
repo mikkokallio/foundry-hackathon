@@ -1,0 +1,17 @@
+<choose>
+  <when condition="@(context.Request.Method == &quot;POST&quot; &amp;&amp; context.Request.Headers.GetValueOrDefault(&quot;Content-Type&quot;, &quot;&quot;).StartsWith(&quot;application/json&quot;))">
+    <set-body><![CDATA[@{
+        var body = context.Request.Body.As<Newtonsoft.Json.Linq.JObject>(preserveContent: true);
+        if ((string)body["method"] == "tools/call") {
+            var parameters = body["params"] as Newtonsoft.Json.Linq.JObject;
+            var name = (string)parameters?["name"];
+            var arguments = parameters?["arguments"] as Newtonsoft.Json.Linq.JObject;
+            if ((name == "listSystems" || name == "listDataProducts")
+                && arguments?["domain"]?.Type == Newtonsoft.Json.Linq.JTokenType.String) {
+                arguments["domain"] = System.Uri.EscapeDataString((string)arguments["domain"]);
+            }
+        }
+        return body.ToString(Newtonsoft.Json.Formatting.None);
+    }]]></set-body>
+  </when>
+</choose>

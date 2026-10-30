@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "local-inputs-only-not-a-registered-or-passed-foundry-suite",
+  "dataset": "eval_set.jsonl",
+  "reference_date": "2026-11-01",
+  "inherited_dataset_sha256": "d31d3ba2314e6a73d68b1a0df5382aae6083e3a48915eb1203555b92ae9b4388",
+  "adaptations": [
+    "Only qa-10 and gr-04 ground-truth mailboxes changed to the current neutral .invalid inventory contacts; no cases or assertions removed.",
+    "JSON Unicode escaping/line endings may differ; compare parsed cases rather than claiming the inherited byte hash."
+  ],
+  "gate": "gate.yaml",
+  "smoke_case_ids": ["qa-01", "gap-01", "draft-01", "gr-01"],
+  "comparison_case_ids": [
+    "qa-01", "qa-02", "qa-03", "qa-04", "qa-05",
+    "gap-01", "gap-02", "gap-03", "draft-01", "gr-01", "gr-02", "gr-03"
+  ],
+  "regression_case_ids": [
+    "qa-01", "qa-02", "qa-03", "qa-04", "qa-05", "qa-06", "qa-07", "qa-08", "qa-09", "qa-10",
+    "gap-01", "gap-02", "gap-03", "gap-04", "gap-05", "gap-06",
+    "draft-01", "draft-02", "draft-03", "draft-04", "draft-05",
+    "gr-01", "gr-02", "gr-03", "gr-04"
+  ],
+  "write_back_case_ids": ["draft-03", "draft-04", "draft-05"],
+  "model_aliases": ["chat-small", "chat-medium"],
+  "instruction_files": ["instructions.md", "instructions-concise.md"],
+  "comparison": {
+    "combinations": 4,
+    "same_cases_and_corpus": true,
+    "report": ["quality", "latency", "input_tokens", "output_tokens", "reasoning_tokens_when_available", "estimated_cost_per_task"],
+    "latency_or_cost_threshold": null,
+    "note": "No latency/cost pass threshold was inherited or approved. Missing measurements are unknown, not zero."
+  },
+  "required_live_evidence": [
+    "fresh Foundry invocation for every evaluated case and selected immutable agent version",
+    "genuine response ID and matching Application Insights response/version/tool spans",
+    "remote evaluation IDs, configured evaluator identities/versions and unchanged gate results",
+    "explicit exact-text human approval before each proposal save",
+    "actual proposal IDs/status and stored exact-text verification for write-back cases",
+    "persist results and failure clusters under the selected real agent root .foundry directory"
+  ],
+  "not_implemented_by_this_input_pack": [
+    "registered remote suites/evaluators and their verified schema mappings",
+    "completed four-way live comparison",
+    "CI federated identity, remote state and repository-specific workflow"
+  ]
+}

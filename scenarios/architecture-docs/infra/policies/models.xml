@@ -1,0 +1,33 @@
+<policies>
+  <inbound>
+    <base />
+    ${auth}
+    <rate-limit-by-key calls="${request_limit}" renewal-period="60" counter-key="@(context.Api.Id + &quot;:&quot; + (string)context.Variables[&quot;labTeam&quot;])" />
+    <azure-openai-token-limit counter-key="@(context.Api.Id + &quot;:tokens:&quot; + (string)context.Variables[&quot;labTeam&quot;])" tokens-per-minute="${token_limit}" estimate-prompt-tokens="true" remaining-tokens-header-name="X-Lab-Tokens-Remaining" />
+    <azure-openai-emit-token-metric namespace="FoundryLab">
+      <dimension name="Team" value="@((string)context.Variables[&quot;labTeam&quot;])" />
+      <dimension name="API" value="@(context.Api.Id)" />
+    </azure-openai-emit-token-metric>
+    <set-variable name="modelDeployment" value="@{
+        var body = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
+        var model = (string)body[&quot;model&quot;];
+        var allowed = new Dictionary&lt;string, string&gt; { ${join(", ", [for alias, deployment in deployments : "{&quot;${alias}&quot;, &quot;${deployment}&quot;}"])} };
+        return model != null &amp;&amp; allowed.ContainsKey(model) ? allowed[model] : &quot;&quot;;
+    }" />
+    <choose>
+      <when condition="@(((string)context.Variables[&quot;modelDeployment&quot;]).Length == 0)">
+        <return-response><set-status code="400" reason="An allowed workload model alias is required" /></return-response>
+      </when>
+    </choose>
+    <set-body>@{
+        var body = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
+        body["model"] = (string)context.Variables["modelDeployment"];
+        return body.ToString(Newtonsoft.Json.Formatting.None);
+    }</set-body>
+    <rewrite-uri template="@(&quot;/openai/deployments/&quot; + (string)context.Variables[&quot;modelDeployment&quot;] + &quot;/chat/completions&quot;)" copy-unmatched-params="true" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+  </inbound>
+  <backend><forward-request timeout="120" buffer-response="false" /></backend>
+  <outbound><base /></outbound>
+  <on-error><base /></on-error>
+</policies>

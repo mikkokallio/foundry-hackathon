@@ -1,0 +1,47 @@
+[
+  {
+    "owner_team": "Aftermarket IT",
+    "contact": "aftermarket-it@teams.example.invalid",
+    "note": "Merged into Parts Digital in January 2026"
+  },
+  {
+    "owner_team": "Connected Services Platform",
+    "contact": "connected-services-platform@teams.example.invalid"
+  },
+  {
+    "owner_team": "Data Platform",
+    "contact": "data-platform@teams.example.invalid"
+  },
+  {
+    "owner_team": "Data Science CoE",
+    "contact": "data-science-coe@teams.example.invalid"
+  },
+  {
+    "owner_team": "Digital Customer Experience",
+    "contact": "digital-customer-experience@teams.example.invalid"
+  },
+  {
+    "owner_team": "ERP Competence Center",
+    "contact": "erp-competence-center@teams.example.invalid"
+  },
+  {
+    "owner_team": "Installed Base Data",
+    "contact": "installed-base-data@teams.example.invalid"
+  },
+  {
+    "owner_team": "Integration Services",
+    "contact": "integration-services@teams.example.invalid"
+  },
+  {
+    "owner_team": "Parts Digital",
+    "contact": "parts-digital@teams.example.invalid"
+  },
+  {
+    "owner_team": "Sales Tools",
+    "contact": "sales-tools@teams.example.invalid"
+  },
+  {
+    "owner_team": "Service Operations IT",
+    "contact": "service-operations-it@teams.example.invalid"
+  }
+]

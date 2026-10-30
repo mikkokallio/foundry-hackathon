@@ -1,0 +1,133 @@
+[
+  {
+    "system_id": "SYS-001",
+    "name": "Equipment Telemetry Hub",
+    "domain": "Equipment Data",
+    "owner_team": "Connected Services Platform",
+    "status": "active",
+    "hosting": "Azure (IoT Hub, Event Hubs, Functions)",
+    "criticality": "high",
+    "description": "Ingests sensor telemetry from connected machines, normalises it and streams it to analytics and predictive maintenance."
+  },
+  {
+    "system_id": "SYS-002",
+    "name": "Service Order Management",
+    "domain": "Service Operations",
+    "owner_team": "Service Operations IT",
+    "status": "active",
+    "hosting": "SaaS field service platform with Azure extensions",
+    "criticality": "high",
+    "description": "System of record for service requests, work orders, technician scheduling and service history."
+  },
+  {
+    "system_id": "SYS-003",
+    "name": "Field Service Mobile",
+    "domain": "Service Operations",
+    "owner_team": "Service Operations IT",
+    "status": "active",
+    "hosting": "Mobile app (iOS/Android) with Azure App Service backend",
+    "criticality": "high",
+    "description": "Mobile app used by service technicians to receive work orders, look up parts and report completed work."
+  },
+  {
+    "system_id": "SYS-004",
+    "name": "Spare Parts Catalogue",
+    "domain": "Parts & Logistics",
+    "owner_team": "Parts Digital",
+    "status": "active",
+    "hosting": "Azure App Service + Azure SQL",
+    "criticality": "medium",
+    "description": "Searchable catalogue of spare parts with compatibility, price and availability."
+  },
+  {
+    "system_id": "SYS-005",
+    "name": "Asset Registry",
+    "domain": "Installed Base",
+    "owner_team": "Installed Base Data",
+    "status": "active",
+    "hosting": "Azure SQL + Azure Functions",
+    "criticality": "high",
+    "description": "Master data for the installed base: every delivered machine, its configuration, location and owner."
+  },
+  {
+    "system_id": "SYS-006",
+    "name": "Predictive Maintenance Models",
+    "domain": "Equipment Data",
+    "owner_team": "Data Science CoE",
+    "status": "active",
+    "hosting": "Azure Machine Learning + Analytics Lakehouse",
+    "criticality": "medium",
+    "description": "Machine learning models that score component health and recommend maintenance actions."
+  },
+  {
+    "system_id": "SYS-007",
+    "name": "Customer Portal",
+    "domain": "Customer Experience",
+    "owner_team": "Digital Customer Experience",
+    "status": "active",
+    "hosting": "Azure Static Web Apps + API Management",
+    "criticality": "high",
+    "description": "Customer-facing portal for equipment overview, asset health and service requests."
+  },
+  {
+    "system_id": "SYS-008",
+    "name": "ERP Core",
+    "domain": "Finance & Supply Chain",
+    "owner_team": "ERP Competence Center",
+    "status": "active",
+    "hosting": "On-premises ERP, private connectivity to Azure",
+    "criticality": "critical",
+    "description": "Enterprise resource planning: finance, procurement, inventory, sales orders and invoicing."
+  },
+  {
+    "system_id": "SYS-009",
+    "name": "Analytics Lakehouse",
+    "domain": "Data Platform",
+    "owner_team": "Data Platform",
+    "status": "active",
+    "hosting": "Lakehouse on Azure (Delta tables)",
+    "criticality": "high",
+    "description": "Central analytics platform hosting curated data products and reporting models."
+  },
+  {
+    "system_id": "SYS-010",
+    "name": "Integration Platform",
+    "domain": "Integration",
+    "owner_team": "Integration Services",
+    "status": "active",
+    "hosting": "Integration platform as a service (iPaaS)",
+    "criticality": "critical",
+    "description": "Hub for system-to-system integrations: APIs, events and scheduled batch transfers."
+  },
+  {
+    "system_id": "SYS-011",
+    "name": "Product Configurator",
+    "domain": "Sales",
+    "owner_team": "Sales Tools",
+    "status": "active",
+    "hosting": "SaaS configure-price-quote tool",
+    "criticality": "medium",
+    "description": "Configures machine products and options for quotes and produces configured bills of material. Live since June 2026."
+  },
+  {
+    "system_id": "SYS-012",
+    "name": "Remote Diagnostics Agent",
+    "domain": "Service Operations",
+    "owner_team": "Connected Services Platform",
+    "status": "pilot",
+    "hosting": "Microsoft Foundry agent behind the AI gateway",
+    "criticality": "medium",
+    "description": "AI agent that analyses recent telemetry for a reported fault and attaches diagnostic findings to the service order. Pilot with two service regions."
+  },
+  {
+    "system_id": "SYS-013",
+    "name": "Legacy Service Planner",
+    "domain": "Service Operations",
+    "owner_team": "Service Operations IT",
+    "status": "decommissioned",
+    "hosting": "On-premises application server",
+    "criticality": "low",
+    "description": "Former batch planning tool for technician capacity. Decommissioned in February 2026; replaced by scheduling in Service Order Management.",
+    "decommissioned_on": "2026-02-27"
+  }
+]

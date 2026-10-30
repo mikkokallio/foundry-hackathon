@@ -1,0 +1,49 @@
+{
+  "subscription_id": "REPLACE_WITH_TARGET_SUBSCRIPTION_GUID",
+  "tenant_id": "REPLACE_WITH_TARGET_TENANT_GUID",
+  "suffix": "lab123",
+  "location": "francecentral",
+  "search_location": "francecentral",
+  "profile": "lite",
+  "enable_search": true,
+  "publisher_email": "REPLACE_WITH_MONITORED_EMAIL",
+  "expires_at": "REPLACE_WITH_EXPLICIT_RFC3339_SPENDING_EXPIRY",
+  "workload_name": "architecture-docs",
+  "expected_participant_count": 13,
+  "teams": {
+    "alpha": [
+      "participant01@tenant.example",
+      "participant02@tenant.example",
+      "participant03@tenant.example",
+      "participant04@tenant.example"
+    ],
+    "beta": [
+      "participant05@tenant.example",
+      "participant06@tenant.example",
+      "participant07@tenant.example"
+    ],
+    "gamma": [
+      "participant08@tenant.example",
+      "participant09@tenant.example",
+      "participant10@tenant.example"
+    ],
+    "delta": [
+      "participant11@tenant.example",
+      "participant12@tenant.example",
+      "participant13@tenant.example"
+    ]
+  },
+  "tags": {},
+  "protection": {
+    "monthly_cap_eur": 130,
+    "reserve_eur": 30,
+    "max_hourly_eur": null
+  },
+  "model_overrides": {},
+  "workload_inputs": {
+    "organization_name": null,
+    "runtime_images": null,
+    "semantic_cache_enabled": false,
+    "librarians": null
+  }
+}

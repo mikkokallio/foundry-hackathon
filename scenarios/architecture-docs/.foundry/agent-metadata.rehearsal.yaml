@@ -1,0 +1,15 @@
+environments:
+  rehearsal-one:
+    lastEval:
+      agentVersion: '2'
+      startedAt: '2026-10-29T18:24:02.084781+00:00'
+      resultFile: C:\Users\mikkokallio\dev\manu\hackathon\scenarios\architecture-docs\.foundry\results\20261029T182401Z-f87457443fc84e2288c96a3360a3cbdb\manifest.json
+      status: failed
+      suites:
+      - tier: smoke
+        evaluation_id: eval_e3440e2ef056441e86084519d63bed7c
+        evaluation_run_id: evalrun_5c29a3710270428c9823dc21044d0e0b
+        status: failed
+      evalId: eval_e3440e2ef056441e86084519d63bed7c
+      evalRunId: evalrun_5c29a3710270428c9823dc21044d0e0b
+      suiteName: smoke

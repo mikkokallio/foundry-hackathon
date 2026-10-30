@@ -1,0 +1,101 @@
+[
+  {
+    "data_product_id": "DP-001",
+    "name": "Asset Health Score",
+    "domain": "Equipment Data",
+    "owner_team": "Data Science CoE",
+    "source_systems": [
+      "SYS-006",
+      "SYS-001"
+    ],
+    "consumers": [
+      "SYS-007",
+      "SYS-002"
+    ],
+    "classification": "Internal",
+    "refresh": "hourly",
+    "description": "Health score 0–100 per asset and component, with the top contributing signals."
+  },
+  {
+    "data_product_id": "DP-002",
+    "name": "Service Order History",
+    "domain": "Service Operations",
+    "owner_team": "Service Operations IT",
+    "source_systems": [
+      "SYS-002"
+    ],
+    "consumers": [
+      "SYS-009",
+      "SYS-006"
+    ],
+    "classification": "Confidential",
+    "refresh": "daily",
+    "description": "Closed service orders including customer names and site addresses."
+  },
+  {
+    "data_product_id": "DP-003",
+    "name": "Installed Base",
+    "domain": "Installed Base",
+    "owner_team": "Installed Base Data",
+    "source_systems": [
+      "SYS-005"
+    ],
+    "consumers": [
+      "SYS-002",
+      "SYS-007",
+      "SYS-009"
+    ],
+    "classification": "Internal",
+    "refresh": "daily",
+    "description": "All delivered equipment with configuration, location and current owner."
+  },
+  {
+    "data_product_id": "DP-004",
+    "name": "Spare Parts Availability",
+    "domain": "Parts & Logistics",
+    "owner_team": "Parts Digital",
+    "source_systems": [
+      "SYS-004",
+      "SYS-008"
+    ],
+    "consumers": [
+      "SYS-003",
+      "SYS-007"
+    ],
+    "classification": "Internal",
+    "refresh": "hourly",
+    "description": "Stock and lead time per part and warehouse."
+  },
+  {
+    "data_product_id": "DP-005",
+    "name": "Telemetry Aggregates",
+    "domain": "Equipment Data",
+    "owner_team": "Connected Services Platform",
+    "source_systems": [
+      "SYS-001"
+    ],
+    "consumers": [
+      "SYS-009",
+      "SYS-006",
+      "SYS-012"
+    ],
+    "classification": "Internal",
+    "refresh": "5 minutes",
+    "description": "Windowed aggregates of machine sensor telemetry."
+  },
+  {
+    "data_product_id": "DP-006",
+    "name": "Configured Product Structures",
+    "domain": "Sales",
+    "owner_team": "Sales Tools",
+    "source_systems": [
+      "SYS-011"
+    ],
+    "consumers": [
+      "SYS-008"
+    ],
+    "classification": "Confidential",
+    "refresh": "on order",
+    "description": "Configured bills of material with customer-specific pricing."
+  }
+]

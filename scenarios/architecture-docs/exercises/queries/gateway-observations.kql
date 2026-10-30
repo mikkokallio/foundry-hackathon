@@ -1,0 +1,7 @@
+// Application Insights query context. No request-body or bearer-token logging.
+requests
+| where timestamp > ago(1h)
+| project timestamp, name, url, resultCode, success, duration, operation_Id
+| order by timestamp desc
+// Inspect real request names/URLs first. A 429 alone does not distinguish an
+// APIM request limit, token limit or upstream model throttle: inspect that call.

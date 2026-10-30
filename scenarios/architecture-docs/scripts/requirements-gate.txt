@@ -1,0 +1,5 @@
+azure-ai-projects==2.9.0
+azure-identity==1.27.0
+azure-monitor-query==2.0.0
+openai==3.38.0
+PyYAML==6.0.3

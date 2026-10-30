@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "id": "architecture-docs",
+  "title": "Shared architecture documentation",
+  "terraform_root": "infra",
+  "requires_participant_access": true,
+  "container_artifacts": {
+    "backend": "backend\\Dockerfile",
+    "toolkit": "toolkit-mcp\\Dockerfile"
+  },
+  "container_sources": [
+    ".dockerignore",
+    "backend\\pyproject.toml",
+    "backend\\Dockerfile",
+    "backend\\src\\archdocs\\*.py",
+    "backend\\src\\docs_api\\*.py",
+    "toolkit-mcp\\Dockerfile",
+    "toolkit-mcp\\requirements.txt",
+    "toolkit-mcp\\app.py",
+    "toolkit-mcp\\server.py",
+    "data\\inventory\\*.json",
+    "data\\standard\\*.md",
+    "data\\docs\\*.md"
+  ],
+  "terraform_inputs": {
+    "organization_name": null,
+    "embedding_dimensions": 3072,
+    "gateway_tokens_per_minute": 50000,
+    "runtime_images": null,
+    "librarians": null,
+    "semantic_cache_enabled": false,
+    "reference_date": "2026-11-01"
+  },
+  "required_foundation_capabilities": [
+    "foundry",
+    "observability",
+    "gateway",
+    "catalog",
+    "storage",
+    "key_vault",
+    "container_registry",
+    "container_environment",
+    "search"
+  ],
+  "models": {
+    "chat-small": {
+      "name": "gpt-5.4-nano",
+      "version": "2026-03-17",
+      "sku": "GlobalStandard",
+      "capacity": 200
+    },
+    "chat-medium": {
+      "name": "gpt-5.4-mini",
+      "version": "2026-03-17",
+      "sku": "GlobalStandard",
+      "capacity": 200
+    },
+    "judge": {
+      "name": "gpt-5.4",
+      "version": "2026-03-05",
+      "sku": "GlobalStandard",
+      "capacity": 50
+    },
+    "embedding": {
+      "name": "text-embedding-3-large",
+      "version": "1",
+      "sku": "GlobalStandard",
+      "capacity": 10
+    }
+  },
+  "model_selection_status": "Current GA GPT-5.4 nano/mini/full and embedding selections verified against France Central catalog/quota on 2026-10-29. No Legacy models. Chat allocations are sized for four teams sharing deployments at a 50000-TPM per-team gateway ceiling; judge allocation is separate for evaluations. Allocation is not reserved throughput or a spending cap. Live 50-unit chat deployments reported 50000 TPM/50 RPM; final allocations still require actual rate-limit readback and concurrent rehearsal. Native planning rejects non-GA or retired models/SKUs; genuine agent smoke/regression/provenance acceptance remains required.",
+  "core_modules": ["M1", "M2", "M3", "M4", "M5"],
+  "bonus_modules": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"],
+  "approved_proposal_saving": "core",
+  "publication": "separate-human-librarian-only",
+  "semantic_cache": {
+    "enabled_by_default": false,
+    "requires_explicit_cost_review": true
+  }
+}

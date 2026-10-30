@@ -1,0 +1,1806 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Architecture Docs API",
+    "version": "1.0.0",
+    "description": "Shared architecture documentation. The deployer chooses the organization name; all lab business data is synthetic. Read the system inventory and published architecture documents, find documentation gaps, validate drafts against the documentation standard and submit proposals for librarian review. Agents never publish directly."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "EntraBearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness probe."
+    },
+    {
+      "name": "documents",
+      "description": "Published architecture documents."
+    },
+    {
+      "name": "inventory",
+      "description": "Systems, interfaces and data products (source of truth)."
+    },
+    {
+      "name": "governance",
+      "description": "Documentation standard, validation and gap analysis."
+    },
+    {
+      "name": "proposals",
+      "description": "Submit and track document proposals."
+    },
+    {
+      "name": "librarian",
+      "description": "Restricted publishing operation (not an agent tool)."
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "operationId": "health",
+        "security": [],
+        "summary": "Health check",
+        "description": "Liveness probe for the Docs API. Returns status ok, the API version, the storage mode and the reference date used for review-age checks. Not intended as an agent tool.",
+        "responses": {
+          "200": {
+            "description": "Service is up.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "operationId": "listDocuments",
+        "summary": "List published architecture documents",
+        "description": "Returns metadata of the documents in the shared store (doc_id, title, system_id, owner_team, status, version, last_reviewed, classification), without the markdown. Use it to find which document covers a system, then call getDocument for the full text.",
+        "parameters": [
+          {
+            "name": "system_id",
+            "in": "query",
+            "required": false,
+            "description": "Only documents for this system, format SYS-NNN (e.g. SYS-002).",
+            "schema": {
+              "type": "string",
+              "pattern": "^SYS-\\d{3}$"
+            },
+            "example": "SYS-002"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Only documents with this front-matter status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "published",
+                "archived"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document metadata, sorted by doc_id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{doc_id}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "operationId": "getDocument",
+        "summary": "Get one architecture document with its markdown",
+        "description": "Returns the metadata, the list of H2 sections and the full markdown of a published document. Use it to answer questions from the documentation or before drafting an update. Find the doc_id with listDocuments or getSystem.",
+        "parameters": [
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "description": "Document ID, format ARCH-XXX (2-6 capital letters), e.g. ARCH-SOM.",
+            "schema": {
+              "type": "string",
+              "pattern": "^ARCH-[A-Z]{2,6}$"
+            },
+            "example": "ARCH-SOM"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systems": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "operationId": "listSystems",
+        "summary": "List systems in the inventory",
+        "description": "Returns the systems of the system inventory (system_id SYS-NNN, name, domain, owner_team, status, hosting, criticality, description) with the doc_ids of their published documents. The inventory is the source of truth for owners and lifecycle status.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "description": "Only systems in this domain (case-insensitive), e.g. Service Operations, Equipment Data, Parts & Logistics.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "example": "Service Operations"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Only systems with this lifecycle status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "pilot",
+                "decommissioned"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Systems from the inventory.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/System"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/systems/{system_id}": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "operationId": "getSystem",
+        "summary": "Get one system with its interfaces, data products and documents",
+        "description": "Returns the inventory record of a system with owner contact, every interface where it is source, target or integration route (via), the data products it produces or consumes, expected_interface_ids (active interfaces its document must list) and doc_ids. Use it for ownership and integration questions and before drafting a document.",
+        "parameters": [
+          {
+            "name": "system_id",
+            "in": "path",
+            "required": true,
+            "description": "System ID, format SYS-NNN, e.g. SYS-002.",
+            "schema": {
+              "type": "string",
+              "pattern": "^SYS-\\d{3}$"
+            },
+            "example": "SYS-002"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "System with interfaces, data products and documents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "System not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/interfaces": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "operationId": "listInterfaces",
+        "summary": "List interfaces between systems",
+        "description": "Returns interfaces (interface_id INT-NNN) with source, target and via (integration route) system IDs and names, pattern, protocol, data, data_product, frequency and status.",
+        "parameters": [
+          {
+            "name": "system_id",
+            "in": "query",
+            "required": false,
+            "description": "Only interfaces where this system (SYS-NNN) is source, target or via.",
+            "schema": {
+              "type": "string",
+              "pattern": "^SYS-\\d{3}$"
+            },
+            "example": "SYS-002"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Only interfaces with this status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "planned",
+                "decommissioned"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Interfaces with system names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Interface"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data-products": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "operationId": "listDataProducts",
+        "summary": "List data products",
+        "description": "Returns data products (data_product_id DP-NNN) with name, domain, owner_team, source_systems, consumers (system IDs), classification, refresh rate and description.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "description": "Only data products in this domain (case-insensitive), e.g. Equipment Data.",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "example": "Service Operations"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data products.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataProduct"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gaps": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "operationId": "findDocumentationGaps",
+        "summary": "Find documentation gaps",
+        "description": "Compares the published documents with the inventory and the documentation standard. Returns one item per gap with gap_type (missing_document, stale_review, decommissioned_system_documented, interface_missing_in_doc, decommissioned_interface_in_doc, owner_mismatch, template_noncompliance), system_id, doc_id, severity (high, medium, low), interface_id when relevant, and detail. Omit system_id to check all systems.",
+        "parameters": [
+          {
+            "name": "system_id",
+            "in": "query",
+            "required": false,
+            "description": "Check only this system, format SYS-NNN.",
+            "schema": {
+              "type": "string",
+              "pattern": "^SYS-\\d{3}$"
+            },
+            "example": "SYS-002"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Documentation gaps; empty when everything is up to date.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Gap"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/standard": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "operationId": "getDocumentationStandard",
+        "summary": "Get the documentation standard and document template",
+        "description": "Returns the documentation standard and the architecture document template as markdown, plus the required front-matter fields and the required H2 sections in order. Read it before drafting or fixing a document.",
+        "responses": {
+          "200": {
+            "description": "Standard, template and required structure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentationStandard"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validate": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "operationId": "validateDocument",
+        "summary": "Validate a document against the standard (stores nothing)",
+        "description": "Checks a markdown document against the documentation standard and the inventory: front matter, required sections and order, Mermaid diagram in Context, Interfaces table with INT-NNN IDs, missing active interfaces, decommissioned or unknown interfaces, owner team and credentials. Returns valid, errors, warnings and the parsed metadata. Call it before submitProposal and fix every error.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result (nothing is stored).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request body is invalid, e.g. markdown is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proposals": {
+      "post": {
+        "tags": [
+          "proposals"
+        ],
+        "operationId": "submitProposal",
+        "summary": "Submit a document proposal for librarian review",
+        "description": "Stores a new or updated architecture document as a proposal; it never publishes. The document is validated: valid becomes pending-review, invalid is stored as needs-changes with the errors. Documents containing credentials are rejected with 422 and not stored. Returns proposal_id (P-<yyyymmddHHMMSS>-<team>-<4 hex>), status, validation and stored_at. Call validateDocument first.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proposal stored with status pending-review (valid) or needs-changes (invalid).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, e.g. invalid team or author_type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "System not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Rejected and not stored: the document contains credential-like text (detail + findings), or the request body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ProposalRejected"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RequestValidationError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "proposals"
+        ],
+        "operationId": "listProposals",
+        "summary": "List submitted proposals",
+        "description": "Returns proposals, newest first, with proposal_id, team, system_id, doc_id, summary, author_type, source, status (pending-review, needs-changes, published), created_at and valid. Check it before submitting to avoid duplicates.",
+        "parameters": [
+          {
+            "name": "team",
+            "in": "query",
+            "required": false,
+            "description": "Only proposals from this team, e.g. team1.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "example": "team1"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Only proposals with this status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending-review",
+                "needs-changes",
+                "published"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proposals, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProposalSummary"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, e.g. an invalid team name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proposals/{proposal_id}": {
+      "get": {
+        "tags": [
+          "proposals"
+        ],
+        "operationId": "getProposal",
+        "summary": "Get one proposal with its validation result",
+        "description": "Returns the full proposal record: team, system_id, doc_id, summary, author_type, source, status, created_at, the validation result (errors, warnings) and the submitted markdown.",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "description": "Proposal ID returned by submitProposal, format P-<yyyymmddHHMMSS>-<team>-<4 hex>, e.g. P-20261103101500-team1-a1b2.",
+            "schema": {
+              "type": "string",
+              "pattern": "^P-\\d{14}-[a-z0-9][a-z0-9-]{0,31}-[0-9a-f]{4}$"
+            },
+            "example": "P-20261103101500-team1-a1b2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The full proposal record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposal"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proposal not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proposals/{proposal_id}/publish": {
+      "post": {
+        "tags": [
+          "librarian"
+        ],
+        "operationId": "publishProposal",
+        "summary": "Publish a proposal (librarian only)",
+        "description": "Librarian-only governance operation; never expose it as an agent tool. Publishes a pending-review proposal: archives the current version to archive/<doc_id>/<version>.md, writes published/<doc_id>.md and marks the proposal published. Requires header X-Publisher-Role: librarian (overwritten by the API gateway from the signed Entra Librarian role), otherwise 403. The gateway also overwrites X-Reviewer with the signed caller identity. Stale document updates return 409.",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "description": "Proposal ID to publish, format P-<yyyymmddHHMMSS>-<team>-<4 hex>.",
+            "schema": {
+              "type": "string",
+              "pattern": "^P-\\d{14}-[a-z0-9][a-z0-9-]{0,31}-[0-9a-f]{4}$"
+            },
+            "example": "P-20261103101500-team1-a1b2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The proposal is not pending-review or has no doc_id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Entra bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller does not have the librarian role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Proposal not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The published document changed after this proposal was created; review and submit an updated proposal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter does not match its format, e.g. system_id is not SYS-NNN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "EntraBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Entra token for the gateway application audience in the exported team configuration. Signed team and librarian roles are enforced by APIM."
+      }
+    },
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "storage_mode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "blob"
+            ]
+          },
+          "reference_date": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD used for review-age checks; null = today."
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "DocumentSummary": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Document ID (ARCH-XXX)."
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "system_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "System described (SYS-NNN)."
+          },
+          "owner_team": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "draft, published or archived (from the front matter)."
+          },
+          "version": {
+            "type": "string",
+            "nullable": true,
+            "description": "major.minor, e.g. 1.4."
+          },
+          "last_reviewed": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD."
+          },
+          "classification": {
+            "type": "string",
+            "nullable": true,
+            "description": "Public, Internal or Confidential."
+          }
+        },
+        "required": [
+          "doc_id"
+        ]
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "description": "Document ID (ARCH-XXX)."
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "system_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "System described (SYS-NNN)."
+          },
+          "owner_team": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "draft, published or archived (from the front matter)."
+          },
+          "version": {
+            "type": "string",
+            "nullable": true,
+            "description": "major.minor, e.g. 1.4."
+          },
+          "last_reviewed": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD."
+          },
+          "classification": {
+            "type": "string",
+            "nullable": true,
+            "description": "Public, Internal or Confidential."
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "H2 section titles in document order."
+          },
+          "markdown": {
+            "type": "string",
+            "description": "Full document markdown including front matter."
+          }
+        },
+        "required": [
+          "doc_id",
+          "markdown"
+        ]
+      },
+      "System": {
+        "type": "object",
+        "properties": {
+          "system_id": {
+            "type": "string",
+            "description": "SYS-NNN."
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "owner_team": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "pilot",
+              "decommissioned"
+            ]
+          },
+          "hosting": {
+            "type": "string"
+          },
+          "criticality": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "decommissioned_on": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD; only for decommissioned systems."
+          },
+          "doc_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Published documents for this system."
+          }
+        },
+        "required": [
+          "system_id",
+          "name",
+          "owner_team",
+          "status"
+        ]
+      },
+      "Interface": {
+        "type": "object",
+        "properties": {
+          "interface_id": {
+            "type": "string",
+            "description": "INT-NNN."
+          },
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source system ID."
+          },
+          "target": {
+            "type": "string",
+            "description": "Target system ID."
+          },
+          "via": {
+            "type": "string",
+            "nullable": true,
+            "description": "System ID of the integration route, e.g. SYS-010 Integration Platform."
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "data_product": {
+            "type": "string",
+            "nullable": true,
+            "description": "DP-NNN carried by the interface."
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "planned",
+              "decommissioned"
+            ]
+          },
+          "source_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "target_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "via_name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "interface_id",
+          "source",
+          "target",
+          "status"
+        ]
+      },
+      "DataProduct": {
+        "type": "object",
+        "properties": {
+          "data_product_id": {
+            "type": "string",
+            "description": "DP-NNN."
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "owner_team": {
+            "type": "string"
+          },
+          "source_systems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Producing system IDs."
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Consuming system IDs."
+          },
+          "classification": {
+            "type": "string"
+          },
+          "refresh": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_product_id",
+          "name"
+        ]
+      },
+      "SystemDataProduct": {
+        "type": "object",
+        "properties": {
+          "data_product_id": {
+            "type": "string",
+            "description": "DP-NNN."
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "owner_team": {
+            "type": "string"
+          },
+          "source_systems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Producing system IDs."
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Consuming system IDs."
+          },
+          "classification": {
+            "type": "string"
+          },
+          "refresh": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "produces",
+              "consumes"
+            ]
+          }
+        },
+        "required": [
+          "data_product_id",
+          "role"
+        ]
+      },
+      "SystemDetail": {
+        "type": "object",
+        "properties": {
+          "system_id": {
+            "type": "string",
+            "description": "SYS-NNN."
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "owner_team": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "pilot",
+              "decommissioned"
+            ]
+          },
+          "hosting": {
+            "type": "string"
+          },
+          "criticality": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "decommissioned_on": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD; only for decommissioned systems."
+          },
+          "doc_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Published documents for this system."
+          },
+          "owner_contact": {
+            "type": "string",
+            "nullable": true,
+            "description": "Owner team contact address."
+          },
+          "interfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Interface"
+            },
+            "description": "All interfaces where the system is source, target or via."
+          },
+          "data_products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemDataProduct"
+            }
+          },
+          "expected_interface_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Active interfaces the system's document must list."
+          }
+        },
+        "required": [
+          "system_id",
+          "name",
+          "owner_team",
+          "status",
+          "interfaces"
+        ]
+      },
+      "Gap": {
+        "type": "object",
+        "properties": {
+          "gap_type": {
+            "type": "string",
+            "enum": [
+              "missing_document",
+              "stale_review",
+              "decommissioned_system_documented",
+              "interface_missing_in_doc",
+              "decommissioned_interface_in_doc",
+              "owner_mismatch",
+              "template_noncompliance"
+            ]
+          },
+          "system_id": {
+            "type": "string"
+          },
+          "system_name": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "interface_id": {
+            "type": "string",
+            "description": "INT-NNN; only for interface gaps."
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "gap_type",
+          "system_id",
+          "severity",
+          "detail"
+        ]
+      },
+      "DocumentationStandard": {
+        "type": "object",
+        "properties": {
+          "standard_markdown": {
+            "type": "string"
+          },
+          "template_markdown": {
+            "type": "string"
+          },
+          "required_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "H2 sections in the required order."
+          },
+          "required_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Required front-matter fields."
+          }
+        },
+        "required": [
+          "standard_markdown",
+          "template_markdown",
+          "required_sections",
+          "required_fields"
+        ]
+      },
+      "ValidationResult": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Must be fixed before the document can be published."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Should be fixed; do not block publishing."
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Parsed front matter."
+          }
+        },
+        "required": [
+          "valid",
+          "errors",
+          "warnings",
+          "metadata"
+        ]
+      },
+      "ProposalReceipt": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "description": "P-<yyyymmddHHMMSS>-<team>-<4 hex>."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending-review",
+              "needs-changes"
+            ]
+          },
+          "doc_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "team": {
+            "type": "string"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationResult"
+          },
+          "stored_at": {
+            "type": "string",
+            "description": "Store key, e.g. proposals/team1/<proposal_id>.json."
+          }
+        },
+        "required": [
+          "proposal_id",
+          "status",
+          "team",
+          "validation",
+          "stored_at"
+        ]
+      },
+      "ProposalSummary": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "description": "P-<yyyymmddHHMMSS>-<team>-<4 hex>."
+          },
+          "team": {
+            "type": "string"
+          },
+          "system_id": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string"
+          },
+          "author_type": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "human",
+              "coding-agent"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending-review",
+              "needs-changes",
+              "published"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC timestamp, ISO 8601."
+          },
+          "valid": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "proposal_id",
+          "team",
+          "status"
+        ]
+      },
+      "Proposal": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "description": "P-<yyyymmddHHMMSS>-<team>-<4 hex>."
+          },
+          "team": {
+            "type": "string"
+          },
+          "system_id": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string"
+          },
+          "author_type": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "human",
+              "coding-agent"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending-review",
+              "needs-changes",
+              "published"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC timestamp, ISO 8601."
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationResult"
+          },
+          "markdown": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewer": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "proposal_id",
+          "team",
+          "status",
+          "validation",
+          "markdown"
+        ]
+      },
+      "PublishResult": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published"
+            ]
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "archived_previous": {
+            "type": "boolean",
+            "description": "True if a previous version was archived."
+          }
+        },
+        "required": [
+          "proposal_id",
+          "status",
+          "doc_id",
+          "archived_previous"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Why the request failed."
+          }
+        },
+        "required": [
+          "detail"
+        ]
+      },
+      "ProposalRejected": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Redacted locations of credential-like text."
+          }
+        },
+        "required": [
+          "detail",
+          "findings"
+        ]
+      },
+      "RequestValidationError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "loc": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  }
+                },
+                "msg": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ValidateRequest": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200000,
+            "description": "Complete document markdown, starting with the YAML front matter block (--- ... ---)."
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      },
+      "ProposalRequest": {
+        "type": "object",
+        "properties": {
+          "system_id": {
+            "type": "string",
+            "pattern": "^SYS-\\d{3}$",
+            "description": "System the document describes, format SYS-NNN (e.g. SYS-011). Must exist in the inventory and match system_id in the front matter."
+          },
+          "doc_id": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^ARCH-[A-Z]{2,6}$",
+            "description": "Document ID, format ARCH-XXX (2-6 capital letters). Optional: taken from the front matter when omitted. Reuse the existing doc_id to update a published document."
+          },
+          "markdown": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200000,
+            "description": "Complete document markdown with YAML front matter, following the template from getDocumentationStandard. Never include credentials."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "One or two sentences for the librarian: what changed and why."
+          },
+          "author_type": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "human",
+              "coding-agent"
+            ],
+            "default": "agent",
+            "description": "Who produced the draft: agent (Foundry agent), coding-agent (e.g. a GitHub Copilot skill) or human."
+          },
+          "source": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200,
+            "description": "Agent, tool or skill that produced the draft, e.g. docs-steward-team1."
+          },
+          "team": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 32,
+            "description": "Submitting team. Ignored behind the API gateway, which sets the team from your subscription. Defaults to local."
+          }
+        },
+        "required": [
+          "system_id",
+          "markdown",
+          "summary"
+        ]
+      }
+    }
+  }
+}

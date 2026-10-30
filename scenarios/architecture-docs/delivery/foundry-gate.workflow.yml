@@ -1,0 +1,149 @@
+sname: Workshop live Foundry gate and read-only foundation plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Protected GitHub environment bound to the Azure OIDC credential
+        type: environment
+        required: true
+      agent_name:
+        description: Actual already-deployed candidate agent name
+        type: string
+        required: true
+      agent_version:
+        description: Immutable numeric candidate version, never latest
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: workshop-state-${{ github.repository }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  live-gate-and-plan:
+    runs-on: windows-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+      WORKSHOP_DIRECTORY: ${{ vars.WORKSHOP_DIRECTORY }}
+      STATE_RESOURCE_GROUP: ${{ vars.STATE_RESOURCE_GROUP }}
+      STATE_ACCOUNT: ${{ vars.STATE_ACCOUNT }}
+      STATE_KEY: ${{ vars.STATE_KEY }}
+      FOUNDATION_INPUTS_JSON: ${{ vars.FOUNDATION_INPUTS_JSON }}
+      PROJECT_ENDPOINT: ${{ vars.PROJECT_ENDPOINT }}
+      APP_INSIGHTS_RESOURCE_ID: ${{ vars.APP_INSIGHTS_RESOURCE_ID }}
+      WORKSPACE_RESOURCE_ID: ${{ vars.WORKSPACE_RESOURCE_ID }}
+      JUDGE_DEPLOYMENT: ${{ vars.JUDGE_DEPLOYMENT }}
+      AGENT_NAME: ${{ inputs.agent_name }}
+      AGENT_VERSION: ${{ inputs.agent_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require explicit bindings
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @(
+            'ARM_CLIENT_ID', 'ARM_TENANT_ID', 'ARM_SUBSCRIPTION_ID', 'WORKSHOP_DIRECTORY',
+            'STATE_RESOURCE_GROUP', 'STATE_ACCOUNT', 'STATE_KEY', 'FOUNDATION_INPUTS_JSON',
+            'PROJECT_ENDPOINT', 'APP_INSIGHTS_RESOURCE_ID', 'WORKSPACE_RESOURCE_ID',
+            'JUDGE_DEPLOYMENT', 'AGENT_NAME', 'AGENT_VERSION'
+          )) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Missing protected environment binding: $name"
+            }
+          }
+          if ($env:AGENT_VERSION -notmatch '^[1-9][0-9]*$') { throw 'Use an immutable numeric agent version.' }
+          $checkout = (Resolve-Path -LiteralPath $env:GITHUB_WORKSPACE).Path
+          $workshop = (Resolve-Path -LiteralPath (Join-Path $checkout $env:WORKSHOP_DIRECTORY)).Path
+          if ($workshop -ne $checkout -and
+              -not $workshop.StartsWith("$checkout\", [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Workshop source must be inside this checkout.'
+          }
+          "WORKSHOP_ROOT=$workshop" >> $env:GITHUB_ENV
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --requirement "$env:WORKSHOP_ROOT\scenarios\architecture-docs\scripts\requirements-gate.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Gate dependency installation failed.' }
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+      - name: Evaluate fresh deployed candidate and require native provenance
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $workspaceId = az monitor log-analytics workspace show `
+            --ids $env:WORKSPACE_RESOURCE_ID --subscription $env:ARM_SUBSCRIPTION_ID `
+            --query customerId --output tsv --only-show-errors
+          if ($LASTEXITCODE -ne 0 -or $workspaceId -notmatch '^[0-9a-fA-F-]{36}$') {
+            throw 'Cannot resolve the actual telemetry workspace.'
+          }
+          python "$env:WORKSHOP_ROOT\scenarios\architecture-docs\scripts\run_foundry_gate.py" `
+            --scenario-root "$env:WORKSHOP_ROOT\scenarios\architecture-docs" `
+            --project-endpoint $env:PROJECT_ENDPOINT `
+            --agent-name $env:AGENT_NAME --agent-version $env:AGENT_VERSION `
+            --judge-deployment $env:JUDGE_DEPLOYMENT `
+            --app-insights-resource-id $env:APP_INSIGHTS_RESOURCE_ID `
+            --workspace-id $workspaceId --environment ci
+          if ($LASTEXITCODE -ne 0) { throw 'Live smoke/regression/provenance gate failed; no plan is permitted.' }
+      - name: Plan against existing protected remote foundation state
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exists = az storage blob exists --auth-mode login `
+            --account-name $env:STATE_ACCOUNT --container-name tfstate --name $env:STATE_KEY `
+            --subscription $env:ARM_SUBSCRIPTION_ID --query exists --output tsv --only-show-errors
+          if ($LASTEXITCODE -ne 0 -or $exists.Trim() -ne 'true') {
+            throw 'Remote state is absent or unreadable. Migrate the applied state first; never plan from empty CI state.'
+          }
+          $out = New-Item -ItemType Directory -Force -Path "$env:WORKSHOP_ROOT\out\ci"
+          $inputs = $env:FOUNDATION_INPUTS_JSON | ConvertFrom-Json
+          if ($inputs.subscription_id -ne $env:ARM_SUBSCRIPTION_ID -or
+              $inputs.tenant_id -ne $env:ARM_TENANT_ID) {
+            throw 'Foundation inputs do not match the OIDC target.'
+          }
+          $inputPath = Join-Path $out.FullName 'foundation.tfvars.json'
+          $env:FOUNDATION_INPUTS_JSON | Set-Content -LiteralPath $inputPath -Encoding utf8NoBOM
+          $foundation = "$env:WORKSHOP_ROOT\infra\foundation"
+          Copy-Item -LiteralPath "$env:WORKSHOP_ROOT\scenarios\architecture-docs\delivery\backend_override.tf.example" `
+            -Destination "$foundation\backend_override.tf"
+          $env:TF_DATA_DIR = Join-Path $out.FullName 'foundation-data'
+          terraform "-chdir=$foundation" init -reconfigure -input=false -no-color `
+            "-backend-config=resource_group_name=$env:STATE_RESOURCE_GROUP" `
+            "-backend-config=storage_account_name=$env:STATE_ACCOUNT" `
+            "-backend-config=container_name=tfstate" "-backend-config=key=$env:STATE_KEY" `
+            "-backend-config=client_id=$env:ARM_CLIENT_ID" `
+            "-backend-config=tenant_id=$env:ARM_TENANT_ID" `
+            "-backend-config=subscription_id=$env:ARM_SUBSCRIPTION_ID" `
+            -backend-config=use_azuread_auth=true -backend-config=use_oidc=true
+          if ($LASTEXITCODE -ne 0) { throw 'Remote backend initialization failed.' }
+          terraform "-chdir=$foundation" plan -input=false -no-color -lock-timeout=120s "-var-file=$inputPath"
+          if ($LASTEXITCODE -ne 0) { throw 'Native foundation plan failed.' }
+      - name: Preserve evaluation and provenance evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: foundry-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.WORKSHOP_ROOT }}\scenarios\architecture-docs\.foundry\results\
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
