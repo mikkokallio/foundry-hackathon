@@ -1,11 +1,24 @@
 # Module 0 - Review and deploy the foundation and selected workload
 
-**Status: local foundation/access/model/runtime declarations validate; Module 0
-implementation and all live acceptance remain incomplete.** No deployment-time target, resources, costs or role
-assignments are approved by this document.
+> [!WARNING]
+> **PREVIEW.** Initial setup may still need targeted changes as deployment
+> validation continues. Minor M1-M5 exercise/instruction changes are also likely.
+> Check the [repository preview notice](../README.md) before starting.
 
-The organizer reviews every part before we deploy together. Modules 1-5 are
-not started until Module 0 is accepted.
+**Status: available for a controlled customer deployment trial, not yet accepted
+as a fully repeatable clean deployment.** The fresh rehearsal applied foundation
+and access and built images; workload MCP-tool creation is currently blocked by
+Azure APIM HTTP 502 responses after a separate Graph timeout/reviewed resume.
+See [current evidence](exercise-readiness.md) and the main page's
+[customer resource and policy checklist](../README.md#customer-deployment-components-and-policy-checklist).
+No deployment-time target, resources, costs or role assignments are approved
+by this document.
+
+The organizer reviews every part before we deploy together. Customer deployment
+testing can start before M1-M5 curriculum qualification is complete.
+Do not start an affected participant exercise until its infrastructure and
+effective participant access have been verified. Deployment acceptance and
+agent qualification are separate; neither substitutes for the other.
 
 ## Required inventory
 
@@ -331,8 +344,10 @@ Do not share state, full plan JSON or private roster files with participants.
 7. Joint apply, with explicit approval at each mutation boundary.
 8. Readiness evidence and non-admin acceptance.
 
-## Acceptance, not just successful apply
+## Deployment acceptance, not just successful apply
 
+- Customer compatibility/preflight testing is a valid handoff milestone, not a
+  claim that the following complete-deployment checks have already passed.
 - No unexplained or functional Terraform changes on a fresh repeat plan.
 - Every actual assignment is checked; propagation and non-admin effective access
   are tested separately from configured-role existence.
@@ -340,10 +355,16 @@ Do not share state, full plan JSON or private roster files with participants.
 - Search service authentication and embedding access work; B1 has a real,
   executable indexing/knowledge path. Exercise steps may build their intended
   artifacts, but may not require unplanned infrastructure or elevated grants.
-- Fresh Foundry smoke and regression evaluations pass unchanged thresholds with
-  real response IDs, matching agent versions and actual tool spans. Evidence,
-  evaluation IDs and failure clusters stay under the selected agent's `.foundry/`.
 - No skipped, mocked, cached-response, incomplete or cancelled acceptance is a pass.
 - Deployment duration and repeatability are measured, not promised as 30 minutes.
 - Customer-specific quotas, subscription policy and billing currency limitations
   are reported explicitly.
+
+## Separate curriculum and agent qualification
+
+M1-M5 and bonus rehearsal, including genuine Foundry smoke/regression evaluations,
+remain separate from handing over Module 0 for customer deployment testing.
+Agent qualification still requires unchanged thresholds, real response IDs,
+matching agent versions and actual tool spans. Evidence, evaluation IDs and
+failure clusters stay under the selected agent's `.foundry/`. A failed or stopped
+evaluation is not a qualification pass, even when workshop progression is allowed.

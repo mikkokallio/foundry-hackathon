@@ -1,6 +1,16 @@
 # Exercise readiness
 
-**Curriculum candidate, not live participant acceptance or permission to deploy.**
+**PREVIEW: curriculum candidate, not live participant acceptance or permission to deploy.**
+Minor M1-M5 exercise/instruction changes are likely; initial setup may also
+need targeted changes as deployment validation continues.
+
+## Customer Module 0 deployment trial
+
+Module 0 can be handed over for customer subscription compatibility/deployment
+testing independently of M1-M5 qualification. The main page now lists the actual
+foundation/workload components, optional Redis, tenant changes, public-network
+policy exceptions and whole-subscription cost/deletion prerequisites. This is a controlled deployment trial, not a claim that
+the fresh workload or non-admin E2E has passed.
 
 ## Reusable knowledge, local reference and isolated deployment
 
@@ -42,9 +52,30 @@
   untested. Dedicated approved Cloud Shell storage is retained.
 - Isolated France instance `r1030c` passed actual cost/quota/operator preflight,
   then applied its foundation and access plans and built fresh immutable ACR
-  images. Its reviewed workload plan is applying. The original instance remains
-  available. Spending authorization remains EUR 130 cap / EUR 30 reserve /
-  EUR 2 hourly, with the original expiry. This is not yet a completed fresh E2E.
+  images. Its first workload apply failed on an AzureAD-provider Graph read
+  timeout after creating an application. A separately reviewed resume plan
+  replaced only that unused, tainted new application and resumed remaining work.
+  The new knowledge initializer completed using the checked-in repair.
+- The resumed workload has a separate unresolved provisioning blocker: repeated
+  APIM MCP tool writes return `InternalServerError` / `BadGateway` with an
+  upstream HTTP 502 response. Independent reads show all 14 expected REST
+  operations, but zero MCP tools. Both old and new APIM services report
+  `Succeeded` and the same BasicV2 tier. This is not yet attributed to a Terraform
+  defect or declared transient. The last apply log ends at approximately 22
+  minutes of MCP-tool retries without a final apply summary; a subsequent process
+  check found no Terraform process. Partial state and the lock-info receipt are
+  retained. A fresh reviewed resume is required, not blind reuse of the old plan.
+  No concurrent repair is being applied.
+- A new-instance, no-tools direct baseline was created and genuinely invoked in
+  the browser. The browser process later exited; its sandboxed persistent-profile
+  replacement was responsive but also exited during the next Authenticator
+  attempt. The cause is not established. Testman sign-in has been reopened in a
+  separate persistent browser profile so it no longer depends on the organizer
+  browser's temporary context. Actual testman E2E remains unverified, not an
+  organizer-session substitute.
+- The original instance remains available. Spending authorization remains
+  EUR 130 cap / EUR 30 reserve / EUR 2 hourly, with the original expiry.
+  This is not yet a completed fresh deployment or E2E.
 
 ## Latest focused repair and browser retries
 

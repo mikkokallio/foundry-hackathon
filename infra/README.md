@@ -1,5 +1,10 @@
 # Infrastructure ownership contract
 
+> [!WARNING]
+> **PREVIEW.** Initial setup may still need targeted fixes during deployment
+> validation. See the [repository preview notice and deployment checklist](../README.md)
+> and [known blockers](../docs/exercise-readiness.md) before planning or applying.
+
 ## Composition
 
 The deployment entry point selects `scenarios/<scenario>/scenario.json` and the
@@ -18,8 +23,11 @@ the foundation root.
 7. Build workload images explicitly and record immutable digests. Plan and apply
    must use the same selected artifacts, not mutable tags or an implicit rebuild.
 8. Produce and review the workload plan separately; apply only after approval.
-9. Run real service checks and genuine Foundry smoke/regression/provenance
-   acceptance, including a non-admin participant rehearsal.
+9. Run real service/repeat-plan checks and verify effective non-admin access.
+   Record deployment acceptance separately from the later curriculum and genuine
+   Foundry smoke/regression/provenance qualification. Customer deployment trials
+   do not require M1-M5 to be fully qualified first; failed infrastructure checks
+   still block the affected exercises.
 
 Foundation and workload have separate state. Workload destruction must not
 destroy the foundation; removing a workload must not remove another workload's
