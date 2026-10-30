@@ -11,14 +11,28 @@ Read [Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concept
 and [knowledge base concepts](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base).
 The organizer already created the reference knowledge base. Do not recreate it.
 
+**Rehearsal blocker:** native retrieval failed, first on the MCP API version,
+then on the model-less knowledge base's reasoning default. Shared configuration
+is unchanged. Ask the coach to resolve and verify those prerequisites before
+this exercise; no successful retrieval or citations have been demonstrated yet.
+
 ## Build
 
 1. Inspect the existing `<workload>-<team>-knowledge` connection in your project.
    Confirm its actual Search knowledge endpoint and project-managed-identity auth.
    Indexing success alone does not establish successful agent retrieval.
+   In the rehearsed portal it appears under **Tools -> Add -> Add tools ->
+   Configured** as a RemoteTool connection. The separate Knowledge menu offered
+   **Connect to Foundry IQ**; do not create a resource, enter a key or change a
+   shared association to replace the existing MCP connection.
 2. Clone/version your steward in Foundry. Add the existing knowledge/MCP
-   connection through the supported tool UI; inspect the actual discovered
-   retrieval operation and require a sensible explicit allowlist.
+   connection through the supported tool UI. It appears under Knowledge, but
+   the rehearsed card offered only Details/Remove, not approval/allowlist controls.
+   Saving produced an auto-approved MCP definition with no tool allowlist.
+   Before inference, have the coach create and inspect a candidate restricted to
+   the actual read-only `knowledge_base_retrieve` operation, requiring approval.
+   Its observed schema accepts exactly one query string of at most 400 characters.
+   Do not assume the native card has established those controls.
 3. Ask the same narrative question before/after, for example: "Explain the
    architecture-documentation standard's expectations for interfaces and unknown
    operational details. Cite the source." Then ask a specific owner/interface

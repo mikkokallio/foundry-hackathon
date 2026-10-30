@@ -22,6 +22,8 @@ Do not make the retiring Foundry visual workflow surface a required dependency.
 3. Send a request to the writer. Pass the **complete returned document** and
    actual evidence/validation result to the reviewer; do not pass only a summary
    that could hide defects.
+   Require both roles to call the documentation API's `validateDocument` on the
+   exact complete Markdown; toolkit `lint_document` is not a substitute.
 4. Require the reviewer to return a structured decision and specific findings.
    Validate that structure in the coordinator. Missing/invalid output is failure,
    not automatic approval. If revision is needed, pass findings to the writer.
