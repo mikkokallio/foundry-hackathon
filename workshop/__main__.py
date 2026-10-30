@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import re
+import shutil
 import subprocess
 import sys
 import uuid
@@ -139,6 +140,36 @@ def connection(pack: dict[str, Any], suffix: str) -> str:
     return f"{project_id(pack)}/connections/{pack['workload_name']}-{pack['team']}-{suffix}"
 
 
+def practice_docs_endpoint(pack: dict[str, Any], identity: Any, owner: str) -> str:
+    owner = prefix_for(pack, owner)
+    properties = arm(
+        pack,
+        identity,
+        f"{project_id(pack)}/connections/{owner}-docs",
+        "2025-04-01-preview",
+    )["properties"]
+    target = properties.get("target")
+    if not isinstance(target, str):
+        raise TypeError("The owned MCP connection must have a string target.")
+    endpoint = urlparse(target)
+    gateway = urlparse(pack["docs_mcp"])
+    if (
+        endpoint.scheme != "https"
+        or endpoint.netloc != gateway.netloc
+        or endpoint.path not in (f"/{owner}/docs-mcp/mcp", f"/{owner}-docs-mcp/mcp")
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise ValueError("The owned MCP connection target is outside the expected gateway/prefix.")
+    if (
+        properties.get("category") != "RemoteTool"
+        or properties.get("authType") != "ProjectManagedIdentity"
+        or properties.get("audience") != str(uuid.UUID(urlparse(pack["gateway_scope"]).netloc))
+    ):
+        raise ValueError("The owned MCP connection must use the expected project identity/audience.")
+    return target
+
+
 def create_agent(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> None:
     from azure.ai.projects import AIProjectClient
     from azure.ai.projects.models import (
@@ -168,8 +199,7 @@ def create_agent(args: argparse.Namespace, pack: dict[str, Any], identity: Any) 
         connection_id = connection(pack, "docs")
         if args.docs == "practice":
             owner = prefix_for(pack, args.docs_owner) if args.docs_owner else prefix
-            endpoint = pack["docs_mcp"].split("/" + pack["workload_name"] + "/")[0]
-            endpoint += f"/{owner}/docs-mcp/mcp"
+            endpoint = practice_docs_endpoint(pack, identity, owner)
             connection_id = f"{project_id(pack)}/connections/{owner}-docs"
         tools.append(
             MCPTool(
@@ -337,6 +367,44 @@ def chat(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> None:
     raise ValueError(f"Approval continuation exceeded 20 turns; evidence: {destination}")
 
 
+def gateway_token(pack: dict[str, Any]) -> str:
+    scope = pack["gateway_scope"]
+    app_id = uuid.UUID(urlparse(scope).netloc)
+    if scope != f"api://{app_id}/Lab.Access":
+        raise ValueError("Invalid delegated gateway scope; expected api://APP_ID/Lab.Access.")
+    executable = shutil.which("az")
+    if executable is None:
+        raise ValueError("Azure CLI is required to acquire the delegated gateway token.")
+    # AzureCliCredential converts this delegated scope into an incorrect resource URI.
+    result = subprocess.run(
+        [
+            executable,
+            "account",
+            "get-access-token",
+            "--subscription",
+            pack["subscription_id"],
+            "--scope",
+            scope,
+            "--query",
+            "accessToken",
+            "--output",
+            "tsv",
+            "--only-show-errors",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+        shell=False,
+    )
+    if result.returncode:
+        raise ValueError("Delegated gateway token acquisition failed: " + result.stderr.strip())
+    token = result.stdout.strip()
+    if not token:
+        raise ValueError("Delegated gateway token acquisition returned no token.")
+    return token
+
+
 def gateway(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> None:
     if args.route in ("models", "models-tight"):
         url = pack["gateway_models"][args.route]
@@ -344,7 +412,7 @@ def gateway(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> No
         prefix = prefix_for(pack, args.prefix)
         base = pack["docs_url"].split("/" + pack["workload_name"] + "/")[0]
         url = f"{base}/{prefix}/models-{args.route}/chat/completions?api-version=2024-10-21"
-    token = identity.get_token(pack["gateway_scope"]).token
+    token = gateway_token(pack)
     for _ in range(6 if args.burst else 1):
         try:
             result = request_json(
@@ -611,7 +679,7 @@ def main(argv: list[str] | None = None) -> int:
                     next(iter(client.agents.list(limit=1)), None)
                 systems = request_json(
                     pack["docs_url"] + "/systems",
-                    identity.get_token(pack["gateway_scope"]).token,
+                    gateway_token(pack),
                 )
                 print(
                     f"Foundry list and authenticated systems read succeeded ({type(systems).__name__})."
@@ -634,7 +702,15 @@ def main(argv: list[str] | None = None) -> int:
 
                 workflow(args, pack, identity)
         return 0
-    except (ValueError, KeyError, OSError, URLError, gate.GateError) as exc:
+    except (
+        ValueError,
+        TypeError,
+        KeyError,
+        OSError,
+        URLError,
+        subprocess.TimeoutExpired,
+        gate.GateError,
+    ) as exc:
         print(f"FAILED: {exc}", file=sys.stderr)
         return 1
     except (AzureError, OpenAIError) as exc:

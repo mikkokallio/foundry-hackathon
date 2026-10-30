@@ -8,7 +8,14 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 
-from workshop.__main__ import arm, output_path, prefix_for, project_id, save_new
+from workshop.__main__ import (
+    arm,
+    output_path,
+    practice_docs_endpoint,
+    prefix_for,
+    project_id,
+    save_new,
+)
 
 
 def gateway_id(pack: dict[str, Any]) -> str:
@@ -257,7 +264,7 @@ def catalog(args: Any, pack: dict[str, Any], identity: Any) -> None:
         print(json.dumps(arm(pack, identity, base, version), indent=2))
     elif args.action == "register":
         prefix = prefix_for(pack, args.prefix)
-        endpoint = pack["docs_url"].split("/" + pack["workload_name"] + "/")[0]
+        endpoint = practice_docs_endpoint(pack, identity, prefix)
         add(
             pack,
             identity,
@@ -272,7 +279,7 @@ def catalog(args: Any, pack: dict[str, Any], identity: Any) -> None:
                 "externalDocumentation": [
                     {
                         "title": "Authenticated MCP endpoint",
-                        "url": endpoint + "/" + prefix + "/docs-mcp/mcp",
+                        "url": endpoint,
                     }
                 ],
             },

@@ -55,10 +55,28 @@
     valid despite the reference-date mismatch. Guide examples now use the
     actual inventory name and retain the misnaming as an optional challenge.
     These observations are not a passing evaluation or a repaired prompt.
+- The CLI hang was reproduced at delegated token acquisition, not established
+    as an SDK/service outage. AzureCliCredential changed the gateway's delegated
+    scope into a resource URI. The helper now requests the exact scope explicitly;
+    real Foundry listing plus authenticated REST preflight succeeds. All 86
+    focused tests pass, with Ruff and Pyright clean.
+- M3 has positive same-trace evidence of the agent's model request through
+    APIM. Both owned model limiters produced actual 429s with Retry-After, and
+    both later recovered with genuine model responses. Real metrics include
+    Team/API/Model/Project. The actual Application Insights Logs UI executed the
+    repository query and rendered an owned-route Total Tokens chart with two
+    series and four records. The MCP tool-throttle activity did not produce a
+    429 in its bounded attempt or single repair; the exact original owned policy
+    was restored and hash-verified after both. No shared policy was changed.
+- M4 preparation reproduced another helper contract defect: portal-created
+    MCP paths differ from the helper's slash-separated convention. Agent
+    creation and catalog registration now read the owned connection's actual
+    target and verify its gateway, prefix, identity and audience. This does not
+    establish that the remaining M4 portal journey has passed.
 
   **Still required:** remaining actual portal rehearsal,
   non-admin authoring/connection/export tests, direct/routed trace correlation,
-real throttle/chart experiments, four-way fresh evaluation/provenance and the
+remaining MCP-throttle behavior, four-way fresh evaluation/provenance and the
 human save/librarian loop. Local files and an owner-created candidate do not
 prove those checks passed. Native Manage -> AI Gateway linkage is not configured
 merely because an explicit APIM model connection exists. Live B6 additionally

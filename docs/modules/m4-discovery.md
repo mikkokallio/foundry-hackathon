@@ -44,6 +44,9 @@ lab chat --binding "out\$prefix-toolkit.json" "Use the toolkit to generate a con
 ```
 
 `register` creates the REST record/version/definition with MCP discovery metadata.
+The helper reads your existing `<prefix>-docs` connection's actual endpoint;
+complete that M2 connection first. Portal-created and helper-created MCP paths
+can differ, so do not reconstruct an endpoint from its display name.
 Add environment/deployment and useful metadata in the portal. If export returns
 an unsupported format, the helper fails explicitly: use the API Center
 definition's **Export** action or the prepared CLI extension:

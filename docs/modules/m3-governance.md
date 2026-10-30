@@ -60,15 +60,20 @@ longer synthetic prompt or adjust **your practice policy**, rather than hammerin
 shared capacity. Never change shared reference limits or bypass the gateway.
 
 In the portal, inspect/change the limits on your own APIs and predict the outcome
-before calling again. Limits are not a guaranteed billing hard cap.
+before calling again. Rehearsal observed three successes with a 2/minute request
+policy, and 344 tokens with a 256-TPM policy, before the respective 429s.
+Limits are not exact counters or a guaranteed billing hard cap.
 
 ### 4. Throttle a tool
 
 On **your** documentation MCP policy, temporarily change the request limiter
 from 60 calls/minute to a deliberately small value. Use your own steward to make
-fresh inventory requests until the tool receives a real throttle. Inspect the
-tool failure and the agent's explanation. Restore **your** intended policy after
-the experiment. Do not modify the reference or somebody else's server.
+fresh inventory requests, allowing for policy propagation and stopping after
+at most six calls. Inspect the tool failure and the agent's explanation if a
+throttle occurs. Restore **your** intended policy even if the experiment fails.
+Do not modify the reference or somebody else's server. The bounded MCP probe
+has not yet demonstrated a 429 in rehearsal: record that result honestly rather
+than hammering the endpoint or claiming this check passed.
 
 Within a team, nominate one owned practice API and call it from two agents.
 Its counter is keyed by API/team: separate agents do not necessarily get
@@ -80,11 +85,28 @@ Open the assigned Application Insights **Logs** context and inspect the
 [request query](../../scenarios/architecture-docs/exercises/queries/gateway-observations.kql)
 and [token query](../../scenarios/architecture-docs/exercises/queries/token-usage.kql).
 Run a fresh call before querying. Discover real metric names/dimensions first.
+Dismiss the first-time **Welcome to Log Analytics** panel if shown. Logs may
+open in **Agent** mode: leave that unused chat, then choose **Simple mode ->
+KQL mode** using **Choose working mode**. Discard only an empty welcome chat,
+not any analysis you want to keep. This exercise runs KQL, not an observability
+agent conversation.
 
 Reference routes emit Team/API. The owned model practice policy also emits Model
 and Project, derived from the validated model route and assigned team project.
 Filter to your API and render a token-use chart. Project identity is not the
 human caller; detailed caller attribution and money estimates belong in B5.
+For example, after replacing the prefix below:
+
+```kusto
+customMetrics
+| where timestamp > ago(1h) and name == "Total Tokens"
+| where tostring(customDimensions["API"]) startswith "YOUR-PREFIX-"
+| summarize Tokens=sum(valueSum) by bin(timestamp, 1m), API=tostring(customDimensions["API"])
+| render timechart
+```
+
+Select one metric family; summing both `Total Tokens` and all token-detail
+metrics would count the same usage more than once.
 
 What would be misleading about pricing all tokens with one model's rate?
 

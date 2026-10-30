@@ -123,6 +123,81 @@ def test_policy_copy_requests_rawxml_instead_of_display_encoded_expressions():
     assert read.call_args.kwargs == {"query": {"format": "rawxml"}}
 
 
+def test_gateway_token_requests_the_exact_delegated_scope_without_resource_conversion():
+    scope = "api://33333333-3333-3333-3333-333333333333/Lab.Access"
+    pack = {**example_pack(), "gateway_scope": scope}
+    with (
+        patch("shutil.which", return_value="test-only-az"),
+        patch.object(
+            workshop.subprocess,
+            "run",
+            return_value=SimpleNamespace(returncode=0, stdout="test-only-token\n", stderr=""),
+        ) as run,
+    ):
+        assert workshop.gateway_token(pack) == "test-only-token"
+    command = run.call_args.args[0]
+    assert command[command.index("--scope") + 1] == scope
+    assert command[command.index("--subscription") + 1] == pack["subscription_id"]
+    assert "--resource" not in command
+    assert run.call_args.kwargs["timeout"] == 30
+    assert run.call_args.kwargs["capture_output"] is True
+    assert run.call_args.kwargs["shell"] is False
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        "api://33333333-3333-3333-3333-333333333333/.default",
+        "api://not-a-guid/Lab.Access",
+        "api://33333333-3333-3333-3333-333333333333/Lab.Access;unexpected",
+    ],
+)
+def test_gateway_token_rejects_noncanonical_workload_scopes(scope):
+    with patch.object(workshop.subprocess, "run") as run, pytest.raises(ValueError):
+        workshop.gateway_token({**example_pack(), "gateway_scope": scope})
+    run.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        SimpleNamespace(returncode=1, stdout="test-only-do-not-log", stderr="auth rejected"),
+        SimpleNamespace(returncode=0, stdout=" \n", stderr=""),
+    ],
+)
+def test_gateway_token_failures_never_substitute_a_token_or_expose_stdout(result):
+    with (
+        patch("shutil.which", return_value="test-only-az"),
+        patch.object(workshop.subprocess, "run", return_value=result),
+        pytest.raises(ValueError, match="token") as error,
+    ):
+        workshop.gateway_token(
+            {
+                **example_pack(),
+                "gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access",
+            }
+        )
+    assert "test-only-do-not-log" not in str(error.value)
+
+
+def test_gateway_uses_delegated_token_instead_of_identity_resource_conversion():
+    pack = {
+        **example_pack(),
+        "gateway_models": {"models": "https://example.invalid/models"},
+        "gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access",
+    }
+    identity = Mock()
+    args = SimpleNamespace(route="models", burst=False, model="chat-small", query="test-only")
+    with (
+        patch.object(workshop, "gateway_token", create=True, return_value="test-only-token") as token,
+        patch.object(workshop, "request_json", return_value={"usage": {"total_tokens": 1}}) as send,
+    ):
+        workshop.gateway(args, pack, identity)
+    token.assert_called_once_with(pack)
+    identity.get_token.assert_not_called()
+    assert send.call_args.args[1] == "test-only-token"
+
+
 def test_usage_preserves_unknown_and_sums_all_genuine_response_usage():
     assert workshop.gate.usage_totals([{"usage": {"input_tokens": 2, "output_tokens": 3}}]) == {
         "input_tokens": 2,
@@ -358,14 +433,22 @@ def test_comparison_refuses_uncontrolled_matrix(tmp_path, monkeypatch, differenc
 
 
 @pytest.mark.parametrize("role", ["instructions", "writer", "reviewer"])
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://example.invalid/alpha-p1/docs-mcp/mcp",
+        "https://example.invalid/alpha-p1-docs-mcp/mcp",
+    ],
+)
 def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
-    tmp_path, monkeypatch, role
+    tmp_path, monkeypatch, role, endpoint
 ):
     monkeypatch.setattr(workshop, "ROOT", tmp_path)
     pack = example_pack() | {
         "docs_mcp": "https://example.invalid/example/docs-mcp/mcp",
         "foundry_resource_id": "/test-resource",
         "toolkit_mcp": "https://example.invalid/example/toolkit/mcp",
+        "gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access",
     }
     args = workshop.parser().parse_args(
         [
@@ -390,6 +473,18 @@ def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
     with (
         patch.object(Path, "read_text", return_value="Test-only instructions"),
         patch("azure.ai.projects.AIProjectClient") as project_type,
+        patch.object(
+            workshop,
+            "arm",
+            return_value={
+                "properties": {
+                    "category": "RemoteTool",
+                    "authType": "ProjectManagedIdentity",
+                    "audience": "33333333-3333-3333-3333-333333333333",
+                    "target": endpoint,
+                }
+            },
+        ) as connection_read,
     ):
         project = project_type.return_value.__enter__.return_value
         project.agents.create_version.return_value = SimpleNamespace(
@@ -398,10 +493,11 @@ def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
             as_dict=lambda: {"test_only": True},
         )
         workshop.create_agent(args, pack, None)
+    assert connection_read.call_args.args[2].endswith("/connections/alpha-p1-docs")
     call = project.agents.create_version.call_args
     assert call.kwargs["agent_name"] == "alpha-p2-comparison"
     tool = call.kwargs["definition"].as_dict()["tools"][0]
-    assert tool["server_url"] == "https://example.invalid/alpha-p1/docs-mcp/mcp"
+    assert tool["server_url"] == endpoint
     assert tool["project_connection_id"].endswith("/connections/alpha-p1-docs")
     definition = call.kwargs["definition"].as_dict()
     workshop.gate.validate_agent(
@@ -411,6 +507,55 @@ def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
     )
     if role in ("writer", "reviewer"):
         assert "submitProposal" not in tool["allowed_tools"]
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://other.invalid/alpha-p1-docs-mcp/mcp",
+        "https://example.invalid/alpha-p2-docs-mcp/mcp",
+        "http://example.invalid/alpha-p1-docs-mcp/mcp",
+        "https://example.invalid/alpha-p1-docs-mcp/mcp?unexpected=true",
+    ],
+)
+def test_practice_connection_rejects_foreign_or_unexpected_endpoints(target):
+    pack = {
+        **example_pack(),
+        "foundry_resource_id": "/test-resource",
+        "docs_mcp": "https://example.invalid/example/docs-mcp/mcp",
+        "gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access",
+    }
+    with patch.object(
+        workshop,
+        "arm",
+        return_value={
+            "properties": {
+                "category": "RemoteTool",
+                "authType": "ProjectManagedIdentity",
+                "audience": "33333333-3333-3333-3333-333333333333",
+                "target": target,
+            }
+        },
+    ), pytest.raises(ValueError, match="owned MCP"):
+        workshop.practice_docs_endpoint(pack, None, "alpha-p1")
+
+
+def test_catalog_registers_the_actual_connection_endpoint(tmp_path):
+    (tmp_path / "openapi.json").write_text('{"openapi":"3.0.3"}', encoding="utf-8")
+    endpoint = "https://example.invalid/alpha-p1-docs-mcp/mcp"
+    pack = {
+        **example_pack(),
+        "catalog_resource_id": "/test-catalog",
+        "docs_url": "https://example.invalid/example/docs-api",
+    }
+    args = SimpleNamespace(action="register", prefix="alpha-p1", pack=tmp_path / "workshop.json")
+    with (
+        patch.object(practice, "practice_docs_endpoint", create=True, return_value=endpoint),
+        patch.object(practice, "add") as add,
+        patch.object(practice, "arm"),
+    ):
+        practice.catalog(args, pack, None)
+    assert add.call_args_list[0].args[4]["externalDocumentation"][0]["url"] == endpoint
 
 
 def test_manual_approval_defaults_to_denial_and_preserves_response_ids(tmp_path, monkeypatch):
