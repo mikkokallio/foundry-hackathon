@@ -18,8 +18,46 @@
 - M2 teaches building the documentation integration; the independent toolkit is
   first added after discovery in M4. Reference endpoints are explicitly catch-up.
 
-**Still required:** focused helper validation, actual portal rehearsal,
-non-admin authoring/connection/export tests, direct/routed trace correlation,
+  ## Authenticated organizer rehearsal so far
+
+  - M1: real direct-small, gateway-connected-small and connected-medium answers
+    have matching native response IDs, agent versions and traces. The connected
+    small trace was visible at the first check, 17.806 seconds after completion;
+    that is an upper bound, not a measured ingestion delay.
+  - M2: the owned REST route rejected anonymous requests and returned real
+    inventory when authorized. Owned MCP discovery, a domain filter containing
+    spaces/ampersand and exact-Markdown validation succeeded.
+  - The initial portal import generated summary-derived tool names. This broke
+    POST adaptation despite successful discovery. The existing owned attempt was
+    repaired explicitly through ARM tool metadata; shared references were not
+    changed. New packs export operation IDs as summaries, with a regression
+    proving all other specification content is preserved. Fresh portal import
+    of that corrected pack still needs verification.
+  - Policy copying now requests ARM JSON and raw XML explicitly, fixing two
+    reproduced content-negotiation/encoding defects. The focused Python suites
+    pass all 79 tests; artifact validation passes. These are local results, not
+    live Foundry qualification.
+  - The current portal creates custom MCP connections from the agent's tool
+    picker, with Microsoft Entra / Project Managed Identity. Manage's generic
+    Add connection picker did not offer MCP. Only the organizer identity has
+    been exercised; participant permissions remain unverified.
+  - Owned steward version 2 executed inventory, gap analysis and full-draft
+    validation. Native trace durations were 4.780, 3.239 and 12.787 seconds.
+    The first and draft responses have matching saved response IDs and native
+    tool spans. The draft's exact validator argument appears in the final raw
+    answer, and no save/publication tool ran. A browser helper timed out waiting
+    for the draft's stream to close even though the UI had already completed;
+    that timeout is not the participant's generation time.
+  - Quality findings remain visible: the first answer silently mapped "Sales"
+    to the inventory's "Service Order Management"; the draft used 2026-10-30
+    instead of the configured 2026-11-01; and nested three-backtick Markdown
+    fences split the rendered draft/copy action. The service validator returned
+    valid despite the reference-date mismatch. Guide examples now use the
+    actual inventory name and retain the misnaming as an optional challenge.
+    These observations are not a passing evaluation or a repaired prompt.
+
+  **Still required:** remaining actual portal rehearsal,
+  non-admin authoring/connection/export tests, direct/routed trace correlation,
 real throttle/chart experiments, four-way fresh evaluation/provenance and the
 human save/librarian loop. Local files and an owner-created candidate do not
 prove those checks passed. Native Manage -> AI Gateway linkage is not configured

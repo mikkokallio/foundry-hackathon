@@ -156,6 +156,18 @@ try {
     Assert (@($comparison | Where-Object id -CIn $plan.write_back_case_ids).Count -eq 0) 'Comparison cannot save proposals or mutate the corpus.'
     Assert ((Read-Rows (Join-Path $destination 'evaluation\comparison-12.portal.jsonl')).Count -eq 12) 'Portal comparison must retain all twelve case IDs.'
     Assert ((Read-Rows (Join-Path $destination 'evaluation\write-back.jsonl')).Count -eq 3) 'All three inherited write cases are needed.'
+    $importApi = Read-Json (Join-Path $destination 'openapi.json')
+    foreach ($path in $api.paths.Keys) {
+        foreach ($method in $api.paths[$path].Keys) {
+            $operation = $api.paths[$path][$method]
+            if ($operation -is [System.Collections.IDictionary] -and $operation.Contains('operationId')) {
+                Assert ($importApi.paths[$path][$method].summary -ceq $operation.operationId) 'Portal import summaries must preserve exact MCP contract names.'
+                $importApi.paths[$path][$method].summary = $operation.summary
+            }
+        }
+    }
+    Assert (($importApi | ConvertTo-Json -Compress -Depth 50) -ceq
+        ($api | ConvertTo-Json -Compress -Depth 50)) 'Participant OpenAPI may change only operation summaries, not the API contract.'
     foreach ($entry in $receipt.sha256.GetEnumerator()) {
         Assert ((Get-FileHash -LiteralPath (Join-Path $destination $entry.Key) -Algorithm SHA256).Hash -ieq $entry.Value) 'Pack receipt hash mismatch.'
     }

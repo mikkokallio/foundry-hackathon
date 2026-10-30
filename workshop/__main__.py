@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from azure.core.exceptions import AzureError
@@ -98,6 +98,7 @@ def request_json(
         method=method,
         headers={
             "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
             "Content-Type": "application/json",
             **(headers or {}),
         },
@@ -116,11 +117,13 @@ def arm(
     *,
     method: str = "GET",
     body: Any = None,
+    query: dict[str, str] | None = None,
 ) -> Any:
     if not resource.lower().startswith(f"/subscriptions/{pack['subscription_id']}/".lower()):
         raise ValueError("ARM target is outside the pack subscription.")
     return request_json(
-        f"https://management.azure.com{resource}?api-version={version}",
+        f"https://management.azure.com{resource}?"
+        + urlencode({**(query or {}), "api-version": version}),
         identity.get_token("https://management.azure.com/.default").token,
         method=method,
         body=body,

@@ -20,7 +20,13 @@ def add(
     pack: dict[str, Any], identity: Any, resource: str, version: str, properties: dict[str, Any]
 ) -> None:
     try:
-        current = arm(pack, identity, resource, version)
+        current = arm(
+            pack,
+            identity,
+            resource,
+            version,
+            query={"format": "rawxml"} if resource.endswith("/policies/policy") else None,
+        )
     except HTTPError as exc:
         if exc.code != 404:
             raise
@@ -196,7 +202,13 @@ def copy_policy(
     replace_path: tuple[str, str] | None = None,
     limiter: str | None = None,
 ) -> None:
-    value = arm(pack, identity, f"{service}/apis/{source}/policies/policy", "2024-05-01")
+    value = arm(
+        pack,
+        identity,
+        f"{service}/apis/{source}/policies/policy",
+        "2024-05-01",
+        query={"format": "rawxml"},
+    )
     xml = value["properties"]["value"]
     if replace_path:
         if replace_path[0] not in xml:

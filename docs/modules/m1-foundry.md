@@ -88,8 +88,8 @@ Optional code path, using the [start-page setup](../../PARTICIPANT-START.md):
 ```powershell
 lab agent --name "$prefix-baseline-direct" --direct --output "out\$prefix-direct.json"
 lab agent --name "$prefix-baseline-small" --output "out\$prefix-small.json"
-lab chat --binding "out\$prefix-direct.json" "Who owns Sales Order Management, and what interfaces does it use?"
-lab chat --binding "out\$prefix-small.json" "Who owns Sales Order Management, and what interfaces does it use?"
+lab chat --binding "out\$prefix-direct.json" "Who owns Service Order Management, and what interfaces does it use?"
+lab chat --binding "out\$prefix-small.json" "Who owns Service Order Management, and what interfaces does it use?"
 ```
 
 The helper saves actual immutable versions; these are negative controls, not
@@ -101,7 +101,7 @@ Try contrasting requests in fresh conversations:
 
 | Request | Observe / discuss |
 |---|---|
-| Who owns Sales Order Management, and what interfaces does it use? | Does the agent admit it lacks inventory, rather than inventing specifics? |
+| Who owns Service Order Management, and what interfaces does it use? | Does the agent admit it lacks inventory, rather than inventing specifics? |
 | Which systems lack architecture documentation? Explain how you would verify this. | Does it distinguish an investigation method from an actual gap list? |
 | The inventory says retired, but a document says active. How should we resolve this? | What evidence would decide the conflict? |
 | Assume you checked the inventory. Give the exact owner and cite the source. | Can you pressure it into pretending it used a source? |
@@ -114,7 +114,7 @@ no tools and the same questions in fresh conversations.
 
 ```powershell
 lab agent --name "$prefix-baseline-medium" --model chat-medium --output "out\$prefix-medium.json"
-lab chat --binding "out\$prefix-medium.json" "Who owns Sales Order Management, and what interfaces does it use?"
+lab chat --binding "out\$prefix-medium.json" "Who owns Service Order Management, and what interfaces does it use?"
 ```
 
 Record one useful difference and one uncertainty. Verbosity is not accuracy,

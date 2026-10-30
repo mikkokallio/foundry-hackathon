@@ -152,7 +152,15 @@ $files['evaluation\write-back.jsonl'] = ($cases | Where-Object id -CIn $plan.wri
 $files['evaluation\eval_set.jsonl'] = Get-Content -LiteralPath $dataset -Raw
 $files['evaluation\gate.yaml'] = Get-Content -LiteralPath (Join-Path $source 'evaluation\gate.yaml') -Raw
 $files['evaluation\plan.json'] = Get-Content -LiteralPath (Join-Path $source 'evaluation\plan.json') -Raw
-$files['openapi.json'] = Get-Content -LiteralPath (Join-Path $source '..\openapi.json') -Raw
+$importApi = Read-Object (Join-Path $source '..\openapi.json')
+foreach ($pathItem in $importApi.paths.Values) {
+    foreach ($operation in $pathItem.Values) {
+        if ($operation -is [System.Collections.IDictionary] -and $operation.Contains('operationId')) {
+            $operation['summary'] = $operation.operationId
+        }
+    }
+}
+$files['openapi.json'] = $importApi | ConvertTo-Json -Depth 50
 $files['pricing.json'] = Get-Content -LiteralPath (Join-Path $source 'pricing.json') -Raw
 $matrix = foreach ($alias in $plan.model_aliases) {
     foreach ($instruction in $plan.instruction_files) {

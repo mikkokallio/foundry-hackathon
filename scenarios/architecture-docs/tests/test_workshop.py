@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import sys
 from pathlib import Path
@@ -94,6 +95,32 @@ def test_arm_refuses_different_subscription_before_request():
     with pytest.raises(ValueError, match="outside"):
         workshop.arm(example_pack(), identity, "/subscriptions/other/resourceGroups/no", "version")
     identity.get_token.assert_not_called()
+
+
+def test_json_requests_explicitly_negotiate_json_for_arm_policy_reads():
+    def policy_response(request, timeout):
+        assert timeout == 120
+        if request.get_header("Accept") == "application/json":
+            return io.BytesIO(b'{"properties":{"value":"<policies />"}}')
+        return io.BytesIO(b"\xef\xbb\xbf<policies />")
+
+    with patch.object(workshop, "urlopen", side_effect=policy_response):
+        result = workshop.request_json(
+            "https://management.azure.com/test-only/policies/policy",
+            "test-only-token",
+        )
+    assert result == {"properties": {"value": "<policies />"}}
+
+
+def test_policy_copy_requests_rawxml_instead_of_display_encoded_expressions():
+    with (
+        patch.object(
+            practice, "arm", return_value={"properties": {"value": "<policies />"}}
+        ) as read,
+        patch.object(practice, "add"),
+    ):
+        practice.copy_policy({}, None, "/service", "reference", "alpha-p1-owned")
+    assert read.call_args.kwargs == {"query": {"format": "rawxml"}}
 
 
 def test_usage_preserves_unknown_and_sums_all_genuine_response_usage():
