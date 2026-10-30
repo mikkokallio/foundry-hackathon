@@ -13,3 +13,17 @@ environments:
       evalId: eval_e3440e2ef056441e86084519d63bed7c
       evalRunId: evalrun_5c29a3710270428c9823dc21044d0e0b
       suiteName: smoke
+  alpha:
+    lastEval:
+      agentVersion: '4'
+      startedAt: '2026-10-30T03:45:04.041615+00:00'
+      resultFile: C:\Users\mikkokallio\dev\manu\hackathon\scenarios\architecture-docs\.foundry\results\20261030T034503Z-2a23036da6fc415eb67d8f0786683d26\manifest.json
+      status: failed
+      suites:
+      - tier: smoke
+        evaluation_id: eval_62482511405e4ad58256fe95386e2368
+        evaluation_run_id: evalrun_7efbb0569b494d63abc704e9f017a33f
+        status: failed
+      evalId: eval_62482511405e4ad58256fe95386e2368
+      evalRunId: evalrun_7efbb0569b494d63abc704e9f017a33f
+      suiteName: smoke

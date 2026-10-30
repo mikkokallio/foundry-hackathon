@@ -133,7 +133,32 @@
     This is not evidence that a write auto-executed. Only the owned documentation
     MCP's setting was strengthened to Never auto-approve tools and saved as v4;
     toolkit/model/prompt/shared resources stayed unchanged. The gate and all
-    frozen requirements remain unchanged. Fresh v4 qualification is pending.
+    frozen requirements remain unchanged. Fresh v4 smoke collected all four cases,
+    with all four native proofs verified, task adherence 4.0 and template
+    compliance 1.0. It still failed required-tool checks (`getSystem` in qa-01,
+    `getDocument` in draft-01), so regression did not run. The latter system really
+    has ARCH-SOM v1.3: listing its metadata did not replace reading its content.
+    V4 is not qualified. The actual portal's Approve button opens another menu;
+    Approve once is the single-call decision, not an Always option.
+- Core rehearsal found that a structurally valid new draft asserted security
+    implementation details absent from the live inventory. One explicit review
+    revision replaced them with owner-confirmation items, preserved the other
+    content and used 2026-11-01. The exact revised text passed genuine
+    `validateDocument` and an independent authenticated validation. Chat consent
+    and the portal's MCP write confirmation are distinct. The planned first
+    denial was acknowledged in the UI and storage still contained zero proposals;
+    its arguments also confused the source marker with the team. A subsequent
+    request corrected the team but inserted an extra Markdown table separator,
+    so it too was denied. One explicit correction/revalidation attempt preserved
+    the exact reviewed text. Approve once then saved one real alpha proposal as
+    pending-review; independent readback matched all 2,577 characters and the
+    approved UTF-8 SHA-256. Its genuine v4 response, native root and successful
+    submitProposal span correlate with that stored proposal. This proves that
+    particular save, not agent qualification. Publication has not been attempted;
+    the corpus has not been changed by these proposals. The organizer's delegated
+    token includes the Librarian role, but actual publication remains untested.
+    This is organizer-identity automation, not evidence of a real participant's
+    permission or a customer's business approval.
 - B5 read-only checks verified the actual small deployment as
     gpt-5.4-nano / 2026-03-17 / GlobalStandard and the model connection as
     ProjectManagedIdentity. One genuine task's completed-response usage gives
@@ -150,7 +175,7 @@
   **Still required:** remaining actual portal rehearsal,
   non-admin authoring/connection/export tests, direct/routed trace correlation,
 remaining MCP-throttle behavior, four-way fresh evaluation/provenance and the
-human save/librarian loop. Local files and an owner-created candidate do not
+remaining librarian publication loop. Local files and an owner-created candidate do not
 prove those checks passed. Native Manage -> AI Gateway linkage is not configured
 merely because an explicit APIM model connection exists. Live B6 additionally
 requires separately approved organizer delivery setup.

@@ -118,6 +118,7 @@ this is an access defect, not permission to borrow an organizer account.
 Add **only your documentation MCP** at this stage. On its **Actions -> Configure**,
 enter the twelve selected tool names under **Allowed ... tools**. Choose
 **Never auto-approve tools**; this requires confirming reads as well as saves.
+For each expected read, choose **Approve -> Approve once**, not an Always option.
 The rehearsed portal's selective-autoapproval policy omitted the explicit
 write-approval rule required by this repository's gate. The helper's reviewed
 policy supports selective read approval; do not weaken the gate to accept a

@@ -18,15 +18,21 @@ Suggested reading: [MCP tools and approval requests](https://learn.microsoft.com
    existing document (if any), draft a complete document, run `validateDocument`
    and fix errors. Say **do not save**.
 2. Read the entire final Markdown, validation errors/warnings and factual changes.
-   Require corrections and revalidation of changed text.
+   A structural pass does not prove unsupported security claims. Require
+   corrections and revalidation of changed text.
 3. Request saving and **decline** the MCP write approval once. Verify through
-   `listProposals` that no corresponding proposal was saved.
+   `listProposals` that no corresponding proposal was saved. If the agent first
+   asks for chat consent, confirm the exact text there; the MCP approval card is
+   a separate final gate. Deny that card for this test.
 4. In a subsequent request explicitly approve saving the exact displayed,
    validated text. Inspect the MCP request's full `submitProposal` arguments.
+   Check system/document IDs, team, source and raw Markdown, not just its summary.
    If anything differs, decline and ask for correction/revalidation/reapproval.
-5. Approve only that operation. Retrieve the actual proposal by returned ID and
-   compare its stored text/status with your approval. A validator error or
-   `needs-changes` status is not a successful pending-review proposal.
+5. Choose **Approve -> Approve once** for only that operation, never **Always
+   approve this tool** or **Always approve all tools**. Retrieve the actual
+   proposal by returned ID and compare its raw stored text/status with your
+   approval. A validator error or `needs-changes` status is not a successful
+   pending-review proposal.
 6. Ask the designated **human librarian** to retrieve/review and publish through
    the API's separate human-only action. The agent must not have `publishProposal`.
    The librarian checks base version; a conflict requires review, not force.
