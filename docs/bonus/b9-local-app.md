@@ -1,7 +1,9 @@
 # B9 - Build your own local client
 
-**After M2; use the core approval flow for writes.** This is a participant build,
-not a supplied finished frontend or a new Azure hosting deployment.
+**After M2; use the core approval flow for writes.** This remains a participant
+build, not a new Azure hosting deployment. Try first; an optional
+[coach/catch-up reference](../../scenarios/architecture-docs/exercises/frontend/reference/README.md)
+is available if you get stuck.
 
 ## Understand
 
@@ -11,6 +13,8 @@ Inspect the [frontend build prompt](../../scenarios/architecture-docs/exercises/
 and [OpenAPI contract](../../scenarios/architecture-docs/openapi.json).
 The [local build bundle](../../scenarios/architecture-docs/exercises/frontend/README.md)
 provides README, PROMPT, SPEC and EXTEND materials without prebuilding your app.
+The separate optional reference was added at the organizer's request; using it
+does not certify your own implementation or qualify the bound agent.
 
 ## Build
 

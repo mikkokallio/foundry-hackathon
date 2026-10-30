@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import datetime as dt
 import hashlib
@@ -19,7 +20,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, ResourceNotFoundError
 from openai import OpenAIError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -274,6 +275,129 @@ def binding_for(path: Path, pack: dict[str, Any]) -> dict[str, Any]:
     return binding
 
 
+def knowledge_candidate(
+    args: argparse.Namespace, pack: dict[str, Any], identity: Any
+) -> None:
+    from azure.ai.projects import AIProjectClient
+
+    prefix = prefix_for(pack, args.prefix)
+    if not re.fullmatch(re.escape(prefix) + r"-[a-z0-9-]+", args.name):
+        raise ValueError("Knowledge candidate must start with your participant prefix.")
+    base = binding_for(args.binding, pack)
+    if not base["agent_name"].startswith(prefix + "-"):
+        raise ValueError("Use an immutable base owned by your participant prefix.")
+    destination = output_path(args.output)
+    if destination.exists():
+        raise ValueError("Binding already exists. Choose a new output file; no agent was changed.")
+    connection_id = connection(pack, "knowledge")
+    properties = arm(pack, identity, connection_id, "2025-04-01-preview")["properties"]
+    target = urlparse(properties["target"])
+    if (
+        properties.get("category") != "RemoteTool"
+        or properties.get("authType") != "ProjectManagedIdentity"
+        or properties.get("audience") != "https://search.azure.com"
+        or properties.get("isSharedToAll") is not False
+        or target.scheme != "https"
+        or not target.hostname
+        or not re.fullmatch(r"[a-z0-9][a-z0-9-]+\.search\.windows\.net", target.hostname)
+        or target.port not in (None, 443)
+        or target.username
+        or target.fragment
+        or target.path != f"/knowledgebases/{pack['workload_name']}-architecture/mcp"
+        or target.query != "api-version=2026-05-01-preview"
+    ):
+        raise ValueError("Knowledge connection has an unexpected target, identity or sharing policy.")
+    with AIProjectClient(
+        endpoint=pack["project_endpoint"],
+        credential=identity,
+        retry_total=0,
+        connection_timeout=30,
+        read_timeout=60,
+    ) as client:
+        actual_base = client.agents.get_version(
+            agent_name=base["agent_name"], agent_version=base["agent_version"]
+        ).as_dict()
+        gate.validate_agent(actual_base, base["agent_name"], base["agent_version"])
+        if actual_base["definition"] != base["definition"]["definition"]:
+            raise ValueError("Base binding differs from the actual immutable definition.")
+        try:
+            client.agents.get(agent_name=args.name)
+        except ResourceNotFoundError:
+            pass
+        else:
+            raise ValueError("Agent name already exists. Use a newly named knowledge candidate.")
+        definition = copy.deepcopy(actual_base["definition"])
+        definition["tools"].append(
+            {
+                "type": "mcp",
+                "server_label": f"{pack['workload_name']}-{pack['team']}-knowledge",
+                "server_url": properties["target"],
+                "project_connection_id": connection_id,
+                "allowed_tools": {"tool_names": ["knowledge_base_retrieve"]},
+                "require_approval": "always",
+            }
+        )
+        created = client.agents.create_version(
+            agent_name=args.name,
+            body={
+                "definition": definition,
+                "metadata": {"workshop_prefix": prefix},
+                "description": "B1 retrieval candidate; unchanged base plus approved read-only knowledge.",
+            },
+        )
+        actual = client.agents.get_version(
+            agent_name=created.name, agent_version=str(created.version)
+        ).as_dict()
+        if actual["definition"] != definition or str(created.version) != "1":
+            raise ValueError(
+                f"Created {created.name}:{created.version}, but readback/name freshness failed. "
+                "Inspect that agent; no qualifying binding was saved."
+            )
+    save_new(
+        destination,
+        {
+            **base,
+            "agent_name": created.name,
+            "agent_version": str(created.version),
+            "definition": actual,
+            "base_agent": {"name": base["agent_name"], "version": base["agent_version"]},
+            "knowledge_connection_id": connection_id,
+            "release_accepted": False,
+        },
+    )
+    print(f"Created {created.name}:{created.version}. Binding: {destination}. Not release-qualified.")
+
+
+def knowledge_approval_allowed(binding: dict[str, Any], item: dict[str, Any]) -> bool:
+    if item["name"] != "knowledge_base_retrieve" or not binding.get("knowledge_connection_id"):
+        return False
+    tools = binding["definition"]["definition"].get("tools", [])
+    matches = [
+        tool
+        for tool in tools
+        if tool.get("type") == "mcp"
+        and tool.get("project_connection_id") == binding["knowledge_connection_id"]
+        and tool.get("server_label") == item.get("server_label")
+        and tool.get("allowed_tools") == {"tool_names": ["knowledge_base_retrieve"]}
+        and tool.get("require_approval") == "always"
+    ]
+    try:
+        arguments = json.loads(item["arguments"])
+    except (TypeError, json.JSONDecodeError):
+        return False
+    queries = arguments.get("queries") if isinstance(arguments, dict) else None
+    return (
+        len(matches) == 1
+        and isinstance(arguments, dict)
+        and set(arguments) == {"queries"}
+        and isinstance(queries, list)
+        and len(queries) == 1
+        and isinstance(queries[0], str)
+        and 0 < len(queries[0]) <= 150
+        and 0 < len(queries[0].split()) < 12
+    )
+
+
 def chat(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> None:
     from azure.ai.projects import AIProjectClient
 
@@ -338,7 +462,11 @@ def chat(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> None:
                 print(f"\nApproval request: {item['name']}\n{item['arguments']}")
                 if item["name"] == "publishProposal":
                     raise ValueError("Publication is never an agent operation.")
-                known = item["name"] in gate.READ_TOOLS | {"submitProposal"}
+                known = item["name"] in gate.READ_TOOLS | {"submitProposal"} or knowledge_approval_allowed(
+                    binding, item
+                )
+                if not known:
+                    print("Denied: unreviewed tool or retrieval outside the one-short-query workshop policy.")
                 approved = (
                     known
                     and input("Approve this exact tool and arguments? [y/N] ").strip().lower()
@@ -619,6 +747,10 @@ def parser() -> argparse.ArgumentParser:
     agent.add_argument("--toolkit", action="store_true")
     agent.add_argument("--reasoning", choices=["minimal", "low", "medium", "high"])
     agent.add_argument("--output", type=Path, required=True)
+    knowledge = commands.add_parser("knowledge")
+    knowledge.add_argument("--binding", type=Path, required=True, help="Existing immutable steward binding")
+    knowledge.add_argument("--name", required=True, help="Unused participant-prefixed agent name")
+    knowledge.add_argument("--output", type=Path, required=True)
     chat_command = commands.add_parser("chat")
     chat_command.add_argument("--binding", type=Path, required=True)
     chat_command.add_argument(
@@ -687,6 +819,8 @@ def main(argv: list[str] | None = None) -> int:
                 print("This is not authoring-permission verification or release acceptance.")
             elif args.command == "agent":
                 create_agent(args, pack, identity)
+            elif args.command == "knowledge":
+                knowledge_candidate(args, pack, identity)
             elif args.command == "chat":
                 chat(args, pack, identity)
             elif args.command == "gateway":

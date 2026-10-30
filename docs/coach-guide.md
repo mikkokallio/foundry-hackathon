@@ -54,6 +54,22 @@ pass or participant-permission certificate.
 
 ## Gateway and tracing distinctions
 
+The [APIM Microsoft Foundry import wizard](https://learn.microsoft.com/en-us/azure/api-management/azure-ai-foundry-api)
+creates an API/backend/managed-identity route and optional AI policies. The lab's
+Terraform follows that architecture but customizes aliases, deployment-path
+rewrites, team checks, limits and its single chat operation. It additionally
+creates explicit project model connections. This is not an exact wizard export.
+
+The [native Foundry gateway association](https://learn.microsoft.com/en-us/azure/foundry/configuration/enable-ai-api-management-gateway-portal)
+is a different setup surface, with resource association and existing-project
+enablement. Do not attribute its absence simply to using Terraform.
+The [new AI Gateway public-preview product](https://learn.microsoft.com/en-us/azure/ai-gateway/overview)
+is in public preview as checked at the end of October 2026. It is a distinct
+`Microsoft.ApiManagement/aigateways` resource type, not merely a new SKU of
+this lab's `Microsoft.ApiManagement/service`. Its preview includes Sweden
+Central, not France Central. Mention the emerging option; it is not a required
+migration or a change to the lab.
+
 The explicit APIM model connection is not the native Manage -> AI Gateway
 association. The latter is not secretly introduced as a required participant
 setup in M3. Do not add a native link or a new APIM under curriculum approval.

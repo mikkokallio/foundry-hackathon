@@ -1,0 +1,16 @@
+{
+  "name": "architecture-docs-local-reference",
+  "private": true,
+  "scripts": {
+    "build": "esbuild app.js --bundle --format=iife --outfile=dist/app.js --minify",
+    "check": "node --check app.js"
+  },
+  "dependencies": {
+    "dompurify": "3.4.17",
+    "marked": "18.1.1",
+    "mermaid": "12.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

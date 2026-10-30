@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width">
+  <meta name="lab-session" content="SESSION_NONCE">
+  <title>Architecture docs - local reference</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css"><script defer src="/app.js"></script>
+</head>
+<body>
+  <header><h1>Architecture docs</h1><p>Optional B9 reference. Real services; no publication.</p>
+    <pre id="context" aria-label="Actual context">Loading actual context...</pre></header>
+  <p id="error" role="alert"></p>
+  <main>
+    <section><h2>Chat</h2><form id="chat-form">
+      <label>Question <textarea id="query" required></textarea></label>
+      <button id="ask">Ask agent</button>
+    </form><button id="cancel" type="button">Cancel and clear consent</button>
+      <p>Cancellation clears pending consent. An in-flight read may still finish.</p>
+      <pre id="chat-evidence" aria-label="Chat evidence"></pre>
+      <article id="answer" aria-label="Agent answer"></article>
+      <div id="tool-approvals"></div>
+    </section>
+    <section><h2>Live documentation gaps</h2><button id="load-gaps">Load live gaps</button>
+      <p id="gaps-state"></p><ul id="gaps"></ul>
+    </section>
+    <section class="wide"><h2>Exact-text document review</h2>
+      <form id="draft-form">
+        <label>System ID <input id="system-id" required placeholder="Select a live gap"></label>
+        <label>Document ID (optional for a new document) <input id="doc-id" placeholder="ARCH-XXX"></label>
+        <label>Summary <input id="summary" required maxlength="1000"></label>
+        <label>Actual draft author <select id="author-type"><option value="agent">Foundry agent</option>
+          <option value="human">Human</option><option value="coding-agent">Coding agent</option></select></label>
+        <label>Complete Markdown <textarea id="markdown" required maxlength="200000"></textarea></label>
+      </form>
+      <button id="preview">Preview safely</button><button id="validate">Validate exact text</button>
+      <pre id="validation" aria-label="Actual validation"></pre>
+      <article id="document-preview" aria-label="Document preview"></article>
+      <fieldset id="review" disabled><legend>Human decision for this exact text</legend>
+        <p>Review the complete text and metadata below. Any edit invalidates this decision.</p>
+        <pre id="exact-review"></pre>
+        <label><input id="confirm" type="checkbox"> I approve saving exactly this validated text as a proposal.</label>
+        <button id="deny">Deny approval</button><button id="save" disabled>Approve and save once</button>
+      </fieldset>
+      <button id="reconcile">Reconcile last write (never resubmit)</button>
+      <pre id="proposal" aria-label="Actual proposal"></pre>
+      <label>Read an existing proposal ID <input id="proposal-id"></label><button id="read-proposal">Read proposal</button>
+    </section>
+  </main>
+</body>
+</html>

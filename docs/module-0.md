@@ -216,6 +216,13 @@ Keep the checkout, `out/`, plans, receipts and state on the mounted drive.
 Existing Azure sign-in does not prove Graph consent or deployment permission.
 See [Cloud Shell persistence](https://learn.microsoft.com/en-us/azure/cloud-shell/persisting-shell-storage).
 
+**Untested Linux deployment commands:** the Windows portability tests passed,
+but these commands have not been validated on Linux or through a Cloud Shell
+deployment. Cloud Shell actually reported `ACC_LOCATION=EASTUS2` despite a
+France Central preference and France-based storage; no private source or inputs
+were uploaded. The isolated rehearsal uses the authorized local Windows runner.
+Check `$ACC_LOCATION` in Bash (or `$env:ACC_LOCATION` in PowerShell) before upload.
+
 From the repository directory, these are **Bash** launch commands:
 
 ```bash
@@ -246,9 +253,8 @@ Before resuming, inspect the original process, state lock and any recorded ACR
 run ID. Do not blindly force-unlock state or queue duplicate builds. Persistent
 local state is not a shared remote backend.
 
-**Validation boundary:** portability fixes have passed focused Windows tests.
-The actual Cloud Shell deployment is being rehearsed; this section is not yet
-an end-to-end Cloud Shell acceptance claim.
+**Validation boundary:** all Linux alternatives above remain untested. The
+Cloud Shell placement failure is not a successful Linux deployment rehearsal.
 
 ## Review order
 

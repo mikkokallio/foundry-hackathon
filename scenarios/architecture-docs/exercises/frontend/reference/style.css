@@ -1,0 +1,18 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #17283b; background: #f0f4f8; }
+body { max-width: 1280px; margin: auto; padding: 1.5rem; }
+header, section { background: white; border: 1px solid #cad6e3; border-radius: .6rem; padding: 1.3rem; }
+main { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.wide { grid-column: 1 / -1; }
+h1, h2 { margin-top: 0; }
+label { display: block; margin: .8rem 0; font-weight: 600; }
+input:not([type=checkbox]), textarea, select { box-sizing: border-box; display: block; width: 100%; padding: .6rem; border: 1px solid #789; border-radius: .25rem; }
+textarea { min-height: 7rem; font: inherit; }
+#markdown { min-height: 24rem; font-family: ui-monospace, monospace; }
+button { padding: .6rem 1rem; margin: .3rem .3rem .3rem 0; cursor: pointer; border: 1px solid #275c85; border-radius: .3rem; background: #eef6ff; color: #163f60; }
+button:disabled, fieldset:disabled { opacity: .55; cursor: default; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 35rem; overflow: auto; font-size: .85rem; }
+#error { color: #8d160f; font-weight: 600; }
+article { overflow-wrap: anywhere; }
+article svg { max-width: 100%; height: auto; }
+fieldset { margin-top: 1rem; border: 1px solid #789; }
+@media (max-width: 760px) { main { grid-template-columns: 1fr; } }

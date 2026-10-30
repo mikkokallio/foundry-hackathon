@@ -31,14 +31,31 @@ connection. This proves retrieval, not that every generated answer is correct.
    connection through the supported tool UI. It appears under Knowledge, but
    the rehearsed card offered only Details/Remove, not approval/allowlist controls.
    Saving produced an auto-approved MCP definition with no tool allowlist.
-   Before inference, have the coach create and inspect a candidate restricted to
-   the actual read-only `knowledge_base_retrieve` operation, requiring approval.
+   Before inference, use the helper below (or have the coach help) to create and
+   inspect a candidate restricted to the actual read-only
+   `knowledge_base_retrieve` operation, requiring approval.
    Post-repair discovery accepts 1-3 queries, each at most 150 characters.
    For this workshop, use exactly one short query, at most 150 characters and
    under twelve words. This is a workshop policy, not the API's query-count limit.
    Do not assume the native card has established those controls. Use a fresh
    candidate after any connection repair: an older candidate still failed
    enumeration in rehearsal while a newly created one worked.
+
+   From the configured participant terminal, use the saved immutable steward
+   binding, an unused agent name and a new output file:
+
+   ```powershell
+   lab knowledge --binding "out\$prefix-steward.json" --name "$prefix-knowledge-new" --output "out\$prefix-knowledge-new.json"
+   lab chat --binding "out\$prefix-knowledge-new.json" "Retrieve using exactly one short query. Explain interface documentation expectations, cite a source URL and quote, and distinguish retrieved prose from the current authoritative standard."
+   ```
+
+   Substitute your actual steward binding filename. This clones the actual
+   immutable base rather than rebuilding or overwriting it, checks the existing
+   project connection and records a new candidate. Reusing an existing name or
+   output is refused. The corrected helper was browser-rehearsed with actual
+   retrieval and **Approve -> Approve once**, without human assistance. Its first
+   attempt omitted the required MCP `server_url` and failed; that was repaired,
+   not an infrastructure change. Qualification is still not granted by creation.
 3. Ask the same narrative question before/after, for example: "Explain the
    architecture-documentation standard's expectations for interfaces and unknown
    operational details. Retrieve using exactly one query, cite the source filename

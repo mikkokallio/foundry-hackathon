@@ -2,6 +2,50 @@
 
 **Curriculum candidate, not live participant acceptance or permission to deploy.**
 
+## Reusable knowledge, local reference and isolated deployment
+
+- The reusable `lab knowledge` helper now clones a real immutable steward,
+  checks the existing project connection, supplies the required MCP
+  `server_url`, and requires approval for the single retrieval operation.
+  The first helper candidate failed because that URL was missing. The corrected
+  newly named candidate genuinely retrieved passages in the browser, returned
+  a published Blob source URL and quote, and used **Approve -> Approve once**
+  without human assistance. Retrieval works; source-authority/relevance judgments
+  still need inspection. This does not upgrade the earlier human-assisted M3 run.
+- The optional B9 reference is now implemented and browser-rehearsed against
+  actual services: 15 gaps, real immutable-agent invocation, an explicitly
+  approved 13-system inventory tool result, real valid/invalid validation,
+  denial, changed-text invalidation and cancellation. Markdown/Mermaid rendered;
+  unique script/event-handler execution markers remained unchanged and unsafe
+  handlers were removed. The browser's existing `window.injected` instrumentation
+  object was not evidence that a payload executed.
+- The B9 server explicitly displayed the organizer's CLI identity. No proposal
+  save or publication was performed against the original instance. Fresh-instance
+  save/readback and actual participant sign-in remain separate acceptance work.
+  ACA hosting is not silently supplied using a shared organizer/managed identity;
+  the reference documents the required authentication continuation.
+- The complete Python suite passed **193 tests** after the helper/reference
+  changes; edited Python passed lint, the browser bundle built, and application
+  Pylance diagnostics were clean. A full-suite Windows HTTP rejection reset was
+  reproduced and repaired by consuming the bounded request body before closing
+  the response. These tests are not model qualification.
+- The enabled non-admin test account has the declared alpha participant access
+  through the existing Terraform roster: 13 scoped Azure RBAC assignments and
+  the `Team.alpha` application role. There is no workshop membership group;
+  assignments are direct. No admin or librarian grant was added. The evaluation
+  model-user permission intentionally also permits direct model inference, so
+  this is not universal APIM enforcement. Actual participant actions remain
+  unverified until that person signs in.
+- Cloud Shell processing remained `EASTUS2` despite a France preference and
+  France-based storage. No private source/inputs were uploaded. The user
+  authorized the local Windows fallback; Linux deployment commands are explicitly
+  untested. Dedicated approved Cloud Shell storage is retained.
+- Isolated France instance `r1030c` passed actual cost/quota/operator preflight,
+  then applied its foundation and access plans and built fresh immutable ACR
+  images. Its reviewed workload plan is applying. The original instance remains
+  available. Spending authorization remains EUR 130 cap / EUR 30 reserve /
+  EUR 2 hourly, with the original expiry. This is not yet a completed fresh E2E.
+
 ## Latest focused repair and browser retries
 
 These results supersede the corresponding earlier failures below; earlier
@@ -10,7 +54,7 @@ organizer identity. Non-admin participant authorization remains unverified.
 
 | Area | Verified result | Remaining limitation |
 |---|---|---|
-| B1 knowledge | Approved knowledge-only Terraform replacement completed; fresh Foundry candidate executed actual retrieval through the repaired shared connection. | Native setup still needs coach-reviewed approval/allowlist configuration; answer quality is not automatic. |
+| B1 knowledge | Approved knowledge-only Terraform replacement completed; fresh Foundry candidates executed actual retrieval; the corrected reusable helper was browser-verified. | Native card defaults alone are insufficient; use the restricted helper. Answer quality is not automatic. |
 | M2 portal import | Fresh browser import returned HTTP 201 and created 14 correctly named operations; independent resource reads confirmed it. | The import-only asset still needs the documented backend/auth/policy settings. Participant access is not established. |
 | M3 throttling | Browser exercise observed MCP discovery/enumeration 429 and human-assisted recovery to a real 13-system inventory result after restoration. | The organizer selected Approve once after automation toggled the menu. No business-operation `tools/call` 429; gateway attribution is strongly supported by policy/body, not independently trace-confirmed. |
 | M4 registration | HTTP 400 identified a generated definition-title length limit; one short-title correction completed native asset/version/definitions/import/deployment registration in the browser. | Generated definitions advertise `/sse` and `/message` and omit authentication; they are not the actual callable MCP contract. |

@@ -1,7 +1,9 @@
 # B9 local client build materials
 
-This is a participant build, not a prebuilt application or new cloud deployment.
+The primary exercise is a participant build, not a new cloud deployment.
 Start from [the bonus journey](../../../../docs/bonus/b9-local-app.md).
+An optional [coach/catch-up reference](reference/README.md) is supplied separately;
+try the build yourself first.
 
 1. Use the **rendered** `prompts\frontend-prompt.md` in your exported participant
    pack. Its [source PROMPT](../prompts/frontend-prompt.md) contains placeholders;

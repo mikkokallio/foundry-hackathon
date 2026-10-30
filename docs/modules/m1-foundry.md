@@ -39,13 +39,12 @@ model-proxy architecture, authored through Terraform rather than the wizard.
 Our configuration is deliberately customized: one chat operation, model aliases
 mapped to deployments, managed-identity backend access, team checks and limits.
 The explicit Foundry model connection is another piece; neither it nor an APIM
-import automatically proves the native Manage association exists. See the
-[import wizard](https://learn.microsoft.com/en-us/azure/api-management/azure-ai-foundry-api)
-and [native association](https://learn.microsoft.com/en-us/azure/foundry/configuration/enable-ai-api-management-gateway-portal)
-for the two workflows.
+import automatically proves the native Manage association exists. The
+[coach's gateway notes](../coach-guide.md#gateway-and-tracing-distinctions)
+link the two distinct setup workflows.
 
-**Preview context:** the newer [AI Gateway product](https://learn.microsoft.com/en-us/azure/ai-gateway/overview)
-is a separate `Microsoft.ApiManagement/aigateways` resource, not simply another
+**Preview context:** the newer AI Gateway product is a separate
+`Microsoft.ApiManagement/aigateways` resource, not simply another
 SKU of this lab's APIM service. Its documented preview regions include Sweden
 Central and East US 2, not France Central. This lab keeps its existing APIM tier.
 
