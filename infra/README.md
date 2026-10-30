@@ -56,6 +56,15 @@ plan against a different backend. All applies remain explicitly reviewed.
 
 ## Explicit stages
 
+Linux and Cloud Shell use the same PowerShell Core 7.5+ orchestration, not a
+separate Bash deployment implementation. Bash launches it with
+`pwsh -NoProfile -File ./infra/scripts/Invoke-Deployment.ps1 ...`.
+Use native Linux paths and preserve the printed state/backend/data directory.
+Cloud Shell additionally requires approved mounted storage and processing-region
+verification before private inputs are uploaded. Remote ACR builds need no local
+Docker daemon. See [Module 0's Linux/Cloud Shell steps](../docs/module-0.md#linux-workstations-and-azure-cloud-shell)
+for startup, private-source handling and reconnect boundaries.
+
 Use the scenario-selecting entry point with `-Scenario architecture-docs` and
 your private deployment JSON passed as `-Inputs`.
 

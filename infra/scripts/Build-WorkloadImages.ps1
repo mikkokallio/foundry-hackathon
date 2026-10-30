@@ -65,7 +65,10 @@ try {
         $matches = @(Get-ChildItem -Path (Join-Path $scenarioDirectory $pattern) -File -Force -ErrorAction Stop)
         if ($matches.Count -eq 0) { throw "Container source pattern matched no files: $pattern" }
         foreach ($file in $matches) {
-            if (-not $file.FullName.StartsWith("$scenarioDirectory\", [StringComparison]::OrdinalIgnoreCase) -or
+            if (-not $file.FullName.StartsWith(
+                    "$scenarioDirectory$([IO.Path]::DirectorySeparatorChar)",
+                    $(if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal })
+                ) -or
                 ($file.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
                 throw 'Container sources must be ordinary files within the selected scenario.'
             }

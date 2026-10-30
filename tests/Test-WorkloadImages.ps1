@@ -55,7 +55,7 @@ function az {
             Assert-Image ((Get-TestArgument $args '--platform') -ceq 'linux/amd64') 'Builds must target ACA Linux AMD64, not the developer architecture.'
             Assert-Image ('--no-logs' -in $args -and '--no-wait' -notin $args) 'Build execution must return machine-readable run metadata, not discard it with --no-wait.'
             $dockerfile = Get-TestArgument $args '--file'
-            Assert-Image ($dockerfile.StartsWith("$context\", [StringComparison]::OrdinalIgnoreCase)) 'The CLI Dockerfile path must resolve inside the frozen bundle, not against the caller working directory.'
+            Assert-Image ($dockerfile.StartsWith("$context$([IO.Path]::DirectorySeparatorChar)", [StringComparison]::Ordinal)) 'The CLI Dockerfile path must resolve inside the frozen bundle, not against the caller working directory.'
             Assert-Image (Test-Path -LiteralPath $dockerfile) 'The frozen context must contain its Dockerfile.'
             $files = @(Get-ChildItem -LiteralPath $context -Recurse -File)
             Assert-Image ($files.Count -gt 20) 'The production source bundle is incomplete.'

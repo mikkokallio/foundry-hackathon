@@ -124,7 +124,8 @@ function Invoke-KnowledgeCli([string[]]$Arguments) {
         while ($true) {
             $remaining = ($deadline - [DateTimeOffset]::UtcNow).TotalMilliseconds
             if ($remaining -le 0) { throw 'Knowledge initialization deadline exceeded; initialization is NOT accepted.' }
-            $process = Start-Process -FilePath (Join-Path $PSHOME 'pwsh.exe') `
+            $executable = if ($IsWindows) { 'pwsh.exe' } else { 'pwsh' }
+            $process = Start-Process -FilePath (Join-Path $PSHOME $executable) `
                 -ArgumentList @('-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded) `
                 -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -NoNewWindow -PassThru
             try {

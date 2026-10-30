@@ -7,15 +7,24 @@ $previousPath = $env:PATH
 $childId = $null
 try {
     # This PATH-local az executable only sleeps. It cannot contact Azure.
-    $pwsh = Join-Path $PSHOME 'pwsh.exe'
-    "@`"$pwsh`" -NoProfile -NonInteractive -File `"%~dp0test-az.ps1`"" |
-        Set-Content -LiteralPath (Join-Path $scratch 'az.cmd') -Encoding ascii
+    if ($IsWindows) {
+        $pwsh = Join-Path $PSHOME 'pwsh.exe'
+        "@`"$pwsh`" -NoProfile -NonInteractive -File `"%~dp0test-az.ps1`"" |
+            Set-Content -LiteralPath (Join-Path $scratch 'az.cmd') -Encoding ascii
+    }
     @'
 $PID | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'child.pid')
 Start-Sleep -Seconds 60
 throw 'The test-only hung CLI must have been terminated.'
 '@ | Set-Content -LiteralPath (Join-Path $scratch 'test-az.ps1')
-    $env:PATH = "$scratch;$previousPath"
+    if (-not $IsWindows) {
+        $launcher = Join-Path $scratch 'az'
+        "#!/usr/bin/env pwsh`n$(Get-Content -LiteralPath (Join-Path $scratch 'test-az.ps1') -Raw)" |
+            Set-Content -LiteralPath $launcher -Encoding utf8NoBOM
+        [IO.File]::SetUnixFileMode($launcher,
+            [IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute)
+    }
+    $env:PATH = "$scratch$([IO.Path]::PathSeparator)$previousPath"
     $contract = @{
         contract_version = 2
         subscription_id = '00000000-0000-0000-0000-000000000001'

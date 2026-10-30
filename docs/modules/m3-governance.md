@@ -111,8 +111,11 @@ exact cause of those earlier misses. One bounded tool-only conditional-policy co
 inventory result but did **not** demonstrate a business-tool 429; its approval
 automation also encountered the menu/running-state boundary. Both experiments
 restored the exact original policy, independently hash-verified after a reload.
-A subsequent browser call with **Approve once** returned 13 systems, confirmed
-in the native tool trace. A post-discovery `tools/call` throttle remains a
+A subsequent browser call returned 13 systems, confirmed in the native tool
+trace. This recovery was **human-assisted**: the organizer selected
+**Approve once** after automation repeatedly toggled the approval menu without
+choosing its item. It is not proof of autonomous approval handling.
+A post-discovery `tools/call` throttle remains a
 separate check; do not mark it passed from the enumeration error.
 
 If browser editing or playground use is blocked, record the exact blocker.

@@ -25,13 +25,17 @@ connection. This proves retrieval, not that every generated answer is correct.
    Configured** as a RemoteTool connection. The separate Knowledge menu offered
    **Connect to Foundry IQ**; do not create a resource, enter a key or change a
    shared association to replace the existing MCP connection.
-2. Clone/version your steward in Foundry. Add the existing knowledge/MCP
+2. Create a newly named candidate copying your steward's configuration. A new
+   prompt or chat is not a new candidate; creating an identical version can
+   return the existing version. Add the existing knowledge/MCP
    connection through the supported tool UI. It appears under Knowledge, but
    the rehearsed card offered only Details/Remove, not approval/allowlist controls.
    Saving produced an auto-approved MCP definition with no tool allowlist.
    Before inference, have the coach create and inspect a candidate restricted to
    the actual read-only `knowledge_base_retrieve` operation, requiring approval.
-   Its observed schema accepts exactly one query string of at most 400 characters.
+   Post-repair discovery accepts 1-3 queries, each at most 150 characters.
+   For this workshop, use exactly one short query, at most 150 characters and
+   under twelve words. This is a workshop policy, not the API's query-count limit.
    Do not assume the native card has established those controls. Use a fresh
    candidate after any connection repair: an older candidate still failed
    enumeration in rehearsal while a newly created one worked.

@@ -12,7 +12,7 @@ organizer identity. Non-admin participant authorization remains unverified.
 |---|---|---|
 | B1 knowledge | Approved knowledge-only Terraform replacement completed; fresh Foundry candidate executed actual retrieval through the repaired shared connection. | Native setup still needs coach-reviewed approval/allowlist configuration; answer quality is not automatic. |
 | M2 portal import | Fresh browser import returned HTTP 201 and created 14 correctly named operations; independent resource reads confirmed it. | The import-only asset still needs the documented backend/auth/policy settings. Participant access is not established. |
-| M3 throttling | Browser exercise observed MCP discovery/enumeration 429 and recovery to a real 13-system inventory result after restoration. | No business-operation `tools/call` 429; gateway attribution is strongly supported by policy/body, not independently trace-confirmed. |
+| M3 throttling | Browser exercise observed MCP discovery/enumeration 429 and human-assisted recovery to a real 13-system inventory result after restoration. | The organizer selected Approve once after automation toggled the menu. No business-operation `tools/call` 429; gateway attribution is strongly supported by policy/body, not independently trace-confirmed. |
 | M4 registration | HTTP 400 identified a generated definition-title length limit; one short-title correction completed native asset/version/definitions/import/deployment registration in the browser. | Generated definitions advertise `/sse` and `/message` and omit authentication; they are not the actual callable MCP contract. |
 | M5 progression | Failed/stopped genuine attempts now permit bonuses and authorized human publication as workshop-only/not qualified. | Failed evidence remains failed; no complete eligible ranked comparison or passing qualification is claimed. |
 
@@ -36,8 +36,11 @@ organizer identity. Non-admin participant authorization remains unverified.
   a separately created post-repair candidate worked. This establishes the fresh
   candidate workaround, not a proven internal cache mechanism.
 - Owned `alpha-p1-kb-tf-1030:1` read the current standard. Its first proposed
-  retrieval contained three queries despite the actual one-query schema; it was
-  denied. One explicit correction produced the exact bounded query, approved
+  retrieval contained three queries and was denied based on the previous schema.
+  **Correction:** post-repair discovery actually permits 1-3 queries of at most
+  150 characters each. The denial does not prove a current-schema violation.
+  One short query is a workshop restriction, not the service's query-count limit.
+  One explicit correction produced the bounded query, approved
   once, and genuinely retrieved three passages from two standard/template files.
 - The actual tool result contains passage IDs, source URLs and the interface
   rules/template content. Native response

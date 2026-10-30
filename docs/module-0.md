@@ -199,6 +199,57 @@ cache verification are required before enabling this branch. Current target:
 Microsoft.Cache is not registered; no registration was performed. Cost-visibility
 failure also triggers the destructive protector; review that tradeoff before apply.
 
+## Linux workstations and Azure Cloud Shell
+
+The composition scripts run in **PowerShell Core 7.5+**, including on Linux.
+Bash can launch them; PowerShell syntax is not Bash syntax. Terraform must be
+>=1.9 and <2.0, with Azure CLI and the required Azure/Graph permissions.
+Image builds use remote `az acr build --platform linux/amd64`; a local Docker
+daemon is not required.
+
+For Cloud Shell, select **Mount storage account**, not an ephemeral session.
+Use approved persistent storage, with bootstrap resources reviewed separately
+from the hack deployment. Before uploading private source or inputs, verify
+the shell's actual processing region, not only the storage account's region.
+Only France Central, Sweden Central and West Europe are approved here.
+Keep the checkout, `out/`, plans, receipts and state on the mounted drive.
+Existing Azure sign-in does not prove Graph consent or deployment permission.
+See [Cloud Shell persistence](https://learn.microsoft.com/en-us/azure/cloud-shell/persisting-shell-storage).
+
+From the repository directory, these are **Bash** launch commands:
+
+```bash
+pwsh --version
+terraform version
+az version
+mkdir -p out
+test ! -e out/deployment.private.json || { echo "Keep your existing inputs"; exit 1; }
+cp infra/deployment.example.json out/deployment.private.json
+# Edit the private JSON: actual target, roster, regions, protection and expiry.
+pwsh -NoLogo -NoProfile -File ./infra/scripts/Invoke-Deployment.ps1 \
+  -Scenario architecture-docs -Action Preflight -Inputs ./out/deployment.private.json
+pwsh -NoLogo -NoProfile -File ./infra/scripts/Invoke-Deployment.ps1 \
+  -Scenario architecture-docs -Action Plan -Component Foundation \
+  -Inputs ./out/deployment.private.json
+```
+
+In PowerShell on Linux, use the same commands as below with `/` in paths.
+Do not copy Windows `C:\...` paths or Bash `export` statements into that shell.
+For a private repository, authenticate Git normally or upload a clean source
+archive from an identified commit and verify its hash. Never transfer another
+machine's credential store or commit private deployment inputs.
+
+Planning prints the exact backend/state, `TF_DATA_DIR`, plan path and SHA256.
+All reviewed applies must retain those exact values; do not use an ambient
+default backend. A Cloud Shell disconnect is not proof a process stopped.
+Before resuming, inspect the original process, state lock and any recorded ACR
+run ID. Do not blindly force-unlock state or queue duplicate builds. Persistent
+local state is not a shared remote backend.
+
+**Validation boundary:** portability fixes have passed focused Windows tests.
+The actual Cloud Shell deployment is being rehearsed; this section is not yet
+an end-to-end Cloud Shell acceptance claim.
+
 ## Review order
 
 ### Optional composition-script plan (PowerShell 7.5+)
