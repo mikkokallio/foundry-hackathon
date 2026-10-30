@@ -1,6 +1,8 @@
 # B3 - Build a bounded writer/reviewer workflow
 
-**After M5; developer track.** Two prompts are starting materials, not a workflow.
+**After attempted M5; developer track.** Failed or explicitly stopped M5 is
+sufficient for workshop entry, not release qualification. Two prompts are
+starting materials, not a workflow.
 
 ## Understand
 

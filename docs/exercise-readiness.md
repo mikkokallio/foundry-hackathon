@@ -2,6 +2,85 @@
 
 **Curriculum candidate, not live participant acceptance or permission to deploy.**
 
+## Latest focused repair and browser retries
+
+These results supersede the corresponding earlier failures below; earlier
+evidence is retained, not rewritten as successful. All live activity used the
+organizer identity. Non-admin participant authorization remains unverified.
+
+| Area | Verified result | Remaining limitation |
+|---|---|---|
+| B1 knowledge | Approved knowledge-only Terraform replacement completed; fresh Foundry candidate executed actual retrieval through the repaired shared connection. | Native setup still needs coach-reviewed approval/allowlist configuration; answer quality is not automatic. |
+| M2 portal import | Fresh browser import returned HTTP 201 and created 14 correctly named operations; independent resource reads confirmed it. | The import-only asset still needs the documented backend/auth/policy settings. Participant access is not established. |
+| M3 throttling | Browser exercise observed MCP discovery/enumeration 429 and recovery to a real 13-system inventory result after restoration. | No business-operation `tools/call` 429; gateway attribution is strongly supported by policy/body, not independently trace-confirmed. |
+| M4 registration | HTTP 400 identified a generated definition-title length limit; one short-title correction completed native asset/version/definitions/import/deployment registration in the browser. | Generated definitions advertise `/sse` and `/message` and omit authentication; they are not the actual callable MCP contract. |
+| M5 progression | Failed/stopped genuine attempts now permit bonuses and authorized human publication as workshop-only/not qualified. | Failed evidence remains failed; no complete eligible ranked comparison or passing qualification is claimed. |
+
+### B1 repair scope and actual retrieval
+
+- The new saved Terraform plan permitted only replacement of
+  `terraform_data.knowledge_initialize`. Its approved provisioners recreated
+  knowledge connections/base/source and reran indexing. No model, role, gateway,
+  documentation service or storage resource replacement was permitted.
+- The same existing local state/backend was used with a private byte-exact
+  backup. After apply, state lineage and every other managed-resource ID were
+  unchanged. Authenticated core inventory reads returned HTTP 200 before,
+  during and after replacement.
+- Knowledge-source management remains `2026-04-01`; KB management and MCP use
+  the independently pinned supported `2026-05-01-preview`. Live readback verified
+  `models=[]`, `retrievalReasoningEffort.kind=minimal`,
+  `outputMode=extractiveData` and the intended source. The shared alpha connection
+  retained ProjectManagedIdentity, Search audience and private sharing.
+- A candidate prepared before connection replacement still failed enumeration.
+  Recreating the identical version deduplicated to that existing version;
+  a separately created post-repair candidate worked. This establishes the fresh
+  candidate workaround, not a proven internal cache mechanism.
+- Owned `alpha-p1-kb-tf-1030:1` read the current standard. Its first proposed
+  retrieval contained three queries despite the actual one-query schema; it was
+  denied. One explicit correction produced the exact bounded query, approved
+  once, and genuinely retrieved three passages from two standard/template files.
+- The actual tool result contains passage IDs, source URLs and the interface
+  rules/template content. Native response
+  `resp_043117c5a24f55d3006ae4319912248190a643574d3b9a69d0`,
+  trace `a006b1c8deb144a8a8bc39129b561452`, root `5a8658144572fcf6`
+  and retrieval span `8c02acc8415e1525` match in version, parent and response.
+- Initial answer citations were genuinely blank, including in the stored
+  response, not merely hidden by the UI. A browser-submitted follow-up returned
+  the actual filenames/source URLs and an exact supporting quote, verified by
+  stored conversation readback after navigation. It distinguished Search
+  freshness from the current standard, but one numbered passage label still
+  misidentified indexed prose as authoritative. Keep this quality finding.
+- Functional retrieval is verified, not full model qualification. No proposal
+  saving or publication was requested. The core runner's tool allowlist was not
+  broadened to make the retrieval candidate pass.
+
+### Retry boundaries, restoration and validation
+
+- M2's fresh asset is `alpha-m2r-1030-docs-api`; no shared reference or prior
+  working participant integration was changed.
+- M4's owned asset is `alpha-m4r-1030`. The observed native wizard correction
+  was short generated-definition titles, not a CLI substitute. Inspect actual
+  endpoint/auth metadata separately from its generated templates.
+- M3 changed/restored only the existing owned MCP policy through the browser.
+  Independent raw before/after SHA-256 matched
+  `861e02389a72c7d923e95192ec1632498cb49f1869b4019b6e3e6f6ace825c25`;
+  Monaco before/after also matched. Their differing hashes reflect only line
+  endings, not failed restoration. Existing successful model limiter/chart
+  exercises were not repeated.
+- Knowledge, cleanup, deadline and lifecycle test scripts passed with new
+  version/default/legacy-contract assertions. Terraform formatting/validation,
+  the reviewed targeted plan and actual apply passed. These are this repair's
+  results, not an aggregate with earlier Python suite counts.
+- Genuine evidence remains ignored/local under the existing portal-rehearsal
+  results directory (`b1-repair-*`, `m2-retry-*`, `m3-retry-*`, `m4-retry-*`).
+  State, private variable inputs, saved plans and access tokens are not source
+  deliverables.
+- The earlier B7 storage JSON equality check is resolved: PowerShell converted
+  the same `created_at` instant from UTC to a local offset. Raw wire data was
+  preserved; every other field matched. The actual identity-refusal reply is
+  captured, and the original alpha/agent proposal remains pending-review.
+  This does not establish participant backend authorization or human publication.
+
 ## Current curriculum repair
 
 - [Participant navigation](../PARTICIPANT-START.md) links to five core module

@@ -1,6 +1,7 @@
 # B1 - Add knowledge, then test what it changes
 
-**After M5.** Keep the same model, instructions and tools; add retrieval to a new
+**After attempted M5.** Failed or explicitly stopped evaluations do not block
+this bonus. Keep the same model, instructions and tools; add retrieval to a new
 candidate, not to the version you already measured.
 
 ## Understand
@@ -11,10 +12,9 @@ Read [Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concept
 and [knowledge base concepts](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base).
 The organizer already created the reference knowledge base. Do not recreate it.
 
-**Rehearsal blocker:** native retrieval failed, first on the MCP API version,
-then on the model-less knowledge base's reasoning default. Shared configuration
-is unchanged. Ask the coach to resolve and verify those prerequisites before
-this exercise; no successful retrieval or citations have been demonstrated yet.
+The organizer repaired the reference configuration through targeted Terraform.
+A fresh candidate retrieved real standard/template passages through the shared
+connection. This proves retrieval, not that every generated answer is correct.
 
 ## Build
 
@@ -32,17 +32,27 @@ this exercise; no successful retrieval or citations have been demonstrated yet.
    Before inference, have the coach create and inspect a candidate restricted to
    the actual read-only `knowledge_base_retrieve` operation, requiring approval.
    Its observed schema accepts exactly one query string of at most 400 characters.
-   Do not assume the native card has established those controls.
+   Do not assume the native card has established those controls. Use a fresh
+   candidate after any connection repair: an older candidate still failed
+   enumeration in rehearsal while a newly created one worked.
 3. Ask the same narrative question before/after, for example: "Explain the
    architecture-documentation standard's expectations for interfaces and unknown
-   operational details. Cite the source." Then ask a specific owner/interface
-   question that should still use the authoritative inventory.
+   operational details. Retrieve using exactly one query, cite the source filename
+   and source_url, and distinguish indexed prose from the current standard."
+   Inspect the pending arguments before **Approve -> Approve once**. If the
+   agent requests multiple queries, deny and ask it to use exactly one.
+   Then ask a specific owner/interface question that should still use inventory.
 4. Inspect retrieval arguments, source identifiers/citations and native spans.
    Compare cited prose with the real published document and inventory.
-5. Run fresh required evaluations/provenance on the changed candidate. The
-   existing core runner rejects unreviewed tool types/names: do not expand its
-   allowlist blindly or claim a score-only run is qualification. A retrieval
-   candidate may need a separately reviewed evaluator/tool contract.
+   If citations are blank, ask for the exact filenames, `source_url` values and
+   a supporting quote from the passages already retrieved; verify them against
+   the tool result. Source URLs identify provenance, not public download access.
+   An indexed copy of the standard is still Search content: the current
+   `getDocumentationStandard` response remains authoritative.
+5. Record fresh behavior/provenance and any quality findings. The existing core
+   runner rejects unreviewed tool types/names: do not expand its allowlist blindly
+   or claim a score-only run is qualification. A separately reviewed retrieval
+   evaluation is an extension, not a prerequisite blocking this workshop bonus.
 
 ## Validate
 

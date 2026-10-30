@@ -66,14 +66,59 @@ Limits are not exact counters or a guaranteed billing hard cap.
 
 ### 4. Throttle a tool
 
-On **your** documentation MCP policy, temporarily change the request limiter
-from 60 calls/minute to a deliberately small value. Use your own steward to make
-fresh inventory requests, allowing for policy propagation and stopping after
-at most six calls. Inspect the tool failure and the agent's explanation if a
-throttle occurs. Restore **your** intended policy even if the experiment fails.
-Do not modify the reference or somebody else's server. The bounded MCP probe
-has not yet demonstrated a 429 in rehearsal: record that result honestly rather
-than hammering the endpoint or claiming this check passed.
+Use the browser for this experiment:
+
+1. In **Azure portal -> your APIM instance -> MCP Servers**, select **your**
+   documentation MCP server, then **MCP -> Policies**. Do not select the
+   reference or somebody else's server. Copy the complete original policy
+   before editing; preserve its exact text for restoration.
+2. Temporarily change its request limiter from 60 calls/minute to a small
+   value, such as `calls="1" renewal-period="60"`. Keep authentication/routing
+   intact. A unique practice counter suffix avoids reusing an earlier
+   experiment's counter; retain API/team isolation. Select **Save**, confirm
+   **Policy saved**, and allow propagation. Rehearsal waited 65 seconds;
+   this is an observed wait, not a propagation guarantee.
+3. In your steward's **Playground**, select a known saved version with the
+   intended owned MCP server. Start a **New chat** and ask for exactly one
+   fresh `listSystems` call, no automatic retries and no writes. If a call
+   reaches approval, choose **Approve -> Approve once**, not an always-approve
+   option. Bound the experiment to six fresh requests at most; stop on the
+   observed throttle rather than hammering the endpoint.
+4. Record the actual failure stage, status, body and any exposed retry headers.
+   MCP discovery (`initialize`/`tools/list`) and `tools/call` are different
+   stages. A discovery throttle prevents the inventory tool from running;
+   it is not evidence that an inventory operation itself returned 429.
+   A retry interval in an error body is not proof of a `Retry-After` header.
+5. In a cleanup/finally step, restore the **complete original policy through
+   the same editor**, even after a failed experiment. Save, reopen/reload the
+   policy independently and compare its full text/hash with the original.
+   Compare the same representation: Monaco can normalize line endings, so its
+   hash can differ from raw ARM XML without a policy change.
+   Respect the observed retry interval and propagation, then make one fresh
+   read-only call to verify recovery.
+
+**Observed browser result: 429 during MCP discovery/enumeration; recovery after
+restoration.** The owned 1/minute policy was followed by a 429 during Foundry's
+**tool enumeration**, with body `Rate limit is exceeded. Try again in 60 seconds.`
+Gateway attribution is strongly supported by the controlled policy change and
+error body, but is **not independently trace-confirmed**.
+Foundry displayed a service error before inventory
+execution/approval, not a generated agent explanation. Earlier six-response
+probes had completed their entire save/probe/restore cycle in only 12–13
+seconds; their 200s did not establish that the edited policy had propagated.
+The browser result supports limiter enforcement, not fully proven origin or the
+exact cause of those earlier misses. One bounded tool-only conditional-policy correction reached a real
+inventory result but did **not** demonstrate a business-tool 429; its approval
+automation also encountered the menu/running-state boundary. Both experiments
+restored the exact original policy, independently hash-verified after a reload.
+A subsequent browser call with **Approve once** returned 13 systems, confirmed
+in the native tool trace. A post-discovery `tools/call` throttle remains a
+separate check; do not mark it passed from the enumeration error.
+
+If browser editing or playground use is blocked, record the exact blocker.
+A coach-approved direct MCP probe is a diagnostic fallback, not proof of the
+browser path or an agent explanation. Do not compensate by changing shared
+deployment capacity or repeatedly increasing traffic.
 
 Within a team, nominate one owned practice API and call it from two agents.
 Its counter is keyed by API/team: separate agents do not necessarily get

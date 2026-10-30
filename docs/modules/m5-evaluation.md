@@ -73,7 +73,8 @@ cancelled, incomplete or failed evidence does not become a pass.
 
 ### 3. Assemble and investigate
 
-Give the four actual manifest paths to the comparison command:
+Only when all four manifests have complete collection and required provenance,
+give their actual paths to the comparison command:
 
 ```powershell
 lab compare ACTUAL_P1_MANIFEST ACTUAL_P2_MANIFEST ACTUAL_P3_MANIFEST ACTUAL_P4_MANIFEST --output "out\$prefix-team-comparison"
@@ -98,8 +99,9 @@ the calls that actually ran. The runner records that omission separately; it
 must neither invent a span for the missing call nor qualify the candidate.
 
 The report includes fully collected failed candidates without calling them
-qualified. Incomplete runs or missing provenance cannot be included; inspect
-their actual manifests directly before retrying.
+qualified. Incomplete runs or missing provenance cannot be included or ranked;
+inspect their actual manifests directly. Do not use `lab compare` to rank
+incomplete evidence.
 
 ### 4. Qualification is a different claim
 
@@ -119,12 +121,36 @@ If collection/qualification is not finished, label it pending/failed. A historic
 facilitator pass does not qualify your version. Any changed model, reasoning,
 tools or instructions requires fresh qualification.
 
+### 5. Workshop stop/fallback
+
+After a few genuine attempts, preserve the actual manifests, failures and trace
+investigation, then explicitly stop rather than repeat indefinitely. Record
+**workshop-only/not qualified** and the reason: quality (missing facts/expected
+tools), missing native provenance, or incomplete collection (for example 429).
+These are different failures, not all a difficult-prompt problem. Actual failed
+results stay failed; incomplete collection stays incomplete, never a pass.
+
+Attempted M5 is sufficient to continue to B1/B3/B6 and to the core human approval
+exercise. It does not qualify an agent or require a backend/evaluator bypass.
+For workshop publication, the authorized human librarian must review the exact
+proposal and explicitly accept the failed/incomplete-evaluation caveat.
+Real projects require their stricter release policy; B6's production-style CI
+gate remains strict and must block promotion on failed or incomplete evidence.
+
+Before any human publication, the coach records that **all teams' frozen-corpus
+attempts are completed or explicitly stopped**. Retain the corpus boundary and
+actual outcomes. Later runs against changed published content are a new corpus,
+not the original baseline; do not compare them as unchanged-corpus evidence.
+
 ## Validate
 
-- Four actual immutable configurations and comparable real evidence.
-- A numerical choice of configuration, including a limitation/uncertainty.
+- Four actual immutable configurations and comparable real evidence, or recorded
+  genuine attempts and an explicit workshop-only stop with evidence limitations.
+- A numerical choice only with comparable evidence; otherwise no qualified
+  winner and no ranking of incomplete evidence.
 - A real worst-row trace investigation and a reasoned improvement hypothesis.
 
 **If stuck:** the coach helps with actual run IDs, coverage and ingestion/auth
 errors. Do not remove cases, lower thresholds or reuse fabricated/cached answers.
-Publish nothing until **all teams'** frozen-corpus comparisons finish.
+Publish nothing until **all teams'** frozen-corpus attempts finish or are
+explicitly stopped and the human librarian accepts the workshop caveat.

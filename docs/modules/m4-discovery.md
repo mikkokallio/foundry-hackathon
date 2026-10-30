@@ -16,14 +16,30 @@ Suggested reading:
    Register your documentation API/MCP with its actual endpoint, version,
    deployment/environment, owner, intended use, lifecycle, classification and
    limitations. Use your personal prefix. Do not edit Terraform-owned entries.
-2. Use the supported MCP asset shape if available. The lab's reference is a
-   **REST record with MCP discovery links**; do not label it native MCP-kind
-   registration. Record the representation you actually used. In the organizer
-   rehearsal, **Register an asset -> MCP server** saved the asset/version but
-   returned HTTP 400 creating its definition. A listed MCP asset therefore did
-   not prove complete registration. Keep that partial result and use a REST
-   record through **Register an asset -> API**, or the helper below; do not keep
-   retrying the native wizard.
+2. Use **Register an asset -> MCP server** for native registration. Keep its
+   **Title at most 24 characters**, including your personal prefix; put longer
+   explanations in Summary/Description. Add a **Remote** using your actual M2
+   connection endpoint and select your existing development environment. Set
+   version title/identification and Development lifecycle, then **Create**.
+   The organizer's browser retry confirmed a portal defect: generated definition
+   titles add `SSE Definition for ` or `Streamable Definition for `, but the
+   service limits definition titles to 50 characters. A longer asset title
+   saved the asset/version, then returned HTTP 400:
+   `The field Title must be a string or array type with a maximum length of '50'.`
+   One correction using a short title on the same owned asset ID succeeded.
+   Verify the saved version, **both definitions** and deployment runtime URL;
+   an asset appearing in the list or a success notification alone is insufficient.
+
+   **Contract limitation:** the retry downloaded the actual generated OpenAPI
+   definitions. They advertised root `/sse` and `/message`, not the registered
+   APIM MCP path. Native metadata registration succeeded, but those generated
+   contracts are **not verified invocation contracts**. Assess their paths,
+   authentication and transport against the actual endpoint before reuse.
+   The unchanged lab reference is a **REST record with MCP discovery links**.
+   For an accurate REST contract plus MCP discovery metadata, use **Register an
+   asset -> API** with the real REST definition, or the helper below; record that
+   representation honestly. If native registration still fails, preserve its
+   exact error/partial result and use this fallback rather than repeated creates.
 3. Find the reference documentation entry and inspect its independent-toolkit
    discovery link. Examine the actual endpoint, owner, contract and limitations.
    Export/retrieve the registered OpenAPI definition rather than substituting the
@@ -74,6 +90,9 @@ permission to export definitions.
 ## Validate
 
 - Your own useful registration includes a working endpoint and limitations.
+- Native registration has a persisted version, definitions and deployment;
+  generated contract paths/authentication are assessed separately from metadata
+  creation.
 - You retrieved the actual registered definition and assessed the toolkit.
 - Your agent demonstrably used the newly discovered toolkit.
 

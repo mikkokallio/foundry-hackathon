@@ -8,7 +8,7 @@ $previousExitCode = $global:LASTEXITCODE
 # Test-scoped responses only. This test cannot invoke Azure or Foundry.
 $knowledgeTest = @{ mode = 'success'; calls = @(); runs = @{}; statusPolls = @{}; configured = @{}; failures = @(); delays = @(); kills = 0; waits = @() }
 $contract = @{
-    contract_version = 1
+    contract_version = 2
     subscription_id = '00000000-0000-0000-0000-000000000001'
     tenant_id = '00000000-0000-0000-0000-000000000002'
     workload_name = 'architecture-docs'
@@ -17,9 +17,12 @@ $contract = @{
     knowledge_source_name = 'architecture-docs-published-architecture'
     knowledge_base_name = 'architecture-docs-architecture'
     api_version = '2026-04-01'
+    knowledge_base_api_version = '2026-05-01-preview'
+    mcp_api_version = '2026-05-01-preview'
     indexer_names = @('architecture-docs-published', 'architecture-docs-standards')
     project_ids = @{
         alpha = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/test-only/providers/Microsoft.CognitiveServices/accounts/test-only/projects/alpha'
+        beta = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/test-only/providers/Microsoft.CognitiveServices/accounts/test-only/projects/beta'
     }
 }
 
@@ -90,6 +93,8 @@ function az {
     $method = Get-TestArgument $args '--method'
     if ($url.StartsWith('https://test-only.search.windows.net/')) {
         Assert-Knowledge ((Get-TestArgument $args '--resource') -ceq 'https://search.azure.com') 'Search must use Entra authentication for the Search audience.'
+        $expectedVersion = if ($url -match '/knowledgebases/') { '2026-05-01-preview' } elseif ($url -match '/knowledgesources/') { '2026-04-01' } else { '2024-07-01' }
+        Assert-Knowledge ($url.EndsWith("?api-version=$expectedVersion")) 'Pin index, knowledge-source and knowledge-base APIs independently.'
     }
     if ($url -match '/indexers/([^/]+)/(status|reset|run)\?') {
         $name, $operation = $Matches[1], $Matches[2]
@@ -136,7 +141,28 @@ function az {
     }
     if ($method -eq 'get' -and $url -match '/(knowledgesources|knowledgebases|connections)/') {
         Assert-Knowledge ($knowledgeTest.configured.ContainsKey($url)) 'Read back only actual test writes.'
-        $knowledgeTest.configured[$url] | ConvertTo-Json -Depth 30
+        $actual = $knowledgeTest.configured[$url] | ConvertTo-Json -Depth 30 | ConvertFrom-Json -AsHashtable
+        if ($url -match '/knowledgebases/') {
+            switch ($knowledgeTest.mode) {
+                'missing-reasoning' { $actual.Remove('retrievalReasoningEffort') }
+                'wrong-reasoning' { $actual.retrievalReasoningEffort.kind = 'low' }
+                'missing-output' { $actual.Remove('outputMode') }
+                'wrong-output' { $actual.outputMode = 'answerSynthesis' }
+                'missing-models' { $actual.Remove('models') }
+                'null-models' { $actual.models = $null }
+                'extra-model' { $actual.models = @(@{ kind = 'azureOpenAI' }) }
+                'wrong-base-source' { $actual.knowledgeSources = @(@{ name = 'other-source' }) }
+                'extra-base-source' { $actual.knowledgeSources += @{ name = 'other-source' } }
+            }
+        } elseif ($url -match '/knowledgesources/') {
+            switch ($knowledgeTest.mode) {
+                'wrong-source-index' { $actual.searchIndexParameters.searchIndexName = 'other-index' }
+                'wrong-semantic' { $actual.searchIndexParameters.semanticConfigurationName = 'other' }
+                'missing-source-fields' { $actual.searchIndexParameters.Remove('sourceDataFields') }
+                'wrong-search-fields' { $actual.searchIndexParameters.searchFields = @(@{ name = 'title' }) }
+            }
+        }
+        $actual | ConvertTo-Json -Depth 30
         return
     }
     Assert-Knowledge ($method -eq 'put') 'Only declared configuration writes are allowed.'
@@ -149,11 +175,13 @@ function az {
         Assert-Knowledge ($body.searchIndexParameters.semanticConfigurationName -ceq 'architecture') 'GA knowledge sources require the declared semantic configuration.'
         Assert-Knowledge ($body.searchIndexParameters.sourceDataFields[0].name -ceq 'chunk_id') 'Source data fields must be named field-reference objects.'
     } elseif ($url -match '/knowledgebases/') {
-        Assert-Knowledge (@($body.knowledgeSources).Count -eq 1 -and -not $body.ContainsKey('models')) 'GA extractive knowledge must not invent an LLM or use an unrelated source.'
+        Assert-Knowledge (@($body.knowledgeSources).Count -eq 1 -and $body.knowledgeSources[0].name -ceq $contract.knowledge_source_name) 'Extractive knowledge must use only the declared source.'
+        Assert-Knowledge ($body.models -is [array] -and $body.models.Count -eq 0) 'Explicitly disable knowledge-base models; do not add another LLM.'
+        Assert-Knowledge ($body.retrievalReasoningEffort.kind -ceq 'minimal' -and $body.outputMode -ceq 'extractiveData') 'Use the preview minimal/extractive defaults required by a model-free knowledge base.'
     } elseif ($url -match '/connections/') {
-        Assert-Knowledge ($url.Contains('/connections/architecture-docs-alpha-knowledge?')) 'Connections need project-specific names even when private.'
+        Assert-Knowledge ($url -cmatch '/projects/(alpha|beta)/connections/architecture-docs-\1-knowledge\?') 'Every selected project needs its own private, project-specific connection.'
         Assert-Knowledge ($body.properties.isSharedToAll -eq $false) 'Knowledge connections must remain project-private.'
-        Assert-Knowledge ($body.properties.target.EndsWith('/mcp?api-version=2026-04-01')) 'Use the documented real knowledge-base MCP endpoint.'
+        Assert-Knowledge ($body.properties.target.EndsWith('/mcp?api-version=2026-05-01-preview')) 'Use the supported independently pinned knowledge-base MCP endpoint.'
         Assert-Knowledge ($body.properties.authType -ceq 'ProjectManagedIdentity') 'Knowledge connections must not use admin keys.'
         if ($knowledgeTest.mode -eq 'wrong-connection') { $body.properties.authType = 'ApiKey' }
     } else {
@@ -180,6 +208,22 @@ try {
     Assert-Knowledge (-not $receipt.release_accepted -and $receipt.foundry_evaluation_required) 'Ingestion must never masquerade as Foundry acceptance.'
     Assert-Knowledge ($receipt.indexers.Count -eq 2 -and $receipt.index_stats.documentCount -gt 0) 'Both fresh source runs and positive index statistics are required.'
     Assert-Knowledge ($receipt.connections.Count -eq $contract.project_ids.Count) 'Every selected project needs its real knowledge connection.'
+    Assert-Knowledge ($receipt.knowledge_base.retrievalReasoningEffort.kind -ceq 'minimal' -and
+        $receipt.knowledge_base.outputMode -ceq 'extractiveData' -and
+        $receipt.knowledge_base.models -is [array] -and $receipt.knowledge_base.models.Count -eq 0) 'Persist actual model-free minimal/extractive readback, not merely the intended payload.'
+    foreach ($mode in @('missing-reasoning', 'wrong-reasoning', 'missing-output', 'wrong-output',
+        'missing-models', 'null-models', 'extra-model', 'wrong-base-source', 'extra-base-source',
+        'wrong-source-index', 'wrong-semantic', 'missing-source-fields', 'wrong-search-fields')) {
+        $knowledgeTest.mode = $mode
+        $directory = Join-Path $outputDirectory $mode
+        $rejected = $false
+        try { Invoke-TestInitialization $directory 30 } catch {
+            if ($_.Exception.Message -notmatch 'intended knowledge (base|source)') { throw }
+            $rejected = $true
+        }
+        Assert-Knowledge $rejected "Reject unexpected actual readback '$mode'."
+        Assert-Knowledge (@(Get-ChildItem -LiteralPath $directory -Recurse -Filter 'initialization.json').Count -eq 0) 'Unexpected defaults or source/model drift cannot produce completion evidence.'
+    }
     $knowledgeTest.mode = 'empty-put'
     Invoke-TestInitialization (Join-Path $outputDirectory 'empty-put')
     Assert-Knowledge (@($knowledgeTest.calls | Where-Object {
@@ -247,6 +291,17 @@ try {
     Assert-Knowledge ($knowledgeTest.kills -gt 0) 'Hung CLI calls must terminate their owned process tree.'
     Assert-Knowledge (@($knowledgeTest.waits | Where-Object { $_ -gt 60000 -or $_ -le 0 }).Count -eq 0) 'Every CLI call must have a positive, capped wait.'
     $knowledgeTest.mode = 'success'
+    $before = $knowledgeTest.calls.Count
+    foreach ($key in @('contract_version', 'api_version', 'knowledge_base_api_version', 'mcp_api_version')) {
+        $original = $contract[$key]
+        $contract[$key] = if ($key -eq 'contract_version') { 1 } else { 'unsupported' }
+        $rejected = $false
+        try { Invoke-TestInitialization (Join-Path $outputDirectory "invalid-$key") } catch {
+            if ($_.Exception.Message -notmatch 'Unsupported knowledge contract') { throw }
+            $rejected = $true
+        } finally { $contract[$key] = $original }
+        Assert-Knowledge ($rejected -and $knowledgeTest.calls.Count -eq $before) 'Reject stale or unpinned creation contracts before authentication or mutation.'
+    }
     $before = $knowledgeTest.calls.Count
     $contract.search_endpoint = 'https://untrusted.example.invalid/'
     $rejected = $false

@@ -222,19 +222,21 @@ resource "azapi_data_plane_resource" "knowledge_indexer" {
 
 locals {
   knowledge_contract = {
-    contract_version        = 1
-    workload_name           = var.workload_name
-    subscription_id         = var.foundation.subscription_id
-    tenant_id               = var.foundation.tenant_id
-    search_endpoint         = var.foundation.search_endpoint
-    index_name              = azapi_data_plane_resource.knowledge_index.name
-    knowledge_source_name   = "${var.workload_name}-published-architecture"
-    knowledge_base_name     = "${var.workload_name}-architecture"
-    indexer_names           = [for indexer in azapi_data_plane_resource.knowledge_indexer : indexer.name]
-    api_version             = "2026-04-01"
-    project_ids             = { for name, project in var.foundation.projects : name => project.id }
-    initialization_required = false
-    live_accepted           = false
+    contract_version           = 2
+    workload_name              = var.workload_name
+    subscription_id            = var.foundation.subscription_id
+    tenant_id                  = var.foundation.tenant_id
+    search_endpoint            = var.foundation.search_endpoint
+    index_name                 = azapi_data_plane_resource.knowledge_index.name
+    knowledge_source_name      = "${var.workload_name}-published-architecture"
+    knowledge_base_name        = "${var.workload_name}-architecture"
+    indexer_names              = [for indexer in azapi_data_plane_resource.knowledge_indexer : indexer.name]
+    api_version                = "2026-04-01"
+    knowledge_base_api_version = "2026-05-01-preview"
+    mcp_api_version            = "2026-05-01-preview"
+    project_ids                = { for name, project in var.foundation.projects : name => project.id }
+    initialization_required    = false
+    live_accepted              = false
   }
 }
 
@@ -251,6 +253,7 @@ resource "terraform_data" "knowledge_initialize" {
     sha256(jsonencode({ for name, blob in azurerm_storage_blob.knowledge_standard : name => blob.source_content })),
     sha256(jsonencode(var.models["embedding"])),
     filesha256("${path.module}/../../../infra/scripts/Initialize-Knowledge.ps1"),
+    filesha256("${path.module}/../../../infra/scripts/Remove-Knowledge.ps1"),
   ]
   provisioner "local-exec" {
     interpreter = ["pwsh", "-NoProfile", "-NonInteractive", "-Command"]

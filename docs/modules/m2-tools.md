@@ -34,6 +34,13 @@ The exported specification deliberately uses these IDs as operation summaries:
 the portal derives MCP tool names from display names. Descriptions retain their
 full explanations. Use a fresh exported pack, not the backend's original spec.
 
+After **Create**, wait for the import to finish and **Design** to show your API.
+The form can remain visible briefly while the asynchronous import runs; do not
+click Create repeatedly. The fresh browser retry succeeded with **14 operations**
+and matching operation IDs/display names, including `listSystems`, `getSystem`
+and `validateDocument`. Import success alone is not a working or secured backend:
+continue with the Settings and policy steps below.
+
 ### 2. Secure and test the REST path
 
 Read the reference REST API policy in **Design -> All operations -> Inbound

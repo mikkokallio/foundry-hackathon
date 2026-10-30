@@ -9,6 +9,11 @@ is not team isolation.
 
 ## What happens after the initial Terraform stages
 
+- **B1/B3/B6 entry:** genuine M5 attempts are sufficient, even when failed or
+  explicitly stopped incomplete. Record **workshop-only/not qualified**, retain
+  actual results and continue; do not lower evaluator thresholds or invent a
+  passing receipt. B6's strict production-style CI gate still blocks promotion
+  on failed/incomplete evidence; workshop progression is not release acceptance.
 - **Module 0:** build/import immutable application images before workload apply.
   Workload Terraform starts the apps, seeds Blob content and runs the bounded
   knowledge initializer, including indexers and private project connections.
@@ -66,9 +71,16 @@ is not team isolation.
 The corpus has 13 systems, 10 published documents and deliberately planted
 defects. Missing/stale/wrong facts are the exercise, not unfinished seeding.
 Never replace missing published documents with generated answer fixtures.
-Run baseline evaluations **before librarian publication changes this shared
-corpus**. Publication can legitimately invalidate frozen gap expectations.
-Coordinate publication; do not weaken expectations or silently reset documents.
+Collect baseline evidence **before librarian publication changes this shared
+corpus**. Before publication, the coach records that all teams' frozen-corpus
+attempts completed or were explicitly stopped. A separately authenticated human
+librarian may accept the failed/incomplete-M5 workshop caveat after reviewing
+the exact validated pending-review proposal; this does not qualify the agent.
+Exact-text approval, team isolation, base-version concurrency and readback remain
+required. Publication can legitimately invalidate frozen gap expectations.
+Retain the corpus boundary: later changed-corpus runs are not the original
+baseline. Do not weaken expectations or silently reset documents. Real projects
+retain stricter release requirements.
 
 The 25 inherited evaluation cases and numeric thresholds are retained. Only two
 ground-truth mailbox addresses follow the already-neutralized `.invalid`
@@ -97,7 +109,8 @@ qualification. No latency/cost pass threshold was approved. Record actual latenc
 input/output/reasoning tokens and date/region/SKU-specific prices; missing values
 are unknown, not zero. Frozen quality thresholds remain task_adherence >= 3.0
 and template_compliance >= 0.5; they are inherited, not a guarantee of reliability.
-The mandatory provenance/safety gate still applies to every case.
+The mandatory provenance/safety gate still applies to every case for a passing
+evaluation; workshop progression does not change any actual result.
 
 KQL files target the **Application Insights query context**, not raw Log
 Analytics `App*` table names. Current reference policies emit Team/API, not the

@@ -13,7 +13,12 @@ foreach ($key in @('subscription_id', 'tenant_id')) {
     }
 }
 $endpoint = [uri]$Knowledge.search_endpoint
-if ($Knowledge.contract_version -ne 1 -or $Knowledge.api_version -cne '2026-04-01' -or
+$legacyContract = $Knowledge.contract_version -eq 1 -and
+    -not $Knowledge.ContainsKey('knowledge_base_api_version') -and -not $Knowledge.ContainsKey('mcp_api_version')
+$currentContract = $Knowledge.contract_version -eq 2 -and
+    $Knowledge.knowledge_base_api_version -ceq '2026-05-01-preview' -and
+    $Knowledge.mcp_api_version -ceq '2026-05-01-preview'
+if ((-not $legacyContract -and -not $currentContract) -or $Knowledge.api_version -cne '2026-04-01' -or
     $Knowledge.workload_name -cnotmatch '^[a-z][a-z0-9-]{2,28}[a-z0-9]$' -or
     $endpoint.Scheme -cne 'https' -or $endpoint.Port -ne 443 -or
     $endpoint.Host -cnotmatch '^[a-z0-9][a-z0-9-]+\.search\.windows\.net$' -or
@@ -37,7 +42,9 @@ foreach ($entry in $Knowledge.project_ids.GetEnumerator()) {
 }
 $search = $endpoint.AbsoluteUri.TrimEnd('/')
 $version = $Knowledge.api_version
-$mcp = "$search/knowledgebases/$($Knowledge.knowledge_base_name)/mcp?api-version=$version"
+$baseVersion = if ($legacyContract) { $version } else { $Knowledge.knowledge_base_api_version }
+$mcpVersion = if ($legacyContract) { $version } else { $Knowledge.mcp_api_version }
+$mcp = "$search/knowledgebases/$($Knowledge.knowledge_base_name)/mcp?api-version=$mcpVersion"
 if (-not $PSCmdlet.ShouldProcess($search, 'Delete only this workload knowledge connections, base and source before its index')) {
     return
 }
@@ -121,7 +128,7 @@ try {
         }
         Remove-CleanupResource $url
     }
-    $base = "$search/knowledgebases/$($Knowledge.knowledge_base_name)?api-version=$version"
+    $base = "$search/knowledgebases/$($Knowledge.knowledge_base_name)?api-version=$baseVersion"
     $current = Invoke-CleanupRequest 'GET' $base
     if ($current.status -ne 404) {
         if (@($current.body.knowledgeSources).Count -ne 1 -or

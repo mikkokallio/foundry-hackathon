@@ -49,14 +49,18 @@ function Invoke-WebRequest {
     if ($fixture.removed.ContainsKey($Uri)) { return @{ StatusCode = 404; Content = '' } }
     $body = if ($Uri -match '/connections/') {
         @{ properties = @{
-            category = 'RemoteTool'; isSharedToAll = $false
+            category = 'RemoteTool'; isSharedToAll = ($fixture.mode -eq 'shared')
             target = if ($fixture.mode -eq 'wrong-target') { 'https://other.invalid' } else {
-                "$($contract.search_endpoint)/knowledgebases/$($contract.knowledge_base_name)/mcp?api-version=2026-04-01"
+                $mcpVersion = if ($contract.contract_version -eq 1) { '2026-04-01' } else { '2026-05-01-preview' }
+                "$($contract.search_endpoint)/knowledgebases/$($contract.knowledge_base_name)/mcp?api-version=$mcpVersion"
             }
         } }
     } elseif ($Uri -match '/knowledgebases/') {
+        $baseVersion = if ($contract.contract_version -eq 1) { '2026-04-01' } else { '2026-05-01-preview' }
+        Assert-Cleanup ($Uri.EndsWith("?api-version=$baseVersion")) 'Cleanup must use the exact persisted knowledge-base management API.'
         @{ knowledgeSources = @(@{ name = $contract.knowledge_source_name }) }
     } elseif ($Uri -match '/knowledgesources/') {
+        Assert-Cleanup ($Uri.EndsWith('?api-version=2026-04-01')) 'Cleanup must preserve the knowledge-source management API.'
         @{ kind = 'searchIndex'; searchIndexParameters = @{ searchIndexName = $contract.index_name } }
     } else { throw "Unexpected test request: $Uri" }
     @{ StatusCode = 200; Content = ($body | ConvertTo-Json -Depth 10) }
@@ -71,7 +75,7 @@ try {
         $fixture.deletes[2] -match '/knowledgesources/') 'Delete references before their dependencies, never the Terraform-owned index.'
     & $script -Knowledge $contract -OutputDirectory $directory -Confirm:$false | Out-Null
     Assert-Cleanup ($fixture.deletes.Count -eq 3) 'A second cleanup must verify already-absent resources without more deletes.'
-    foreach ($mode in @('wrong-target', 'forbidden')) {
+    foreach ($mode in @('wrong-target', 'shared', 'forbidden')) {
         $fixture.mode = $mode
         $fixture.removed.Clear()
         $failed = $false
@@ -82,9 +86,37 @@ try {
         Assert-Cleanup $failed "Reject $mode without a success-shaped fallback."
         Assert-Cleanup ($fixture.deletes.Count -eq 3) 'Do not delete an unexpected connection or suppress authorization failure.'
     }
+    $fixture.mode = 'success'
+    $fixture.removed.Clear()
+    $fixture.deletes = @()
+    $contract.contract_version = 2
+    $contract.knowledge_base_api_version = '2026-05-01-preview'
+    $contract.mcp_api_version = '2026-05-01-preview'
+    & $script -Knowledge $contract -OutputDirectory $directory -Confirm:$false | Out-Null
+    Assert-Cleanup ($fixture.deletes.Count -eq 3 -and
+        $fixture.deletes[1].EndsWith('?api-version=2026-05-01-preview') -and
+        $fixture.deletes[2].EndsWith('?api-version=2026-04-01')) 'Current cleanup must delete only its exact private connection, preview base and GA source.'
+    $beforeAuthentication = $fixture.authentication
+    foreach ($invalid in @(
+        @{ contract_version = 3; knowledge_base_api_version = '2026-05-01-preview'; mcp_api_version = '2026-05-01-preview' },
+        @{ contract_version = 2; knowledge_base_api_version = '2026-04-01'; mcp_api_version = '2026-05-01-preview' },
+        @{ contract_version = 2; knowledge_base_api_version = '2026-05-01-preview'; mcp_api_version = '2026-04-01' },
+        @{ contract_version = 1; knowledge_base_api_version = '2026-05-01-preview'; mcp_api_version = '2026-05-01-preview' }
+    )) {
+        $bad = $contract.Clone()
+        foreach ($key in $invalid.Keys) { $bad[$key] = $invalid[$key] }
+        $failed = $false
+        try { & $script -Knowledge $bad -OutputDirectory $directory -Confirm:$false | Out-Null } catch {
+            if ($_.Exception.Message -notmatch 'Invalid knowledge cleanup contract') { throw }
+            $failed = $true
+        }
+        Assert-Cleanup $failed 'Reject unsupported/mixed cleanup versions instead of guessing the live connection target.'
+    }
+    Assert-Cleanup ($fixture.authentication -eq $beforeAuthentication) 'Reject unsupported cleanup contracts before authentication or mutation.'
     $source = Get-Content (Join-Path $root 'scenarios\architecture-docs\infra\knowledge.tf') -Raw
     Assert-Cleanup ($source -match 'input\s*=\s*local.knowledge_contract' -and
         $source -match 'when\s*=\s*destroy' -and $source -match 'jsonencode\(self.input\)') 'Native Terraform must persist the actual contract and invoke cleanup before index destruction.'
+    Assert-Cleanup ($source -match 'filesha256\("\$\{path.module\}/../../../infra/scripts/Remove-Knowledge.ps1"\)') 'Cleanup script changes must participate in the scoped knowledge replacement trigger.'
     Write-Output 'Knowledge cleanup tests passed: dry run, exact ordered scope, verified absence/idempotence, wrong-target refusal and explicit403. Test-scoped transport only.'
 } finally {
     if (Test-Path -LiteralPath $directory) { Remove-Item -LiteralPath $directory -Recurse }

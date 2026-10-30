@@ -17,7 +17,7 @@ throw 'The test-only hung CLI must have been terminated.'
 '@ | Set-Content -LiteralPath (Join-Path $scratch 'test-az.ps1')
     $env:PATH = "$scratch;$previousPath"
     $contract = @{
-        contract_version = 1
+        contract_version = 2
         subscription_id = '00000000-0000-0000-0000-000000000001'
         tenant_id = '00000000-0000-0000-0000-000000000002'
         workload_name = 'architecture-docs'
@@ -26,6 +26,8 @@ throw 'The test-only hung CLI must have been terminated.'
         knowledge_source_name = 'architecture-docs-published-architecture'
         knowledge_base_name = 'architecture-docs-architecture'
         api_version = '2026-04-01'
+        knowledge_base_api_version = '2026-05-01-preview'
+        mcp_api_version = '2026-05-01-preview'
         indexer_names = @('architecture-docs-published', 'architecture-docs-standards')
         project_ids = @{
             alpha = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/test-only/providers/Microsoft.CognitiveServices/accounts/test-only/projects/alpha'

@@ -14,7 +14,9 @@ foreach ($key in @('subscription_id', 'tenant_id')) {
     }
 }
 $endpoint = [uri]$Knowledge.search_endpoint
-if ($Knowledge.contract_version -ne 1 -or $Knowledge.api_version -cne '2026-04-01' -or
+if ($Knowledge.contract_version -ne 2 -or $Knowledge.api_version -cne '2026-04-01' -or
+    $Knowledge.knowledge_base_api_version -cne '2026-05-01-preview' -or
+    $Knowledge.mcp_api_version -cne '2026-05-01-preview' -or
     $Knowledge.workload_name -cnotmatch '^[a-z][a-z0-9-]{2,28}[a-z0-9]$' -or
     $endpoint.Scheme -cne 'https' -or $endpoint.Port -ne 443 -or
     $endpoint.Host -notmatch '^[a-z0-9][a-z0-9-]+\.search\.windows\.net$' -or
@@ -42,7 +44,8 @@ foreach ($project in $Knowledge.project_ids.Values) {
 
 $searchUrl = $endpoint.AbsoluteUri.TrimEnd('/')
 $version = $Knowledge.api_version
-$mcpUrl = "$searchUrl/knowledgebases/$($Knowledge.knowledge_base_name)/mcp?api-version=$version"
+$baseVersion = $Knowledge.knowledge_base_api_version
+$mcpUrl = "$searchUrl/knowledgebases/$($Knowledge.knowledge_base_name)/mcp?api-version=$($Knowledge.mcp_api_version)"
 $source = @{
     name = $Knowledge.knowledge_source_name
     kind = 'searchIndex'
@@ -59,6 +62,9 @@ $base = @{
     name = $Knowledge.knowledge_base_name
     description = 'Extractive grounding; the Foundry agent supplies reasoning and answers.'
     knowledgeSources = @(@{ name = $Knowledge.knowledge_source_name })
+    models = @()
+    retrievalReasoningEffort = @{ kind = 'minimal' }
+    outputMode = 'extractiveData'
 }
 $connection = @{
     properties = @{
@@ -238,14 +244,20 @@ $sourceUrl = "$searchUrl/knowledgesources/$($source.name)?api-version=$version"
 $null = Invoke-KnowledgeRequest 'put' $sourceUrl $source
 $actualSource = Invoke-KnowledgeRequest 'get' $sourceUrl
 if ($actualSource.name -cne $source.name -or $actualSource.kind -cne 'searchIndex' -or
-    $actualSource.searchIndexParameters.searchIndexName -cne $Knowledge.index_name) {
+    $actualSource.searchIndexParameters.searchIndexName -cne $Knowledge.index_name -or
+    $actualSource.searchIndexParameters.semanticConfigurationName -cne 'architecture' -or
+    (@($actualSource.searchIndexParameters.searchFields.name | Sort-Object) -join ',') -cne 'content,title' -or
+    (@($actualSource.searchIndexParameters.sourceDataFields.name | Sort-Object) -join ',') -cne 'chunk_id,content,source_url,title') {
     throw 'Search did not return the intended knowledge source.'
 }
-$baseUrl = "$searchUrl/knowledgebases/$($base.name)?api-version=$version"
+$baseUrl = "$searchUrl/knowledgebases/$($base.name)?api-version=$baseVersion"
 $null = Invoke-KnowledgeRequest 'put' $baseUrl $base
 $actualBase = Invoke-KnowledgeRequest 'get' $baseUrl
 if ($actualBase.name -cne $base.name -or @($actualBase.knowledgeSources).Count -ne 1 -or
-    $actualBase.knowledgeSources[0].name -cne $source.name) {
+    $actualBase.knowledgeSources[0].name -cne $source.name -or
+    $actualBase.retrievalReasoningEffort.kind -cne 'minimal' -or
+    $actualBase.outputMode -cne 'extractiveData' -or
+    $actualBase.models -isnot [array] -or $actualBase.models.Count -ne 0) {
     throw 'Search did not return the intended knowledge base.'
 }
 $connectionEvidence = @{}

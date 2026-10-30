@@ -43,7 +43,7 @@ cells. Do not leave three people idle watching a driver unless they choose that.
 | M2 | Own authenticated REST/MCP, actual GET/POST behavior, genuine agent/tool spans. | What does selecting fewer operations protect? |
 | M3 | Positive model-route evidence, isolated model/tool throttles and real chart. | Which counter/identity did this request use? |
 | M4 | Own useful registration, actual definition retrieval, first toolkit use. | Why can discoverable still mean unauthorized? |
-| M5 | Four comparable real configurations/results; worst-row trace and numerical choice. | Is a lower token price a lower cost per successful task? |
+| M5 | Comparable real results and numerical choice, or genuine attempts explicitly stopped as workshop-only/not qualified; worst-row investigation. | Is a lower token price a lower cost per successful task? |
 | Core approval | Denial saves nothing, approval matches stored text, separate librarian publication. | Exactly what did the human authorize? |
 
 **Reference catch-up:** inspect current state; add missing owned objects or attach
@@ -95,14 +95,33 @@ failure clusters. Fresh real responses, evaluation IDs and matching native
 response/version/tool traces belong under the scenario's `.foundry/`.
 No mocked answers, cached responses, fabricated traces or blanket write approval.
 
-**Across all teams:** complete frozen-corpus comparisons before librarian
-publication. Proposals can be drafted/saved without publishing. Publication
-legitimately changes gaps; never reset shared data or weaken expectations to
-hide that. Stale-base conflicts require review, not force.
+**Workshop stop rule:** after a few genuine attempts, keep the actual failures,
+record **workshop-only/not qualified**, and continue to bonuses/core approval.
+Attempted M5 is sufficient for B1/B3/B6; it is not release qualification. No
+backend/evaluator bypass is needed or authorized. B6 still demonstrates a strict
+production-style CI gate: failed/incomplete evidence blocks promotion.
+
+The existing rehearsal already provides enough attempts: p1/p2/p4 each collected
+12 rows but verified native provenance for only 9/8/8 respectively; p3 stopped
+on 429 after 8 rows. Steward v4 smoke verified native proof for all 4 rows but
+missed expected tools. Distinguish missing facts/tools (quality), missing native
+provenance and incomplete 429 collection; do not describe all as prompt
+difficulty. Keep failed results failed and incomplete results incomplete.
+Inspect manifests directly; do not rank incomplete evidence with `lab compare`.
+
+**Across all teams:** record collection closure only after every team's
+frozen-corpus attempts completed or were explicitly stopped, before any librarian
+publication. Proposals can be drafted/saved beforehand. Record the corpus
+boundary; later changed-corpus runs are not the original baseline. Publication
+legitimately changes gaps; never reset shared data or weaken expectations to hide
+that. Stale-base conflicts require review, not force.
 
 As librarian: retrieve the exact saved proposal; review text, findings and base
-version; explicitly authorize the human-only publish operation; verify stored
-document/proposal/gap state. Agent review is not human approval.
+version and authenticated team scope; explicitly authorize the human-only
+publish operation and accept any failed/incomplete-M5 workshop caveat; verify
+stored document/proposal/gap state. Exact-text approval and structural validation
+remain mandatory. Agent review is not human approval, and human publication is
+not evaluation qualification. Real projects retain stricter release requirements.
 
 ## Short error triage
 
@@ -113,7 +132,7 @@ document/proposal/gap state. Agent review is not human approval.
 | Empty result | Actual arguments/filter and equivalent authenticated REST, not guessed facts. |
 | GET works, POST fails | Exact body, JSON POST adapter and owned REST target. |
 | No trace | Project/Insights recognition, time filters, ingestion and query access. Missing is not zero. |
-| Evaluation mismatch/failure | Actual evaluator contract/IDs/coverage/provenance; keep the gate red. |
+| Evaluation mismatch/failure | Actual evaluator contract/IDs/coverage/provenance; keep the gate red, but use the explicit workshop stop rule rather than block bonuses or authorized human publication. |
 | CLI pack hash mismatch | Export a fresh actual-output pack. Never edit receipts or overwrite old evidence. |
 
 One repair attempt per failed live activity, then preserve evidence/report and

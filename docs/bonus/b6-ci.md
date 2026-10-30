@@ -1,6 +1,9 @@
 # B6 - Ship through a genuine evaluation gate
 
-**After M5. Live execution is blocked until organizer delivery setup is accepted.**
+**After attempted M5; a pass is not required for workshop entry. Live execution
+is blocked until organizer delivery setup is accepted.** The production-style
+CI gate remains strict; a failed/incomplete evaluation must block promotion,
+not be relabeled as a passing deployment.
 
 ## Understand
 
