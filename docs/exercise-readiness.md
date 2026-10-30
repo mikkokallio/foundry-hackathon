@@ -85,12 +85,33 @@
     restricted to its three actual read-only operations. Its diagram answer has
     a matching response ID, version and successful native toolkit span. The trace
     also contains two error-marked transport/discovery spans, not yet classified.
-    A later draft-comparison question hit a real model-gateway 429; that activity
-    is not yet verified.
+    A later draft-comparison question hit a real model-gateway 429. Its single
+    repair, after waiting, completed in a native 7.716 seconds and has matching
+    response/version and both comparison/lint tool spans. Both tools returned
+    no disagreements/errors; the earlier reference-date finding remains.
 - Four immutable model/instruction candidates have been created with the same
     actual documentation/toolkit connections and explicit low reasoning.
     Fresh twelve-case collection has started for the first candidate; it is
     still incomplete and is not qualification.
+- The first comparison collected twelve real responses and remote evaluation
+    IDs, then exposed a provenance-runner defect: an already-recorded missing
+    expected tool made it wait for a span that could never arrive. Provenance
+    now verifies all actual executions and separately records expected-tool
+    omissions. Those omissions still fail the unchanged quality gate. The
+    initial attempts remain incomplete/failed; repaired runs must collect
+    fresh responses, not reuse them.
+- An initial second-candidate run also failed on Windows atomic receipt
+    replacement (`WinError 5`). Evidence replacement now retries only the
+    observed Windows access/sharing errors within a fixed bound, reports each
+    retry and still raises on persistent failure. Runner/helper validation
+    passes 82 tests, with Ruff and Pyright clean. No dataset, threshold or
+    evaluator was changed.
+- B5 read-only checks verified the actual small deployment as
+    gpt-5.4-nano / 2026-03-17 / GlobalStandard and the model connection as
+    ProjectManagedIdentity. One genuine task's completed-response usage gives
+    EUR 0.000925892 at the dated uncached full-input retail rates, excluding
+    retry/judge/shared-service charges. This is not a bill or complete estimate;
+    two-person attribution and a new caller dimension remain unverified.
 
   **Still required:** remaining actual portal rehearsal,
   non-admin authoring/connection/export tests, direct/routed trace correlation,

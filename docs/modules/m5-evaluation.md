@@ -90,6 +90,9 @@ Open a worst/failed real row's response and matching native trace in Foundry.
 Was the cause unsupported facts, missing evidence, malformed arguments, a failed
 tool/transport, approval handling or instructions? Record a concrete hypothesis.
 A failed run remains evidence worth investigating, not something to hide.
+An omitted expected tool remains a quality failure even when provenance verifies
+the calls that actually ran. The runner records that omission separately; it
+must neither invent a span for the missing call nor qualify the candidate.
 
 The report includes fully collected failed candidates without calling them
 qualified. Incomplete runs or missing provenance cannot be included; inspect

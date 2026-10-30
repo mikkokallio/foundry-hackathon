@@ -32,6 +32,7 @@ WRITE_TOOLS = {"submitProposal", "publishProposal"}
 TERMINAL = {"completed", "failed", "cancelled", "canceled", "incomplete", "expired"}
 RESPONSE_CREATE_MAX_ATTEMPTS = 6
 RESPONSE_CREATE_MAX_ELAPSED_SECONDS = 300
+EVIDENCE_REPLACE_DELAYS = (0.05, 0.1, 0.2, 0.4, 0.8, 1.0)
 
 
 class GateError(RuntimeError):
@@ -42,7 +43,16 @@ def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     staging = path.with_suffix(path.suffix + ".pending")
     staging.write_text(json.dumps(value, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
-    staging.replace(path)
+    for attempt in range(len(EVIDENCE_REPLACE_DELAYS) + 1):
+        try:
+            staging.replace(path)
+            return
+        except PermissionError as exc:
+            if getattr(exc, "winerror", None) not in (5, 32, 33) or attempt == len(EVIDENCE_REPLACE_DELAYS):
+                raise
+            print(f"Retrying atomic evidence replacement after Windows file access error: {path}",
+                  file=sys.stderr, flush=True)
+            time.sleep(EVIDENCE_REPLACE_DELAYS[attempt])
 
 
 def remaining(deadline: float, maximum: float = 120) -> float:
@@ -452,11 +462,14 @@ def match_trace(
                     if genuine_name is None:
                         return None
                     matched_tools.add(genuine_name)
-    required = {call["name"] for call in turn["tool_calls"]} | (set(expected) - WRITE_TOOLS)
+    # Expected-tool omissions remain quality failures in run_worker, not missing telemetry.
+    required = {call["name"] for call in turn["tool_calls"]}
     if set(turn["response_ids"]) <= matched_ids and required <= matched_tools:
         return {"verified": True, "operation_ids": sorted(roots),
                 "response_ids": turn["response_ids"], "tool_names": sorted(matched_tools),
-                "expected_tool_names": expected, "transport_cancellations": cancellations}
+                "expected_tool_names": expected,
+                "missing_expected_tool_names": sorted(set(expected) - matched_tools),
+                "transport_cancellations": cancellations}
     return None
 
 

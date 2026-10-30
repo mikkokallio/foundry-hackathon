@@ -15,6 +15,7 @@ out/
 **/.foundry/results/
 **/.foundry/datasets/
 **/.foundry/evaluators/
+**/.foundry/*.pending
 .azure/
 .venv*/
 __pycache__/

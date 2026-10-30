@@ -55,6 +55,58 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(remove.call_args_list, [unittest.mock.call(self.directory)] * 2)
         sleep.assert_called_once_with(self.CLEANUP_DELAYS[0])
 
+    def test_evidence_replacement_retries_a_transient_windows_lock(self):
+        path = self.directory / "evidence.json"
+        path.write_text('{"before": true}', encoding="utf-8")
+        sharing_error = PermissionError("test-scoped Windows replacement lock")
+        sharing_error.winerror = 5
+        replace = Path.replace
+        attempts = []
+
+        def unlock_after_first_attempt(staging, destination):
+            attempts.append((staging, destination))
+            if len(attempts) == 1:
+                raise sharing_error
+            return replace(staging, destination)
+
+        errors = io.StringIO()
+        with patch.object(Path, "replace", unlock_after_first_attempt), patch.object(
+            runner.time, "sleep"
+        ) as sleep, patch.object(sys, "stderr", errors):
+            runner.write_json(path, {"actual": "test-only receipt"})
+        self.assertEqual(json.loads(path.read_text()), {"actual": "test-only receipt"})
+        self.assertFalse(path.with_suffix(".json.pending").exists())
+        self.assertEqual(len(attempts), 2)
+        sleep.assert_called_once()
+        self.assertIn("Windows", errors.getvalue())
+
+    def test_evidence_replacement_exhaustion_preserves_original_and_raises(self):
+        path = self.directory / "evidence.json"
+        path.write_text('{"before": true}', encoding="utf-8")
+        sharing_error = PermissionError("test-scoped persistent Windows replacement lock")
+        sharing_error.winerror = 5
+        with patch.object(Path, "replace", side_effect=sharing_error) as replace, patch.object(
+            runner.time, "sleep"
+        ) as sleep, patch.object(sys, "stderr", io.StringIO()):
+            with self.assertRaises(PermissionError) as raised:
+                runner.write_json(path, {"actual": "test-only receipt"})
+        self.assertIs(raised.exception, sharing_error)
+        self.assertEqual(json.loads(path.read_text()), {"before": True})
+        self.assertGreater(replace.call_count, 1)
+        self.assertLessEqual(replace.call_count, 7)
+        self.assertEqual(sleep.call_count, replace.call_count - 1)
+
+    def test_evidence_replacement_does_not_retry_other_permission_errors(self):
+        permission_error = PermissionError("test-scoped unrelated permission denial")
+        permission_error.winerror = 1314
+        with patch.object(Path, "replace", side_effect=permission_error) as replace, patch.object(
+            runner.time, "sleep"
+        ) as sleep:
+            with self.assertRaises(PermissionError):
+                runner.write_json(self.directory / "evidence.json", {})
+        replace.assert_called_once()
+        sleep.assert_not_called()
+
     def test_cleanup_exhaustion_is_raised_not_ignored(self):
         sharing_error = PermissionError("test-scoped persistent sharing lock")
         sharing_error.winerror = 32
@@ -323,6 +375,18 @@ class RunnerTests(unittest.TestCase):
         proof = runner.match_trace(self.records(), turn, "agent", "7", ["getSystem", "submitProposal"])
         self.assertNotIn("submitProposal", proof["tool_names"])
         self.assertIn("submitProposal", proof["expected_tool_names"])
+
+    def test_quality_missing_tool_is_not_mislabeled_as_missing_execution_provenance(self):
+        turn = {"response_ids": ["resp_real"], "tool_calls": [
+            {"name": "getSystem", "response_id": "resp_real"},
+        ]}
+        proof = runner.match_trace(
+            self.records(), turn, "agent", "7", ["getSystem", "listInterfaces"],
+        )
+        self.assertTrue(proof["verified"])
+        self.assertEqual(proof["tool_names"], ["getSystem"])
+        self.assertEqual(proof["expected_tool_names"], ["getSystem", "listInterfaces"])
+        self.assertEqual(proof["missing_expected_tool_names"], ["listInterfaces"])
 
     def test_exact_native_mcp_prefix_uses_genuine_server_label_and_tool_name(self):
         turn = {"response_ids": ["resp_real"], "tool_calls": [{
