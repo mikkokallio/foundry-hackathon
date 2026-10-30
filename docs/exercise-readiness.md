@@ -31,8 +31,13 @@
     POST adaptation despite successful discovery. The existing owned attempt was
     repaired explicitly through ARM tool metadata; shared references were not
     changed. New packs export operation IDs as summaries, with a regression
-    proving all other specification content is preserved. Fresh portal import
-    of that corrected pack still needs verification.
+    proving all other specification content is preserved. A fresh corrected
+    pack upload populated the real import form, but Create did not advance,
+    including one bounded retry. No monitored management mutation was observed;
+    ARM confirmed that the new API did not exist. The cause remains unclassified,
+    not an established specification or server defect. Clean portal import and
+    generated names remain unverified; the repaired existing integration is not
+    evidence that this fresh import passed.
   - Policy copying now requests ARM JSON and raw XML explicitly, fixing two
     reproduced content-negotiation/encoding defects. The focused Python suites
     pass all 79 tests; artifact validation passes. These are local results, not
@@ -84,15 +89,32 @@
 - The toolkit was first attached through the portal to owned steward version 3,
     restricted to its three actual read-only operations. Its diagram answer has
     a matching response ID, version and successful native toolkit span. The trace
-    also contains two error-marked transport/discovery spans, not yet classified.
+    also contains two HTTP 400 transport/discovery spans; their cause remains
+    unclassified.
     A later draft-comparison question hit a real model-gateway 429. Its single
     repair, after waiting, completed in a native 7.716 seconds and has matching
     response/version and both comparison/lint tool spans. Both tools returned
     no disagreements/errors; the earlier reference-date finding remains.
 - Four immutable model/instruction candidates have been created with the same
     actual documentation/toolkit connections and explicit low reasoning.
-    Fresh twelve-case collection has started for the first candidate; it is
-    still incomplete and is not qualification.
+    The repaired first two candidates each collected all twelve fresh responses
+    and remote evaluator outputs. Both failed: missing tools/facts remain, and
+    strict provenance passed only nine and eight rows respectively. Failed native
+    records include `OpenAITokenLimitExceeded`, not missing response IDs. These
+    exceptions are retained, not newly allowlisted to obtain a pass. The third
+    candidate exhausted its genuine 429 retry budget after eight cases. The
+    fourth collected twelve cases but only eight passed provenance. No candidate
+    has complete eligible comparison evidence; no ranked report or qualification
+    can be claimed.
+- The real Foundry evaluation UI shows the first repaired job as Completed with
+    100% task adherence (12/12). That does not include the repository's additional
+    failures. One genuine answer listed SYS-007/SYS-002 without resolving their
+    required names; the saved tool output confirms those IDs are real consumers.
+    This is an answer-completeness finding, not evidence that the frozen facts
+    are wrong. Its actual evaluation response was opened in the portal, then its
+    exact native trace and tool input/output/metadata. Response ID, trace ID,
+    agent version and tool span match; that individual proof does not qualify
+    other rows.
 - The first comparison collected twelve real responses and remote evaluation
     IDs, then exposed a provenance-runner defect: an already-recorded missing
     expected tool made it wait for a span that could never arrive. Provenance
@@ -106,12 +128,24 @@
     retry and still raises on persistent failure. Runner/helper validation
     passes 82 tests, with Ruff and Pyright clean. No dataset, threshold or
     evaluator was changed.
+- Qualification of the portal steward v3 stopped before inference because its
+    selective-autoapproval policy lacked the gate's explicit write-approval rule.
+    This is not evidence that a write auto-executed. Only the owned documentation
+    MCP's setting was strengthened to Never auto-approve tools and saved as v4;
+    toolkit/model/prompt/shared resources stayed unchanged. The gate and all
+    frozen requirements remain unchanged. Fresh v4 qualification is pending.
 - B5 read-only checks verified the actual small deployment as
     gpt-5.4-nano / 2026-03-17 / GlobalStandard and the model connection as
     ProjectManagedIdentity. One genuine task's completed-response usage gives
     EUR 0.000925892 at the dated uncached full-input retail rates, excluding
     retry/judge/shared-service charges. This is not a bill or complete estimate;
     two-person attribution and a new caller dimension remain unverified.
+- B8's explicit external REST alternative returned real gaps, fetched the exact
+    1,804-byte ARCH-ASR Markdown and sent it to the real validator. All HTTP
+    requests returned 200; validation correctly returned invalid for its missing
+    Mermaid diagram. Fresh responses and the exact submitted-text hash are saved.
+    This is read/validation-only evidence, not a coding-agent draft, save or
+    publication. Response headers supplied no request/trace ID.
 
   **Still required:** remaining actual portal rehearsal,
   non-admin authoring/connection/export tests, direct/routed trace correlation,

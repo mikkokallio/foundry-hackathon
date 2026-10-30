@@ -117,11 +117,12 @@ this is an access defect, not permission to borrow an organizer account.
 
 Add **only your documentation MCP** at this stage. On its **Actions -> Configure**,
 enter the twelve selected tool names under **Allowed ... tools**. Choose
-**Always auto-approve specific tools** and list only the eleven read/validation
-tools under **Tools that don't require approval**: exclude `submitProposal`.
-Leaving **Never auto-approve tools** is also safe, but requires confirming reads.
-Never choose **Always auto-approve all tools**. Apply, Save and confirm the new
-agent version. Publication must not appear at all.
+**Never auto-approve tools**; this requires confirming reads as well as saves.
+The rehearsed portal's selective-autoapproval policy omitted the explicit
+write-approval rule required by this repository's gate. The helper's reviewed
+policy supports selective read approval; do not weaken the gate to accept a
+different policy. Never choose **Always auto-approve all tools**. Apply, Save
+and confirm the new agent version. Publication must not appear at all.
 
 Ask:
 

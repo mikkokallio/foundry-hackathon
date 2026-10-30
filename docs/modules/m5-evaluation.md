@@ -87,6 +87,9 @@ prices, reasoning tokens or telemetry are not zero cost. Judge and shared-servic
 charges are separate from agent token estimates.
 
 Open a worst/failed real row's response and matching native trace in Foundry.
+In **Build -> Evaluations**, open your evaluation, then its run. `Completed`
+and even 100% task adherence do not establish that the repository's additional
+fact/tool/template/provenance checks passed.
 Was the cause unsupported facts, missing evidence, malformed arguments, a failed
 tool/transport, approval handling or instructions? Record a concrete hypothesis.
 A failed run remains evidence worth investigating, not something to hide.
@@ -104,8 +107,9 @@ their actual manifests directly before retrying.
 lab eval --binding "out\$prefix-comparison.json"
 ```
 
-This runs unchanged four-case smoke **and full 25-case regression** with fresh
-responses, remote IDs and native provenance. Keep task adherence >= 3.0 and draft
+This runs unchanged four-case smoke, then **full 25-case regression**, with fresh
+responses, remote IDs and native provenance. A failed smoke stops before
+regression: report failed qualification, not a completed regression. Keep task adherence >= 3.0 and draft
 template compliance >= 0.5, plus required fact/tool/safety/provenance checks.
 The educational comparison is not a substitute. Writes default to denied in
 unattended runs; the [human approval/persistence exercise](core-approval.md)
