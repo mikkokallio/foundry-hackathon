@@ -53,8 +53,8 @@ each participant's own team project. Verify both native and helper connection
 creation using a real participant; role configuration alone is not effective
 access proof. Do not repair a failure by borrowing an administrator's account.
 
-For Cloud Shell M5, verify a small archive downloads and extracts locally
-**before** starting evaluations. Use native `download $archive`, then click the
+For optional M5 CLI runs in Cloud Shell, verify a small archive downloads and
+extracts locally **before** starting evaluations. Use native `download $archive`, then click the
 filename in its **Download file** notification. Compare remote/local SHA256
 and check the extracted contents. Creating a download link is not a local backup.
 Ephemeral session expiry can lose undownloaded results; use local PowerShell
@@ -64,8 +64,9 @@ with organizer approval and an equivalent participant-wide access design.
 ## Module facilitation
 
 Give context, then let everyone build/investigate. Each person has an owned prefix;
-the team coordinates shared-policy experiments and divides the four M5 matrix
-cells. Do not leave three people idle watching a driver unless they choose that.
+the team coordinates shared-policy experiments. In M5, investigate portal
+evaluations first; divide the four matrix cells only if choosing the optional
+CLI comparison. Do not leave three people idle watching a driver unless they choose that.
 
 | Module | Observe before moving on | Useful question |
 |---|---|---|
@@ -73,7 +74,7 @@ cells. Do not leave three people idle watching a driver unless they choose that.
 | M2 | Own authenticated REST/MCP, actual GET/POST behavior, genuine agent/tool spans. | What does selecting fewer operations protect? |
 | M3 | Positive model-route evidence, isolated model/tool throttles and real chart. | Which counter/identity did this request use? |
 | M4 | Own useful registration, actual definition retrieval, first toolkit use. | Why can discoverable still mean unauthorized? |
-| M5 | Comparable real results and numerical choice, or genuine attempts explicitly stopped as workshop-only/not qualified; worst-row investigation. | Is a lower token price a lower cost per successful task? |
+| M5 | Dataset inspected, portal evaluation attempted, one result explained using actual answers/evidence and one improvement proposed. CLI comparison is optional. | What does this evaluator measure, and what might it miss? |
 | Core approval | Denial saves nothing; approval matches valid stored text/status on readback. No publisher needed for team completion. | Exactly what did the human authorize? |
 
 **Reference catch-up:** inspect current state; add missing owned objects or attach
@@ -127,13 +128,18 @@ and matching **model** traffic; a separate APIM call or MCP request is not enoug
 
 ## Evaluation and publication coordination
 
-Four-case smoke, twelve-case educational comparison and twenty-five-case
+M5's main path uses the 25-case source file in a portal evaluation with chosen
+built-in evaluators. Keep write approvals required, distinguish execution errors
+from answer quality and investigate the actual answers. A green score is not
+proof that every expected fact/tool check or release condition passed.
+
+The optional CLI's four-case smoke, twelve-case comparison and twenty-five-case
 regression are distinct. Legacy `quick` still means four-case smoke. Do not
 silently promote twelve educational rows into full qualification.
 
-Pin evaluator version/scale and thresholds. Additional intended built-in
-diagnostics are not all implemented; say so. Keep failed/incomplete runs and
-failure clusters. Fresh real responses, evaluation IDs and matching native
+For CLI qualification, preserve the pinned evaluator version/scale and thresholds.
+Its additional local checks differ from the portal's chosen evaluators. Keep
+failed/incomplete runs and failure clusters. Fresh real responses, evaluation IDs and matching native
 response/version/tool traces belong under the scenario's `.foundry/`.
 No mocked answers, cached responses, fabricated traces or blanket write approval.
 

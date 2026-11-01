@@ -18,7 +18,7 @@ does not certify your own implementation or qualify the bound agent.
 
 ## Build
 
-1. Choose a local frontend stack and thin Python backend. Bind the backend to
+1. Choose a local frontend stack and thin backend, for example Python-based. Bind the backend to
    your actual exported project, agent name and **immutable version**.
    Use your own server-side Entra identity; browser code receives no credentials.
 2. Implement a chat panel that invokes genuine Foundry Responses with the agent

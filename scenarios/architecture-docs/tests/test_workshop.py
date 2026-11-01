@@ -801,7 +801,7 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
         assert re.search(
             r"^## (?:Understand|What you will do)\b", text, re.MULTILINE
         ), guide
-        assert re.search(r"^## (?:Build\b|1\. )", text, re.MULTILINE), guide
+        assert re.search(r"^## (?:Build\b|Evaluate\b|1\. )", text, re.MULTILINE), guide
         assert re.search(
             r"^## (?:Validate|You are done when)\b", text, re.MULTILINE
         ), guide
@@ -851,13 +851,30 @@ def test_knowledge_bonus_makes_portal_queries_primary_and_cli_optional():
 
 def test_m5_inspects_actual_cases_before_evaluation_and_portal_results():
     text = (ROOT / "docs" / "modules" / "m5-evaluation.md").read_text("utf-8")
-    assert text.index("### 1. Inspect the test cases") < text.index(
-        "### 3. Create and test"
-    ) < text.index("### 4. Open the evaluation")
+    primary, optional = text.split(
+        "<summary>Optional: automate a controlled comparison with the CLI</summary>", 1
+    )
+    assert primary.index("### 1. Inspect the test cases") < primary.index(
+        "### 2. Run an evaluation in Foundry"
+    ) < primary.index("### 3. Investigate the scores and consider an improvement")
+    assert "**Build ->\nEvaluations -> Create new evaluation**" in primary
+    assert "ready-made evaluators" in primary
+    assert "scenarios\\architecture-docs\\exercises\\evaluation\\eval_set.jsonl" in primary
+    assert "25 cases" in primary and "ground_truth" in primary
+    assert "Restore the gateway model afterward" in primary
+    assert "Keep human approval required" in primary
+    assert "not to make every result green" in primary
+    assert "lab eval" not in primary and "PowerShell shell" not in primary
+    assert "lab eval --binding $binding --comparison" in optional
+    assert "PowerShell shell from M3" in optional
+    assert "Get-FileHash" in optional
     assert "exercises/evaluation/eval_set.jsonl" in text
     assert "exercises/evaluation/plan.json" in text
     assert "`comparison_case_ids`" in text
     assert "`ground_truth`, `expected_facts` and `expected_tools`" in text
+    start = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
+    assert "M5 uses the Foundry\nportal; its CLI comparison is optional" in start
+    assert "m5-evaluation.md#b-create-and-test-your-chosen-configuration" in start
 
 
 def test_core_guides_use_examples_and_explore_import_before_configuration():

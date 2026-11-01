@@ -30,7 +30,7 @@ for subscription preparation.
 | M2 REST and MCP | Check all 14 imported REST operations, expose only the twelve allowed MCP tools, then execute a filtered inventory read and exact-text validator POST. The deployed participant role includes project connection writes; a disabled Connect button still requires effective-access investigation. |
 | M3 throttling | Distinguish your practice limiter from shared capacity, and discovery throttles from business-tool throttles. Coordinate temporary policy changes, retain the original XML and verify restoration plus recovery. |
 | M4 catalog registration | If the native wizard rejects a generated definition title, shorten it and retry. Generated `/sse` and `/message` examples and missing auth metadata may not describe the actual endpoint: inspect the registered specification and use the pack's real URL/auth settings. |
-| M5 evaluations | This is an intentionally difficult challenge, not a requirement for four passing candidates. Preserve complete result folders and investigate an actual native trace. Record quality failures separately from service errors, missing provenance or incomplete collection. Do not rank incomplete evidence or weaken gates. Download archives through their filename links and verify local hashes/content before closing Cloud Shell. |
+| M5 evaluations | Inspect the supplied dataset, create a portal evaluation and investigate the scores, answers and available traces. The learning goal is analysis and improvement, not four passing candidates. CLI comparison is optional; retain complete result folders if using it, distinguish quality failures from technical/evidence problems and verify downloaded archives before closing Cloud Shell. |
 | B1 knowledge | Approve one short retrieval query, inspect its source URLs/quotes and compare indexed prose with the current authoritative standard. If retrieval is blocked, use B1's existing-index exercise; do not recreate infrastructure. |
 | Core approval and publication | Require exact-text human consent, valid proposal saving and stored-text/status readback. Publication is a separate human action, only after teams have completed or stopped baseline collection. |
 | B3 multi-agent | Inspect child traces to check that the reviewer independently used the necessary tools; a fluent review alone is insufficient. |
@@ -39,7 +39,7 @@ for subscription preparation.
 
 The [coach guide](coach-guide.md) has module-specific checks and short error triage.
 For workshop progression and evaluation interpretation, see
-[M5](modules/m5-evaluation.md#5-if-the-tests-fail-record-that-and-continue-the-workshop).
+[M5](modules/m5-evaluation.md#you-are-done-when).
 
 ## Workshop materials
 

@@ -46,7 +46,7 @@ what actually happened.
 | [M2: REST -> MCP -> agent](docs/modules/m2-tools.md) | Your own authenticated documentation integration, real inventory lookup and document validation. |
 | [M3: Gateway governance](docs/modules/m3-governance.md) | Routing evidence, separate request/token experiments, tool throttles and usage charts. |
 | [M4: Register, discover and reuse](docs/modules/m4-discovery.md) | A useful catalog entry, then discovery and first use of the independent toolkit. |
-| [M5: Evaluate and investigate](docs/modules/m5-evaluation.md) | Inspect test cases, run an evaluation and investigate an answer and trace; optionally compare configurations. |
+| [M5: Evaluate and investigate](docs/modules/m5-evaluation.md) | Inspect test cases, run a Foundry portal evaluation and investigate the scores; consider a prompt improvement. |
 | [Review and save your final proposal](docs/modules/core-approval.md) | Return to your draft, approve its exact text, save it and check the saved copy matches. |
 
 Try building first. If you get stuck, ask the coach or use a working example.
@@ -73,22 +73,21 @@ for this workshop; you do not need to complete them all.
 ## PowerShell helper setup
 
 <details>
-<summary>Setup for M3 and M5 commands; optional for M1, M2 and M4</summary>
+<summary>Setup for M3 traffic commands and optional CLI exercises</summary>
 
-M3 uses `lab` commands to generate bounded test traffic; M5 uses them to create
-and compare evaluation runs. They are not just emergency fallbacks in those
-modules. M1, M2 and M4 have browser routes without the Python helper.
-You do not need to write application code.
+M3 uses `lab` commands to generate bounded test traffic. M5 uses the Foundry
+portal; its CLI comparison is optional. M1, M2 and M4 also have browser routes
+without the Python helper. You do not need to write application code.
 
 If your coach already enabled `lab`, keep that shell open. Otherwise use
 **Cloud Shell PowerShell**, or local **PowerShell 7.5+** with Git, Azure CLI and
 Python 3.11+. Cloud Shell has these tools already and runs Linux; it cannot see
 your laptop's files.
 
-For long M5 runs, prefer local PowerShell or already-mounted persistent Cloud
+For optional M5 CLI runs, prefer local PowerShell or already-mounted persistent Cloud
 Shell storage. Temporary-session files can become unavailable after a reconnect;
 keep the shell open and download each complete result folder using the
-[M5 preservation steps](docs/modules/m5-evaluation.md#2-create-and-test-your-assigned-configuration).
+[M5 preservation steps](docs/modules/m5-evaluation.md#b-create-and-test-your-chosen-configuration).
 
 ### 1. Clone the public tools
 
@@ -171,7 +170,7 @@ Cloud Shell sessions without storage are temporary; local files can become
 unavailable after reconnecting. Use `download $archive` in Cloud Shell PowerShell, followed
 by clicking the filename in its **Download file** notification. The command alone
 does not save a copy on your laptop. Do not rely on leaving the browser open or
-merely creating an archive. Before M5, verify that a small file can
+merely creating an archive. Before an optional M5 CLI run, verify that a small file can
 actually be downloaded and opened locally. Then archive each complete result
 folder and verify its downloaded copy before ending the session. A manifest path
 alone is not a copy of the results. M5 shows the archive and hash commands. If
