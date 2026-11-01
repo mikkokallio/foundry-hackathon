@@ -9,15 +9,13 @@ tools. Compare the measured results, not just which answer sounds fluent.
 This module's main route uses **PowerShell and the supplied Python helper**;
 it is not browser-only. Use the
 [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) and keep that
-shell open. Choose **local PowerShell** or **Cloud Shell PowerShell** there;
-Cloud Shell needs the extra scoped sign-in and the repository/complete pack in
-that shell. Its full evaluation route is still awaiting rehearsal verification:
-one real evaluation completed with failed checks. The file-menu download failed,
-but the native `download` command below has now passed with a nested 6 MiB test
-archive, matching SHA256 and local extraction. Verify that export works in your
-own session before starting; local PowerShell remains an alternative.
-The commands below are the same after setup in either shell. Download complete
-result folders before ending a temporary Cloud Shell session.
+shell open. Choose **local PowerShell** or **Cloud Shell PowerShell** there.
+Cloud Shell uses the public repository, your team's `workshop.json` and the
+extra scoped sign-in; uploading a complete pack is not required.
+For long runs, prefer local PowerShell or already-mounted persistent Cloud Shell
+storage. In a temporary session, download each complete result folder immediately
+after its run, before closing or resetting the shell. The commands below are the
+same after setup in either shell.
 You inspect the resulting evaluations and traces in Foundry.
 No application coding is required.
 
@@ -100,8 +98,6 @@ if ($LASTEXITCODE -ne 0) { throw 'Download link creation failed; keep this shell
 Click the archive filename in the **Download file** notification that appears
 in Cloud Shell. **Running `download` alone is not the download:** follow that
 filename link and confirm the file actually appears in your laptop's downloads.
-This native command worked in ephemeral rehearsal even when
-**Manage files -> Download** returned an error.
 
 On your laptop, run `Get-FileHash` on the downloaded file and compare the SHA256
 with the value printed in Cloud Shell. Extract the archive and confirm it includes
@@ -109,6 +105,18 @@ the complete run folder's contents, not only its manifest. Give that complete
 copy to the teammate doing Step 4; keep the original while this shell is open.
 If download fails, tell the coach and preserve the current session;
 do not treat archive creation as a successful backup.
+
+<details>
+<summary>If Cloud Shell reconnects without the original result folder</summary>
+
+A completed evaluation in Foundry does not replace the original local manifest,
+gate results and traces. Keep the existing evaluation ID, stop before comparison,
+and ask the coach for help recovering the complete folder. Do not invent a
+replacement passing manifest, weaken missing-evidence checks or silently rerun
+the cases. Native results can still be inspected, but incomplete evidence must
+not be presented as a qualified run.
+
+</details>
 
 All four candidates explicitly use the same `low` reasoning setting; do not
 change it for only one matrix cell.

@@ -84,6 +84,11 @@ If your coach already enabled `lab`, keep that shell open. Otherwise use
 Python 3.11+. Cloud Shell has these tools already and runs Linux; it cannot see
 your laptop's files.
 
+For long M5 runs, prefer local PowerShell or already-mounted persistent Cloud
+Shell storage. Temporary-session files can become unavailable after a reconnect;
+keep the shell open and download each complete result folder using the
+[M5 preservation steps](docs/modules/m5-evaluation.md#2-create-and-test-your-assigned-configuration).
+
 ### 1. Clone the public tools
 
 No GitHub sign-in or coach-prepared shell is needed.
