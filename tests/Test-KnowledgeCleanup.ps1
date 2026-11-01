@@ -17,7 +17,7 @@ $contract = @{
     project_ids = @{ alpha = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/test/providers/Microsoft.CognitiveServices/accounts/test/projects/alpha' }
 }
 # Test-scoped transport; normal entry points never use these responses.
-$fixture = @{ mode = 'success'; removed = @{}; deletes = @(); authentication = 0 }
+$fixture = @{ mode = 'success'; removed = @{}; deletes = @(); authentication = 0; requests = @(); timeouts = 0 }
 function Assert-Cleanup([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
 }
@@ -39,10 +39,28 @@ function az {
 function Invoke-WebRequest {
     param([string]$Method, [string]$Uri, [hashtable]$Headers, [switch]$SkipHttpErrorCheck, [int]$TimeoutSec)
     Assert-Cleanup ($TimeoutSec -gt 0 -and $TimeoutSec -le 30) 'Every HTTP call must remain bounded.'
+    $fixture.requests += @{ method = $Method; uri = $Uri }
+    if ($Method -eq 'GET') {
+        if ($fixture.mode -eq 'get-cancelled') {
+            throw [Threading.Tasks.TaskCanceledException]::new('Test caller cancelled the request.')
+        }
+        if ($fixture.mode -eq 'get-timeout-expired') { Start-Sleep -Milliseconds 1100 }
+        if ($fixture.mode -in @('get-timeout-always', 'get-timeout-expired') -or
+            ($fixture.mode -eq 'get-timeout-once' -and $fixture.timeouts -eq 0) -or
+            ($fixture.mode -eq 'verification-timeout-once' -and $fixture.removed.Count -gt 0 -and $fixture.timeouts -eq 0)) {
+            $fixture.timeouts++
+            throw [Threading.Tasks.TaskCanceledException]::new('Test HTTP request timed out.',
+                [TimeoutException]::new('Test HttpClient timeout.'))
+        }
+    }
     if ($fixture.mode -eq 'forbidden') { return @{ StatusCode = 403; Content = '{"error":"denied"}' } }
     if ($Method -eq 'DELETE') {
         $fixture.deletes += $Uri
         $fixture.removed[$Uri] = $true
+        if ($fixture.mode -eq 'delete-timeout') {
+            throw [Threading.Tasks.TaskCanceledException]::new('Test DELETE outcome uncertain.',
+                [TimeoutException]::new('Test HttpClient timeout.'))
+        }
         return @{ StatusCode = 204; Content = '' }
     }
     Assert-Cleanup ($Method -eq 'GET') 'Only GET and DELETE are permitted.'
@@ -113,11 +131,61 @@ try {
         Assert-Cleanup $failed 'Reject unsupported/mixed cleanup versions instead of guessing the live connection target.'
     }
     Assert-Cleanup ($fixture.authentication -eq $beforeAuthentication) 'Reject unsupported cleanup contracts before authentication or mutation.'
+    foreach ($mode in @('get-timeout-once', 'verification-timeout-once')) {
+        $fixture.mode = $mode
+        $fixture.removed.Clear()
+        $fixture.deletes = @()
+        $fixture.requests = @()
+        $fixture.timeouts = 0
+        $retryDirectory = Join-Path $directory $mode
+        & $script -Knowledge $contract -OutputDirectory $retryDirectory -Confirm:$false | Out-Null
+        Assert-Cleanup ($fixture.timeouts -eq 1 -and $fixture.deletes.Count -eq 3) 'Retry only the failed read, never duplicate a DELETE.'
+        $receipt = Get-Content (Get-ChildItem $retryDirectory -Recurse -Filter cleanup.json).FullName -Raw |
+            ConvertFrom-Json -AsHashtable
+        $timeouts = @($receipt.events | Where-Object failure -eq 'http-request-timeout')
+        Assert-Cleanup ($receipt.completed -eq $true -and $timeouts.Count -eq 1 -and
+            $timeouts[0].retry -eq $true -and $timeouts[0].method -ceq 'GET') 'Retain timeout/retry evidence and verify actual absence.'
+    }
+    foreach ($mode in @('get-timeout-always', 'get-cancelled', 'delete-timeout')) {
+        $fixture.mode = $mode
+        $fixture.removed.Clear()
+        $fixture.deletes = @()
+        $fixture.requests = @()
+        $fixture.timeouts = 0
+        $failedDirectory = Join-Path $directory $mode
+        $failed = $false
+        try { & $script -Knowledge $contract -OutputDirectory $failedDirectory -Confirm:$false | Out-Null }
+        catch [Threading.Tasks.TaskCanceledException] { $failed = $true }
+        Assert-Cleanup $failed 'Exhausted timeout, caller cancellation and uncertain DELETE must surface errors.'
+        $receipt = Get-Content (Get-ChildItem $failedDirectory -Recurse -Filter cleanup.json).FullName -Raw |
+            ConvertFrom-Json -AsHashtable
+        Assert-Cleanup ($receipt.completed -eq $false) 'Never write a completion-shaped receipt after failure.'
+        if ($mode -eq 'get-timeout-always') {
+            Assert-Cleanup ($fixture.requests.Count -eq 3 -and $fixture.deletes.Count -eq 0) 'Read retries are capped at three attempts before mutation.'
+        } elseif ($mode -eq 'get-cancelled') {
+            Assert-Cleanup ($fixture.requests.Count -eq 1 -and $fixture.deletes.Count -eq 0) 'Do not retry caller cancellation.'
+        } else {
+            Assert-Cleanup ($fixture.deletes.Count -eq 1 -and $fixture.requests.Count -eq 2) 'Never retry an uncertain DELETE.'
+            $fixture.mode = 'success'
+            & $script -Knowledge $contract -OutputDirectory (Join-Path $directory 'delete-reconciliation') -Confirm:$false | Out-Null
+            Assert-Cleanup ($fixture.deletes.Count -eq 3) 'GET reconciliation must avoid deleting the already-absent uncertain resource again.'
+        }
+    }
+    $fixture.mode = 'get-timeout-expired'
+    $fixture.removed.Clear()
+    $fixture.deletes = @()
+    $fixture.requests = @()
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    $failed = $false
+    try { & $script -Knowledge $contract -OutputDirectory (Join-Path $directory 'expired') -TimeoutSeconds 1 -Confirm:$false | Out-Null }
+    catch [Threading.Tasks.TaskCanceledException] { $failed = $true }
+    Assert-Cleanup ($failed -and $fixture.requests.Count -eq 1 -and $fixture.deletes.Count -eq 0 -and
+        $timer.Elapsed.TotalSeconds -lt 3) 'Read retries cannot extend the existing overall cleanup deadline.'
     $source = Get-Content (Join-Path $root 'scenarios\architecture-docs\infra\knowledge.tf') -Raw
     Assert-Cleanup ($source -match 'input\s*=\s*local.knowledge_contract' -and
         $source -match 'when\s*=\s*destroy' -and $source -match 'jsonencode\(self.input\)') 'Native Terraform must persist the actual contract and invoke cleanup before index destruction.'
     Assert-Cleanup ($source -match 'filesha256\("\$\{path.module\}/../../../infra/scripts/Remove-Knowledge.ps1"\)') 'Cleanup script changes must participate in the scoped knowledge replacement trigger.'
-    Write-Output 'Knowledge cleanup tests passed: dry run, exact ordered scope, verified absence/idempotence, wrong-target refusal and explicit403. Test-scoped transport only.'
+    Write-Output 'Knowledge cleanup tests passed: scoped idempotence, bounded read-timeout recovery/deadline, cancellation and uncertain DELETE refusal. Test-scoped transport only.'
 } finally {
     if (Test-Path -LiteralPath $directory) { Remove-Item -LiteralPath $directory -Recurse }
     $global:LASTEXITCODE = $previousExitCode

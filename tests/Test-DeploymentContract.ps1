@@ -13,6 +13,11 @@ foreach ($profile in @('lite', 'full')) {
     Assert-Contract ($result.operation -eq 'local-inspection-only') 'Inspection must not pretend to deploy.'
     Assert-Contract (-not $result.deployment_ready -and -not $result.azure_requests_made) 'Local inspection is not Azure acceptance.'
     Assert-Contract ($result.foundation.model_deployments.Count -eq 0) 'Foundation must not impose model deployments.'
+    Assert-Contract ($result.foundation.search_sku -ceq 'basic' -and
+        $result.foundation.search_configuration.replica_count -eq 1 -and
+        $result.foundation.search_configuration.partition_count -eq 1 -and
+        $null -eq $result.foundation.search_configuration.knowledge_retrieval -and
+        $result.foundation.search_configuration.semantic_search_sku -ceq $(if ($profile -eq 'lite') { 'free' } else { 'standard' })) 'Existing profile capacity/billing must remain unchanged without explicit overrides.'
     Assert-Contract ($result.workload.models.ContainsKey('embedding')) 'B1 needs a workload-owned embedding deployment.'
     Assert-Contract ('search' -in $result.workload.required_capabilities) 'Architecture-docs must require Search.'
     Assert-Contract ($result.workload.bonus_modules.Count -eq 9) 'Do not silently remove bonus modules.'
@@ -23,6 +28,33 @@ foreach ($profile in @('lite', 'full')) {
     Assert-Contract ($result.workload.inputs.semantic_cache_enabled -is [bool] -and
         -not $result.workload.inputs.semantic_cache_enabled) 'Redis requires explicit selection and cost review; disabled is a real boolean.'
     Assert-Contract ($result.workload.terraform_root.StartsWith((Join-Path $root 'scenarios\architecture-docs\'), [StringComparison]::OrdinalIgnoreCase)) 'Workload root must stay in the selected scenario.'
+}
+
+$searchChoice = @{
+    sku = 'standard'; replica_count = 3; partition_count = 1
+    semantic_search_sku = 'standard'; knowledge_retrieval = 'standard'
+}
+$searchReview = & $inspect -Scenario 'architecture-docs' -Profile lite -SearchConfiguration $searchChoice -AsJson |
+    ConvertFrom-Json -AsHashtable -Depth 30
+Assert-Contract ($searchReview.foundation.gateway_sku -ceq 'BasicV2_1' -and
+    $searchReview.foundation.search_sku -ceq 'standard') 'Search capacity must be independent of gateway profile.'
+foreach ($key in $searchChoice.Keys) {
+    Assert-Contract ($searchReview.foundation.search_configuration[$key] -ceq $searchChoice[$key]) "Search inspection lost '$key'."
+}
+foreach ($invalid in @(
+    @{ replica_count = 0 }, @{ replica_count = 13 }, @{ replica_count = 1.5 },
+    @{ replica_count = '3' }, @{ partition_count = 5 }, @{ sku = 's1' },
+    @{ semantic_search_sku = 'paid' }, @{ knowledge_retrieval = 'paid' },
+    @{ unknown = 'standard' }
+)) {
+    $rejected = $false
+    try {
+        & $inspect -Scenario 'architecture-docs' -SearchConfiguration $invalid -AsJson | Out-Null
+    } catch {
+        if ($_.Exception.Message -notmatch 'Invalid Search|Unknown Search') { throw }
+        $rejected = $true
+    }
+    Assert-Contract $rejected 'Invalid Search overrides must fail locally.'
 }
 
 $override = @{
@@ -103,6 +135,22 @@ try {
 Assert-Contract $searchRejected 'A required Search service cannot be disabled through composition.'
 
 $exampleRejected = $false
+$example = Get-Content -LiteralPath (Join-Path $root 'infra\deployment.example.json') -Raw |
+    ConvertFrom-Json -AsHashtable -Depth 30
+$reference = & $inspect -Scenario architecture-docs -Profile $example.profile `
+    -SearchConfiguration $example.search_configuration -ModelOverrides $example.model_overrides `
+    -WorkloadInputs $example.workload_inputs -AsJson | ConvertFrom-Json -AsHashtable -Depth 30
+Assert-Contract ($reference.foundation.gateway_sku -ceq 'BasicV2_1' -and
+    $reference.foundation.search_configuration.sku -ceq 'standard' -and
+    $reference.foundation.search_configuration.replica_count -eq 3 -and
+    $reference.foundation.search_configuration.partition_count -eq 1 -and
+    $reference.foundation.search_configuration.semantic_search_sku -ceq 'standard' -and
+    $reference.foundation.search_configuration.knowledge_retrieval -ceq 'standard' -and
+    $reference.workload.inputs.semantic_cache_enabled) 'The public reference example must select the approved independent service configuration.'
+$allocations = @{ 'chat-small' = 300; 'chat-medium' = 300; judge = 75; embedding = 20 }
+foreach ($alias in $allocations.Keys) {
+    Assert-Contract ($reference.workload.models[$alias].capacity -eq $allocations[$alias]) "Reference allocation mismatch: $alias."
+}
 try {
     & (Join-Path $root 'infra\scripts\Invoke-Deployment.ps1') -Scenario 'architecture-docs' `
         -Action Plan -Inputs (Join-Path $root 'infra\deployment.example.json') | Out-Null

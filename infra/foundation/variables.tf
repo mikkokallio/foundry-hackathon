@@ -1,5 +1,5 @@
 variable "subscription_id" {
-  description = "Azure subscription GUID to deploy and monitor for spending. Use the explicitly approved target subscription, not a subscription display name."
+  description = "Azure subscription GUID to deploy into. Use the explicitly approved target subscription, not a subscription display name."
   type        = string
 }
 variable "tenant_id" {
@@ -41,7 +41,7 @@ variable "profile" {
   }
 }
 variable "publisher_email" {
-  description = "Real monitored email address for API Management publisher contact and spending-protection alerts, for example operator@your-domain.tld."
+  description = "Real monitored email address for the API Management publisher contact, for example operator@your-domain.tld."
   type        = string
 }
 variable "team_names" {
@@ -59,12 +59,33 @@ variable "enable_search" {
   type        = bool
   default     = true
 }
-variable "expires_at" {
-  description = "Explicit UTC authorization expiry in RFC3339 format, for example 2026-11-03T16:42:33Z. The spending protector DELETES enrolled lab groups and their data at expiry."
-  type        = string
+variable "search_configuration" {
+  description = "Explicit Search capacity and billing overrides. sku is basic or standard (S1); replicas are 1-12 and partitions 1, 2, 3, 4, 6 or 12, subject to service-tier limits. Omitted semantic billing follows profile; omitted knowledge_retrieval leaves agentic billing unmanaged. Billing values are free or standard."
+  type = object({
+    sku                 = optional(string, "basic")
+    replica_count       = optional(number, 1)
+    partition_count     = optional(number, 1)
+    semantic_search_sku = optional(string)
+    knowledge_retrieval = optional(string)
+  })
+  default  = {}
+  nullable = false
   validation {
-    condition     = can(formatdate("YYYY-MM-DD", var.expires_at))
-    error_message = "An explicit RFC3339 spending authorization expiry is required."
+    condition = (
+      contains(["basic", "standard"], var.search_configuration.sku) &&
+      var.search_configuration.replica_count >= 1 &&
+      var.search_configuration.replica_count <= 12 &&
+      floor(var.search_configuration.replica_count) == var.search_configuration.replica_count &&
+      contains([1, 2, 3, 4, 6, 12], var.search_configuration.partition_count)
+    )
+    error_message = "Use basic or standard Search, 1-12 whole replicas, and 1, 2, 3, 4, 6 or 12 partitions; verify the selected tier's regional limits."
+  }
+  validation {
+    condition = (
+      (var.search_configuration.semantic_search_sku == null ? true : contains(["free", "standard"], var.search_configuration.semantic_search_sku)) &&
+      (var.search_configuration.knowledge_retrieval == null ? true : contains(["free", "standard"], var.search_configuration.knowledge_retrieval))
+    )
+    error_message = "Explicit semantic_search_sku and knowledge_retrieval billing must each be free or standard."
   }
 }
 variable "tags" {

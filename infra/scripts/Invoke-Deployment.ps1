@@ -9,6 +9,8 @@ param(
     [string]$Action,
     [ValidateSet('Foundation', 'Access', 'Workload')]
     [string]$Component = 'Foundation',
+    [ValidateSet('Infrastructure', 'Full')]
+    [string]$PreflightScope = 'Full',
     [string]$Inputs
 )
 
@@ -22,6 +24,11 @@ if ($Inputs) {
     if ($settings -isnot [System.Collections.IDictionary]) {
         throw 'Deployment inputs must be a JSON object.'
     }
+    foreach ($key in @('protection', 'expires_at')) {
+        if ($settings.ContainsKey($key)) {
+            throw "Remove unsupported deployment input '$key' from your private input file."
+        }
+    }
     if ($settings.ContainsKey('profile')) { $inspection.Profile = $settings.profile }
     if ($settings.ContainsKey('enable_search')) {
         if ($settings.enable_search -isnot [bool]) {
@@ -34,6 +41,12 @@ if ($Inputs) {
             throw 'model_overrides must be a JSON object.'
         }
         $inspection.ModelOverrides = $settings.model_overrides
+    }
+    if ($settings.ContainsKey('search_configuration')) {
+        if ($settings.search_configuration -isnot [System.Collections.IDictionary]) {
+            throw 'search_configuration must be a JSON object.'
+        }
+        $inspection.SearchConfiguration = $settings.search_configuration
     }
     if ($settings.ContainsKey('workload_inputs')) {
         if ($settings.workload_inputs -isnot [System.Collections.IDictionary]) {
@@ -76,33 +89,15 @@ foreach ($key in @('subscription_id', 'tenant_id')) {
 }
 if ($Action -eq 'Preflight') {
     & (Join-Path $PSScriptRoot 'Test-DeploymentPreflight.ps1') -Settings $settings -Review $review `
-        -OutputDirectory (Join-Path $root "out\$($settings.subscription_id)\preflight")
+        -OutputDirectory (Join-Path $root "out\$($settings.subscription_id)\preflight") `
+        -Scope $PreflightScope
     return
-}
-if ($Action -eq 'Plan' -and $Component -eq 'Foundation') {
-    if ($settings.protection -isnot [System.Collections.IDictionary]) {
-        throw 'Supply reviewed protection limits before foundation planning.'
-    }
-    foreach ($key in @('monthly_cap_eur', 'reserve_eur', 'max_hourly_eur')) {
-        $value = $settings.protection[$key]
-        if (($value -isnot [long] -and $value -isnot [int] -and
-             $value -isnot [double] -and $value -isnot [decimal]) -or
-            -not [double]::IsFinite([double]$value) -or $value -le 0) {
-            throw "Supply a reviewed positive JSON number for protection.$key."
-        }
-    }
-    if ($settings.protection.reserve_eur -ge $settings.protection.monthly_cap_eur) {
-        throw 'The reviewed protection reserve must be below the monthly cap.'
-    }
 }
 if ($settings.suffix -notmatch '^[a-z0-9]{4,10}$' -or
     $settings.workload_name -notmatch '^[a-z][a-z0-9-]{2,28}[a-z0-9]$') {
     throw 'Invalid deployment suffix or workload name.'
 }
 if ($settings.profile -notin @('lite', 'full')) { throw 'Choose lite or full explicitly.' }
-if ([DateTimeOffset]$settings.expires_at -le [DateTimeOffset]::UtcNow) {
-    throw 'Spending authorization is expired.'
-}
 if (-not ($settings.teams -is [System.Collections.IDictionary]) -or $settings.teams.Count -eq 0) {
     throw 'Supply the deployment-time team roster.'
 }
@@ -220,12 +215,15 @@ if ($Action -eq 'BuildImages') {
 }
 if ($Component -eq 'Foundation') {
     foreach ($key in @('subscription_id', 'tenant_id', 'location', 'search_location',
-        'suffix', 'profile', 'publisher_email', 'expires_at', 'tags', 'protection')) {
+        'suffix', 'profile', 'publisher_email', 'tags')) {
         if (-not $settings.ContainsKey($key)) { throw "Missing foundation input '$key'." }
         $variables[$key] = $settings[$key]
     }
     $variables.team_names = @($settings.teams.Keys)
     $variables.enable_search = 'search' -in $review.foundation.capabilities
+    if ($settings.ContainsKey('search_configuration')) {
+        $variables.search_configuration = $review.foundation.search_configuration
+    }
 } else {
     Initialize-Component 'Foundation'
     $raw = Invoke-ComponentTerraform 'Foundation' @('output', '-json', 'foundation')
@@ -286,4 +284,4 @@ Write-Output "Saved $Component plan: $planFile"
 Write-Output "SHA256: $((Get-FileHash -LiteralPath $planFile -Algorithm SHA256).Hash)"
 Write-Output "State: $($contexts[$Component].StateFile)"
 Write-Output "TF_DATA_DIR: $($contexts[$Component].DataDirectory)"
-Write-Warning 'PLAN ONLY. Module 0 is not accepted. Do not apply until protection, prerequisites and every planned resource/permission have been reviewed together.'
+Write-Warning 'PLAN ONLY. Review prerequisites and every planned resource/permission before applying this saved plan.'

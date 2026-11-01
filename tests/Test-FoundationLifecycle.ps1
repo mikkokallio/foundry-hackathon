@@ -2,6 +2,8 @@
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $source = Get-Content (Join-Path $root 'infra\foundation\main.tf') -Raw
+$logs = [regex]::Match($source, '(?ms)^module "logs" \{.*?^\}').Value
+$insights = [regex]::Match($source, '(?ms)^module "insights" \{.*?^\}').Value
 $locals = $source.Substring(0, $source.IndexOf('data "azurerm_client_config"')).
     Replace('data.azapi_resource_list.foundry_accounts.output.value', 'var.existing_accounts')
 $scratch = Join-Path $root "out\foundation-lifecycle-$([guid]::NewGuid().ToString('N'))"
@@ -12,7 +14,6 @@ variable "suffix" { default = "testonly" }
 variable "team_names" { default = ["alpha", "beta"] }
 variable "tags" { default = {} }
 variable "profile" { default = "lite" }
-variable "expires_at" { default = "2026-11-03T16:42:33Z" }
 variable "existing_accounts" {
   type = list(object({
     name = string
@@ -42,7 +43,19 @@ variable "existing_accounts" {
             throw "Association order/membership mismatch: expected $($case.expected), got $actual."
         }
     }
-    Write-Output 'Foundation association logic passed bootstrap, server ordering, additions and removals; no Azure call.'
+    foreach ($case in @(
+        @{ source = $logs; field = 'log_analytics_workspace_daily_quota_gb'; expected = '-1' },
+        @{ source = $insights; field = 'daily_data_cap_in_gb'; expected = '0' },
+        @{ source = $logs; field = 'log_analytics_workspace_retention_in_days'; expected = '30' }
+    )) {
+        $expression = [regex]::Match($case.source, "(?m)^\s*$($case.field)\s*=\s*(.+)$").Groups[1].Value.Trim()
+        if (-not $expression) { throw "Missing explicit telemetry setting '$($case.field)'." }
+        $actual = $expression | terraform "-chdir=$scratch" console -no-color
+        if ($LASTEXITCODE -ne 0 -or "$actual".Trim() -cne $case.expected) {
+            throw "Telemetry setting '$($case.field)' must preserve the approved ingestion/retention behavior."
+        }
+    }
+    Write-Output 'Foundation association lifecycle and actual unlimited-ingestion/unchanged-retention expressions passed; no Azure call.'
 } finally {
     Remove-Item -LiteralPath $scratch -Recurse
 }

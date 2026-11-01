@@ -5,7 +5,7 @@ so each stage can be reviewed and deployed independently.
 
 | Area | Design |
 |---|---|
-| Foundation | Shared Foundry projects, APIM, API Center, Search, storage, Key Vault, registry, container environment, monitoring and spending protection. |
+| Foundation | Shared Foundry projects, APIM, API Center, Search, storage, Key Vault, registry, container environment and monitoring. |
 | Access | Deployment-time UPN/object-ID resolution and scoped authoring roles for the participant roster. |
 | Workload | Model deployments, application identities/runtime, synthetic data, API/MCP routes, catalog entries and Search knowledge setup. |
 | Application images | Remote Linux builds with immutable image digests supplied to the workload plan. |
@@ -13,12 +13,35 @@ so each stage can be reviewed and deployed independently.
 | Participant authoring | Custom roles permit exercise-level authoring without granting foundation-service deletion or resource-group Contributor. Shared services still require naming and coordination across teams. |
 | Publication | Proposal saving uses exact-text approval; publication belongs to separately selected human librarians. |
 | Traces | Project Application Insights connections and managed-identity ingestion/query permissions. |
-| Spending protection | A foundation-owned Automation protector checks whole-subscription costs and expiry, deleting only enrolled disposable lab groups. Billing lag means this is not a hard spending cap. |
 | Optional cache | Redis is opt-in. APIM's access-key requirement uses Key Vault storage and scoped gateway access. Cache policies are built in B4. |
 
 Use the [infrastructure guide](../infra/README.md) for state and stage ownership,
 [Module 0](module-0.md) for deployment steps, and the
 [preview notes](exercise-readiness.md) for current deployment/exercise details.
+
+## What the evidence does and does not close
+
+- **Reference E2E:** five recovered cycles are historical reference evidence.
+  Preserve the recovery context; do not describe them as five fresh deployments
+  or clean uninterrupted passes.
+- **Local checks:** contract/regression tests and Terraform validation establish
+  source properties, not Azure provisioning or effective participant rights.
+- **Live deployment:** preflight, approved saved-plan apply, image/build receipts
+  and real service checks have separate meanings. Infrastructure-only preflight
+  defers roster/publisher identity checks; even Full preflight is not apply
+  approval or acceptance.
+- **Required new-deployment check:** after the user's new deployment includes
+  the targeted IaC fix, a non-admin participant must create an M2 Foundry MCP
+  connection and read it back. Verify the intended grant covers the actual
+  roster/team scopes. The historical Alpha-only grant and local tests do not
+  close this gate. Keep it open until the new deployment provides live evidence.
+
+Today's current-reference E2E and improved deployment rehearsal use the existing
+approved test environment and existing test roster. Customer foundation planning
+can precede Monday morning's customer roster, but access/workload cannot use
+fabricated identities, incomplete teams or a substitute publisher.
+Only begin the walkthrough after the deployment team publishes its tested
+candidate and confirms the concrete target; each apply still requires approval.
 
 ## Further reading
 

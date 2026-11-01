@@ -11,12 +11,11 @@ locals {
     sort(tolist(setsubtract(local.projects, toset(local.existing_project_order))))
   )
   tags = merge(var.tags, {
-    workload     = "ai-lab"
-    environment  = "sandbox"
-    deployment   = var.suffix
-    layer        = "foundation"
-    profile      = var.profile
-    "expires-on" = var.expires_at
+    workload    = "ai-lab"
+    environment = "sandbox"
+    deployment  = var.suffix
+    layer       = "foundation"
+    profile     = var.profile
   })
 }
 
@@ -30,10 +29,6 @@ resource "terraform_data" "boundary" {
         data.azurerm_client_config.current.tenant_id == var.tenant_id
       )
       error_message = "The authenticated subscription and tenant must match the explicit target."
-    }
-    precondition {
-      condition     = timecmp(var.expires_at, plantimestamp()) > 0
-      error_message = "Spending authorization has expired."
     }
   }
 }
@@ -56,7 +51,7 @@ module "logs" {
   location                                             = var.location
   log_analytics_workspace_retention_in_days            = 30
   log_analytics_workspace_sku                          = "PerGB2018"
-  log_analytics_workspace_daily_quota_gb               = 0.1
+  log_analytics_workspace_daily_quota_gb               = -1
   log_analytics_workspace_local_authentication_enabled = false
   log_analytics_workspace_internet_ingestion_enabled   = "true"
   log_analytics_workspace_internet_query_enabled       = "true"
@@ -71,6 +66,7 @@ module "insights" {
   parent_id                     = module.group.resource_id
   location                      = var.location
   workspace_id                  = module.logs.resource_id
+  daily_data_cap_in_gb          = 0
   local_authentication_disabled = true
   tags                          = local.tags
   enable_telemetry              = false
@@ -162,15 +158,41 @@ module "search" {
   name                          = "srch-${local.name}"
   resource_group_name           = module.group.name
   location                      = var.search_location
-  sku                           = "basic"
-  replica_count                 = 1
-  partition_count               = 1
-  semantic_search_sku           = var.profile == "lite" ? "free" : "standard"
+  sku                           = var.search_configuration.sku
+  replica_count                 = var.search_configuration.replica_count
+  partition_count               = var.search_configuration.partition_count
+  semantic_search_sku           = coalesce(var.search_configuration.semantic_search_sku, var.profile == "lite" ? "free" : "standard")
   local_authentication_enabled  = false
   public_network_access_enabled = true
   managed_identities            = { system_assigned = true }
   tags                          = local.tags
   enable_telemetry              = false
+}
+
+# Defer this read after every AVM service change, including drift repair.
+data "azapi_resource" "search_configuration" {
+  count       = var.enable_search && var.search_configuration.knowledge_retrieval != null ? 1 : 0
+  type        = "Microsoft.Search/searchServices@2026-03-01-preview"
+  resource_id = module.search[0].resource_id
+  response_export_values = [
+    "sku", "tags", "properties.replicaCount", "properties.partitionCount",
+    "properties.semanticSearch",
+  ]
+  depends_on = [module.search]
+}
+
+resource "azapi_update_resource" "search_agentic_billing" {
+  count                   = var.enable_search && var.search_configuration.knowledge_retrieval != null ? 1 : 0
+  type                    = "Microsoft.Search/searchServices@2026-03-01-preview"
+  resource_id             = module.search[0].resource_id
+  ignore_missing_property = false
+  body = {
+    properties = { knowledgeRetrieval = var.search_configuration.knowledge_retrieval }
+  }
+  # Reapply only this unmanaged property after any AVM PUT; never replace Search.
+  replace_triggers_external_values = {
+    service_configuration = data.azapi_resource.search_configuration[0].output
+  }
 }
 
 module "registry" {
@@ -227,7 +249,7 @@ resource "azapi_resource" "catalog" {
     properties = {}
   }
   # API Center coerces RFC3339 tag values to locale-dependent datetime strings.
-  tags = merge(local.tags, { "expires-on" = formatdate("YYYY-MM-DD", var.expires_at) })
+  tags = local.tags
 }
 
 resource "azurerm_monitor_diagnostic_setting" "containers" {

@@ -8,11 +8,35 @@ param(
     [string]$Profile = 'lite',
     [hashtable]$ModelOverrides = @{},
     [hashtable]$WorkloadInputs = @{},
+    [hashtable]$SearchConfiguration = @{},
     [bool]$EnableSearch = $true,
     [switch]$AsJson
 )
 
 $ErrorActionPreference = 'Stop'
+$search = @{
+    sku = 'basic'
+    replica_count = 1
+    partition_count = 1
+    semantic_search_sku = if ($Profile -eq 'lite') { 'free' } else { 'standard' }
+    knowledge_retrieval = $null
+}
+foreach ($key in $SearchConfiguration.Keys) {
+    if (-not $search.ContainsKey($key)) { throw "Unknown Search configuration '$key'." }
+    $value = $SearchConfiguration[$key]
+    if ($null -eq $value) { continue }
+    if ($key -in @('replica_count', 'partition_count')) {
+        if (($value -isnot [int] -and $value -isnot [long]) -or
+            ($key -eq 'replica_count' -and ($value -lt 1 -or $value -gt 12)) -or
+            ($key -eq 'partition_count' -and $value -notin @(1, 2, 3, 4, 6, 12))) {
+            throw "Invalid Search capacity '$key'."
+        }
+    } elseif (($key -eq 'sku' -and $value -cnotin @('basic', 'standard')) -or
+        ($key -ne 'sku' -and $value -cnotin @('free', 'standard'))) {
+        throw "Invalid Search setting '$key'."
+    }
+    $search[$key] = $value
+}
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $scenarioDirectory = Join-Path $root "scenarios\$Scenario"
 $manifestPath = Join-Path $scenarioDirectory 'scenario.json'
@@ -101,7 +125,8 @@ $review = [ordered]@{
         capabilities = @($capabilities | Where-Object { $_ -ne 'search' -or $EnableSearch })
         model_deployments = @()
         gateway_sku = if ($Profile -eq 'lite') { 'BasicV2_1' } else { 'StandardV2_1' }
-        search_sku = 'basic'
+        search_sku = $search.sku
+        search_configuration = $search
     }
     workload = @{
         terraform_root = $workloadRoot
@@ -113,7 +138,7 @@ $review = [ordered]@{
         bonus_modules = $manifest.bonus_modules
     }
     warnings = @(
-        'Module 0 is not deployment-ready. Identity, protection, runtime and live acceptance are not complete.',
+        'Local inspection does not verify effective identity access or live service behavior.',
         'Model region availability, quota, Search features and prices require fresh verification before apply.',
         'Shared-service workshop authoring is approved; it permits cross-team lab configuration changes.',
         'Foundation and workload plans require separate explicit review. This command never applies anything.',
@@ -128,6 +153,7 @@ if ($AsJson) {
     Write-Output "Foundation: $($review.foundation.terraform_root)"
     Write-Output "Workload: $workloadRoot"
     Write-Output 'Foundation model deployments: none'
+    Write-Output "Search configuration: $($search | ConvertTo-Json -Compress)"
     foreach ($alias in ($manifest.models.Keys | Sort-Object)) {
         $model = $manifest.models[$alias]
         Write-Output "Workload model $alias : $($model.name) / $($model.version), $($model.sku), capacity $($model.capacity)"

@@ -3,7 +3,8 @@
 param(
     [Parameter(Mandatory)][hashtable]$Settings,
     [Parameter(Mandatory)][hashtable]$Review,
-    [Parameter(Mandatory)][string]$OutputDirectory
+    [Parameter(Mandatory)][string]$OutputDirectory,
+    [ValidateSet('Infrastructure', 'Full')][string]$Scope = 'Full'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,7 +26,7 @@ $checks = [Collections.Generic.List[object]]::new()
 $evidence = @{}
 $runDirectory = Join-Path ([IO.Path]::GetFullPath($OutputDirectory)) ([guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
-@{ operation = 'read-only-preflight-started'; deployment_ready = $false } |
+@{ operation = 'read-only-preflight-started'; scope = $Scope; deployment_ready = $false } |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runDirectory 'intent.json') -Encoding utf8NoBOM
 
 function Add-Check([string]$Name, [bool]$Passed, [object]$Details) {
@@ -33,10 +34,8 @@ function Add-Check([string]$Name, [bool]$Passed, [object]$Details) {
 }
 function Read-Azure([string]$Name, [string[]]$Arguments) {
     if ($Arguments[0] -eq 'rest') {
-        $costRead = $Name -ceq 'whole-subscription-costs' -and $Arguments[2] -ceq 'post' -and
-            $Arguments[4] -ceq "https://management.azure.com/subscriptions/$($Settings.subscription_id)/providers/Microsoft.CostManagement/query?api-version=2023-11-01"
-        if ($Arguments[1] -ne '--method' -or ($Arguments[2] -ne 'get' -and -not $costRead)) {
-            throw 'Preflight permits only GET requests and the exact nonmutating Cost Management query.'
+        if ($Arguments[1] -ne '--method' -or $Arguments[2] -ne 'get') {
+            throw 'Preflight permits only GET requests.'
         }
     }
     if ($Arguments[0] -notin @('rest', 'account', 'provider', 'cognitiveservices')) {
@@ -95,53 +94,13 @@ if (-not $account.succeeded -or $account.data.id -ne $Settings.subscription_id -
 }
 Add-Check 'target' $true @{ subscription_id = $account.data.id; tenant_id = $account.data.tenantId }
 
-$costQueryPath = Join-Path $runDirectory 'cost-query.json'
-@{
-    type = 'ActualCost'; timeframe = 'MonthToDate'
-    dataset = @{ granularity = 'Daily'; aggregation = @{ totalCost = @{ name = 'PreTaxCost'; function = 'Sum' } } }
-} | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $costQueryPath -Encoding utf8NoBOM
-$costs = Read-Azure 'whole-subscription-costs' @('rest', '--method', 'post', '--url',
-    "https://management.azure.com/subscriptions/$($Settings.subscription_id)/providers/Microsoft.CostManagement/query?api-version=2023-11-01",
-    '--headers', 'Content-Type=application/json', 'ClientType=modular-workshop-preflight', '--body', "@$costQueryPath")
-if ($costs.succeeded) {
-    $columns = @($costs.data.properties.columns.name)
-    $amountIndex = [array]::IndexOf($columns, 'PreTaxCost')
-    $currencyIndex = [array]::IndexOf($columns, 'Currency')
-    $valid = $amountIndex -ge 0 -and $currencyIndex -ge 0 -and
-        $null -ne $costs.data.properties.rows -and -not $costs.data.properties.nextLink
-    $total = [decimal]0
-    if ($valid) {
-        foreach ($row in $costs.data.properties.rows) {
-            $amount = [decimal]0
-            if ($row.Count -ne $columns.Count -or $row[$currencyIndex] -cne 'EUR' -or
-                $null -eq $row[$amountIndex] -or -not [decimal]::TryParse(
-                    [string]$row[$amountIndex], [Globalization.NumberStyles]::Float,
-                    [Globalization.CultureInfo]::InvariantCulture, [ref]$amount)) {
-                $valid = $false
-                break
-            }
-            $total += $amount
-        }
-    }
-    Add-Check 'costs/fresh-eur-snapshot' $valid @{
-        actual_month_to_date_eur = if ($valid) { $total } else { $null }
-        scope = 'whole subscription, including all earlier resources'
-        note = 'Billing is delayed. This snapshot is not the price of the new deployment or a hard spending cap.'
-    }
-    if ($valid -and $Settings.protection.monthly_cap_eur -gt 0) {
-        Add-Check 'costs/below-cap' ($total -lt $Settings.protection.monthly_cap_eur) @{
-            actual_eur = $total; cap_eur = $Settings.protection.monthly_cap_eur
-        }
-    }
-}
 $cacheEnabled = $Review.workload.inputs.semantic_cache_enabled -eq $true
 $providers = Read-Azure 'providers' @('provider', 'list',
     '--query', '[].{namespace:namespace,registrationState:registrationState}')
 if ($providers.succeeded) {
     $requiredProviders = @('Microsoft.CognitiveServices', 'Microsoft.Search', 'Microsoft.Storage',
         'Microsoft.KeyVault', 'Microsoft.OperationalInsights', 'Microsoft.Insights',
-        'Microsoft.ContainerRegistry', 'Microsoft.App', 'Microsoft.ApiManagement', 'Microsoft.ApiCenter',
-        'Microsoft.Automation')
+        'Microsoft.ContainerRegistry', 'Microsoft.App', 'Microsoft.ApiManagement', 'Microsoft.ApiCenter')
     if ($cacheEnabled) { $requiredProviders += 'Microsoft.Cache' }
     foreach ($namespace in $requiredProviders) {
         $match = @($providers.data | Where-Object namespace -EQ $namespace)
@@ -268,63 +227,77 @@ if ($graph.succeeded) {
     }
 }
 
-$references = @()
-if ($Settings.teams -is [System.Collections.IDictionary]) {
-    $references = @($Settings.teams.Values | ForEach-Object { $_ } | ForEach-Object { "$_".Trim().ToLowerInvariant() })
+if ($Scope -eq 'Full') {
+    $references = @()
+    if ($Settings.teams -is [System.Collections.IDictionary]) {
+        $references = @($Settings.teams.Values | ForEach-Object { $_ } | ForEach-Object { "$_".Trim().ToLowerInvariant() })
+    }
+    Add-Check 'roster/complete' ($references.Count -gt 0 -and
+        $references.Count -eq $Settings.expected_participant_count -and
+        @($references | Sort-Object -Unique).Count -eq $references.Count) @{ supplied = $references.Count; expected = $Settings.expected_participant_count }
+    $librarians = @($Review.workload.inputs.librarians | Where-Object { $_ })
+    Add-Check 'librarians/selected' ($librarians.Count -gt 0) $librarians
+    $users = @{}
+    $canResolveUsers = $graph.succeeded -and $roles.succeeded
+    foreach ($reference in @(@($references) + @($librarians) | Sort-Object -Unique)) {
+        if ($reference -match 'REPLACE_|\.example$' -or [string]::IsNullOrWhiteSpace($reference)) {
+            Add-Check "user/$reference" $false 'Replace the placeholder with a real tenant UPN/object ID.'
+            continue
+        }
+        if (-not $canResolveUsers) {
+            Add-Check "user/$reference" $false 'Not queried because Graph connectivity prerequisites failed; no cached identity is substituted.'
+            continue
+        }
+        $escaped = [uri]::EscapeDataString($reference)
+        $user = Read-Azure "user/$reference" @('rest', '--method', 'get', '--resource', 'https://graph.microsoft.com',
+            '--url', "https://graph.microsoft.com/v1.0/users/${escaped}?`$select=id,userPrincipalName,accountEnabled,userType,externalUserState")
+        if ($user.succeeded) {
+            $users[$reference] = $user.data.id
+            Add-Check "user-enabled/$reference" ($user.data.id -and $user.data.accountEnabled -eq $true -and
+                ($user.data.userType -ne 'Guest' -or $user.data.externalUserState -eq 'Accepted')) $user.data
+        } elseif ($user.transient) {
+            $canResolveUsers = $false
+        }
+    }
+    $resolvedMembers = @($references | Where-Object { $users.ContainsKey($_) } | ForEach-Object { $users[$_] })
+    Add-Check 'roster/distinct-identities' ($resolvedMembers.Count -eq $references.Count -and
+        @($resolvedMembers | Sort-Object -Unique).Count -eq $references.Count -and $references.Count -gt 0) $resolvedMembers
 }
-Add-Check 'roster/complete' ($references.Count -gt 0 -and
-    $references.Count -eq $Settings.expected_participant_count -and
-    @($references | Sort-Object -Unique).Count -eq $references.Count) @{ supplied = $references.Count; expected = $Settings.expected_participant_count }
-$librarians = @($Review.workload.inputs.librarians | Where-Object { $_ })
-Add-Check 'librarians/selected' ($librarians.Count -gt 0) $librarians
-$users = @{}
-$canResolveUsers = $graph.succeeded -and $roles.succeeded
-foreach ($reference in @(@($references) + @($librarians) | Sort-Object -Unique)) {
-    if ($reference -match 'REPLACE_|\.example$' -or [string]::IsNullOrWhiteSpace($reference)) {
-        Add-Check "user/$reference" $false 'Replace the placeholder with a real tenant UPN/object ID.'
-        continue
-    }
-    if (-not $canResolveUsers) {
-        Add-Check "user/$reference" $false 'Not queried because Graph connectivity prerequisites failed; no cached identity is substituted.'
-        continue
-    }
-    $escaped = [uri]::EscapeDataString($reference)
-    $user = Read-Azure "user/$reference" @('rest', '--method', 'get', '--resource', 'https://graph.microsoft.com',
-        '--url', "https://graph.microsoft.com/v1.0/users/${escaped}?`$select=id,userPrincipalName,accountEnabled,userType,externalUserState")
-    if ($user.succeeded) {
-        $users[$reference] = $user.data.id
-        Add-Check "user-enabled/$reference" ($user.data.id -and $user.data.accountEnabled -eq $true -and
-            ($user.data.userType -ne 'Guest' -or $user.data.externalUserState -eq 'Accepted')) $user.data
-    } elseif ($user.transient) {
-        $canResolveUsers = $false
-    }
-}
-$resolvedMembers = @($references | Where-Object { $users.ContainsKey($_) } | ForEach-Object { $users[$_] })
-Add-Check 'roster/distinct-identities' ($resolvedMembers.Count -eq $references.Count -and
-    @($resolvedMembers | Sort-Object -Unique).Count -eq $references.Count -and $references.Count -gt 0) $resolvedMembers
 
 $failed = @($checks | Where-Object { -not $_.passed })
 $report = @{
     operation = 'read-only-deployment-preflight'
+    scope = $Scope
     collected_at = [DateTimeOffset]::UtcNow.ToString('o')
     subscription_id = $Settings.subscription_id
     tenant_id = $Settings.tenant_id
     scenario = $Review.scenario
     location = $Settings.location
     search_location = $Settings.search_location
+    requested_configuration = @{
+        gateway_sku = $Review.foundation.gateway_sku
+        search_configuration = $Review.foundation.search_configuration
+        models = $Review.workload.models
+        semantic_cache_enabled = $cacheEnabled
+    }
     technical_checks_passed = $failed.Count -eq 0
+    full_preflight_passed = $Scope -eq 'Full' -and $failed.Count -eq 0
     deployment_ready = $false
+    deferred_checks = @(
+        if ($Scope -eq 'Infrastructure') {
+            'Participant roster and selected human publisher identities: run Full preflight before Access/Workload.'
+        }
+    )
     checks = $checks.ToArray()
     evidence = $evidence
     still_required = @('Exact Terraform/SKU/name and Azure Policy plan review',
-        'New-deployment price/exposure review alongside the fresh whole-subscription cost snapshot',
-        'Independent deployed cost/expiry protection and timer verification',
+        'Service/model cost review and subscription-owner budget/teardown arrangements',
         'Joint approval before any apply',
         'Live runtime/Search checks and genuine Foundry evaluations/provenance')
 }
 $reportPath = Join-Path $runDirectory 'preflight.json'
 $report | ConvertTo-Json -Depth 70 | Set-Content -LiteralPath $reportPath -Encoding utf8NoBOM
-Write-Output "Read-only preflight: $($failed.Count) failed check(s). Deployment is NOT approved. Evidence: $reportPath"
+Write-Output "Read-only preflight ($Scope): $($failed.Count) failed check(s). Deployment is NOT approved. Evidence: $reportPath"
 if ($failed.Count -gt 0) {
     $failed | ForEach-Object { Write-Warning "Failed: $($_.name)" }
     throw "Read-only deployment prerequisites failed ($($failed.Count)); no resources or permissions were changed."

@@ -1,0 +1,28 @@
+<trace source="mcp-protocol" severity="information">
+  <message>@{
+    var metadata = new Newtonsoft.Json.Linq.JObject(
+      new Newtonsoft.Json.Linq.JProperty("response_present", context.Response != null),
+      new Newtonsoft.Json.Linq.JProperty("gateway_error", context.LastError != null)
+    );
+    var category = context.LastError != null ? "gateway-error" : "no-response";
+    if (context.Response != null) {
+      metadata.Add("http_status", context.Response.StatusCode);
+      metadata.Add("json_response", context.Response.Headers.GetValueOrDefault("Content-Type", "").Split(';')[0].Trim().ToLowerInvariant() == "application/json");
+      if (context.LastError == null) {
+        category = "http-response";
+        switch (context.Response.StatusCode) {
+          case 400: category = "bad-request"; break;
+          case 401: category = "unauthorized"; break;
+          case 403: category = "forbidden"; break;
+          case 404: category = "not-found"; break;
+          case 405: category = "method-not-allowed"; break;
+          case 406: category = "accept-mismatch"; break;
+          case 415: category = "content-type-mismatch"; break;
+          case 429: category = "throttled"; break;
+        }
+      }
+    }
+    metadata.Add("category", category);
+    return metadata.ToString(Newtonsoft.Json.Formatting.None);
+  }</message>
+</trace>

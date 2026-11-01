@@ -15,6 +15,12 @@ resource "azapi_resource" "tool_connection" {
   name                      = "${var.workload_name}-${each.value.team}-${each.value.tool}"
   parent_id                 = var.foundation.projects[each.value.team].id
   schema_validation_enabled = false
+  locks                     = [var.foundation.foundry_id]
+  retry = {
+    error_message_regex  = ["(?is)TransientError.*Etag conflict"]
+    interval_seconds     = 5
+    max_interval_seconds = 30
+  }
   body = {
     properties = {
       authType      = "ProjectManagedIdentity"
@@ -27,7 +33,6 @@ resource "azapi_resource" "tool_connection" {
   depends_on = [
     azuread_app_role_assignment.project,
     azurerm_api_management_api_policy.docs_mcp,
-    azapi_resource.docs_tool,
     azurerm_api_management_api_policy.toolkit,
   ]
 }

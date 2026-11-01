@@ -39,6 +39,12 @@ resource "azapi_resource" "native_gateway_connection" {
   name                      = "${var.workload_name}-${each.key}-models"
   parent_id                 = var.foundation.projects[each.key].id
   body                      = local.native_gateway_connection_body
+  locks                     = [var.foundation.foundry_id]
+  retry = {
+    error_message_regex  = ["(?is)TransientError.*Etag conflict"]
+    interval_seconds     = 5
+    max_interval_seconds = 30
+  }
   depends_on = [
     azuread_app_role_assignment.project,
     azurerm_api_management_api_policy.models,

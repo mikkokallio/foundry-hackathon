@@ -45,12 +45,31 @@ resource "azurerm_role_definition" "author" {
   depends_on = [terraform_data.roster]
 }
 
+resource "azurerm_role_definition" "project_connection_writer" {
+  role_definition_id = uuidv5("url", "${var.resource_group_id}/workshop-project-connection-writer")
+  name               = "AI workshop project connection writer ${substr(sha256(var.resource_group_id), 0, 8)}"
+  scope              = "/subscriptions/${var.subscription_id}"
+  description        = "Adds only project connection write to existing participant access; assigned at each participant's own team project."
+  assignable_scopes  = [var.resource_group_id]
+  permissions {
+    actions = ["Microsoft.CognitiveServices/accounts/projects/connections/write"]
+  }
+  depends_on = [terraform_data.roster]
+}
+
 output "authoring_permissions" {
   value = {
     for service, definition in azurerm_role_definition.author : service => {
-      role_id              = definition.role_definition_id
-      assignable_scopes    = definition.assignable_scopes
-      permissions          = definition.permissions
+      role_id           = definition.role_definition_id
+      assignable_scopes = definition.assignable_scopes
+      permissions = [
+        for permission in definition.permissions : {
+          actions          = coalesce(permission.actions, [])
+          not_actions      = coalesce(permission.not_actions, [])
+          data_actions     = coalesce(permission.data_actions, [])
+          not_data_actions = coalesce(permission.not_data_actions, [])
+        }
+      ]
       cross_team_authoring = true
     }
   }

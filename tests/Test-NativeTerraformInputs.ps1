@@ -46,7 +46,6 @@ try {
         profile = 'lite'
         publisher_email = 'operator@example.invalid'
         team_names = @('alpha')
-        expires_at = '2099-01-01T00:00:00Z'
     }
     $inputPath = Join-Path $scratch 'inputs.tfvars.json'
     $inputs | ConvertTo-Json | Set-Content -LiteralPath $inputPath -Encoding utf8NoBOM

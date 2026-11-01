@@ -73,6 +73,10 @@ locals {
         member = member.reference, scope = var.project_ids[member.team]
         role   = "53ca6127-db72-4b80-b1b0-d745d6d5456d"
       }
+      "${key}/project-connection-writer" = {
+        member = member.reference, scope = var.project_ids[member.team]
+        role   = azurerm_role_definition.project_connection_writer.role_definition_id
+      }
       "${key}/gateway-author" = {
         member = member.reference, scope = var.gateway_id
         role   = azurerm_role_definition.author["gateway"].role_definition_id

@@ -41,11 +41,9 @@ $settings = @{
     location = 'swedencentral'
     search_location = 'francecentral'
     publisher_email = 'operator@unit.invalid'
-    expires_at = [DateTimeOffset]::UtcNow.AddHours(1).ToString('o')
     expected_participant_count = 1
     teams = @{ alpha = @('PARTICIPANT@UNIT.INVALID') }
     tags = @{}
-    protection = @{ monthly_cap_eur = 130; reserve_eur = 30; max_hourly_eur = 2 }
     model_overrides = @{
         'chat-small' = @{
             name = 'gpt-4.1-mini'; version = '2025-04-14'
@@ -132,20 +130,12 @@ function Assert-Rejected([string]$Pattern, [string]$Component = 'Workload') {
 }
 
 try {
-    $reviewedProtection = $settings.protection.Clone()
-    foreach ($invalid in @($null, 0, -1, '2', $true)) {
-        $settings.protection.max_hourly_eur = $invalid
-        Assert-Rejected 'Supply a reviewed positive JSON number for protection.max_hourly_eur.' 'Foundation'
+    foreach ($key in @('protection', 'expires_at')) {
+        $settings[$key] = 'obsolete-test-input'
+        Assert-Rejected "Remove unsupported deployment input '$key' from your private input file." 'Foundation'
+        $settings.Remove($key)
     }
-    $settings.protection.Remove('max_hourly_eur')
-    Assert-Rejected 'Supply a reviewed positive JSON number for protection.max_hourly_eur.' 'Foundation'
-    $settings.protection.max_hourly_eur = $reviewedProtection.max_hourly_eur
-    $settings.protection.reserve_eur = $settings.protection.monthly_cap_eur
-    Assert-Rejected 'The reviewed protection reserve must be below the monthly cap.' 'Foundation'
-    $settings.protection = $null
-    Assert-Rejected 'Supply reviewed protection limits before foundation planning.' 'Foundation'
-    Assert-Plan ($testFixture.azureCount -eq 0) 'Unreviewed protection limits must fail before contacting Azure.'
-    $settings.protection = $reviewedProtection
+    Assert-Plan ($testFixture.azureCount -eq 0) 'Unsupported inputs must fail before contacting Azure.'
 
     $originalRoster = $settings.teams.alpha
     $settings.teams.alpha = @()
@@ -154,8 +144,29 @@ try {
     Assert-Plan ($testFixture.lastVariables.profile -eq 'full' -and $testFixture.lastVariables.enable_search) 'Foundation must use the selected profile and required Search capability.'
     Assert-Plan (-not $testFixture.lastVariables.ContainsKey('models') -and
         -not $testFixture.lastVariables.ContainsKey('runtime_images')) 'Workload model/image settings leaked into foundation inputs.'
+    Assert-Plan (-not $testFixture.lastVariables.ContainsKey('protection') -and
+        -not $testFixture.lastVariables.ContainsKey('expires_at')) 'Foundation must not receive automatic deletion controls.'
     $foundationDataDirectory = $testFixture.lastDataDirectory
 
+    $settings.search_configuration = @{
+        sku = 'standard'; replica_count = 3; partition_count = 1
+        semantic_search_sku = 'standard'; knowledge_retrieval = 'standard'
+    }
+    Invoke-TestPlan 'Foundation'
+    foreach ($key in $settings.search_configuration.Keys) {
+        Assert-Plan ($testFixture.lastVariables.search_configuration[$key] -ceq $settings.search_configuration[$key]) "Foundation lost explicit Search setting '$key'."
+    }
+    $before = $testFixture.azureCount
+    $settings.search_configuration.knowledge_retrieval = 'paid'
+    Assert-Rejected "Invalid Search setting 'knowledge_retrieval'." 'Foundation'
+    Assert-Plan ($testFixture.azureCount -eq $before) 'Invalid Search billing must fail before Azure.'
+    $settings.search_configuration = 'standard'
+    Assert-Rejected 'search_configuration must be a JSON object.' 'Foundation'
+    Assert-Plan ($testFixture.azureCount -eq $before) 'Invalid Search objects must fail before Azure.'
+    $settings.Remove('search_configuration')
+
+    Assert-Rejected "Invalid or empty team 'alpha'." 'Access'
+    Assert-Rejected "Invalid or empty team 'alpha'." 'Workload'
     $settings.teams.alpha = $originalRoster
     Invoke-TestPlan 'Access'
     Assert-Plan ($testFixture.lastDirectory -eq (Join-Path $root 'infra\access')) 'Access selection chose the wrong root.'

@@ -6,8 +6,14 @@
   "search_location": "francecentral",
   "profile": "lite",
   "enable_search": true,
+  "search_configuration": {
+    "sku": "standard",
+    "replica_count": 3,
+    "partition_count": 1,
+    "semantic_search_sku": "standard",
+    "knowledge_retrieval": "standard"
+  },
   "publisher_email": "REPLACE_WITH_MONITORED_EMAIL",
-  "expires_at": "REPLACE_WITH_EXPLICIT_RFC3339_SPENDING_EXPIRY",
   "workload_name": "architecture-docs",
   "expected_participant_count": 13,
   "teams": {
@@ -34,16 +40,36 @@
     ]
   },
   "tags": {},
-  "protection": {
-    "monthly_cap_eur": 130,
-    "reserve_eur": 30,
-    "max_hourly_eur": null
+  "model_overrides": {
+    "chat-small": {
+      "name": "gpt-5.4-nano",
+      "version": "2026-03-17",
+      "sku": "GlobalStandard",
+      "capacity": 300
+    },
+    "chat-medium": {
+      "name": "gpt-5.4-mini",
+      "version": "2026-03-17",
+      "sku": "GlobalStandard",
+      "capacity": 300
+    },
+    "judge": {
+      "name": "gpt-5.4",
+      "version": "2026-03-05",
+      "sku": "GlobalStandard",
+      "capacity": 75
+    },
+    "embedding": {
+      "name": "text-embedding-3-large",
+      "version": "1",
+      "sku": "GlobalStandard",
+      "capacity": 20
+    }
   },
-  "model_overrides": {},
   "workload_inputs": {
     "organization_name": null,
     "runtime_images": null,
-    "semantic_cache_enabled": false,
+    "semantic_cache_enabled": true,
     "librarians": null
   }
 }

@@ -2,8 +2,9 @@ locals {
   workload_key   = "${var.foundation.resource_group_id}/workloads/${var.workload_name}"
   runtime_suffix = substr(sha256(local.workload_key), 0, 8)
   team_roles = {
-    for team in distinct([for member in var.participant_members : member.team]) :
+    for team in keys(var.foundation.projects) :
     team => uuidv5("url", "${local.workload_key}/roles/team/${team}")
+    if team != "facilitator"
   }
   access_scope_id   = uuidv5("url", "${local.workload_key}/scopes/access")
   backend_role_id   = uuidv5("url", "${local.workload_key}/roles/gateway-backend")
@@ -14,7 +15,7 @@ resource "terraform_data" "identity_boundary" {
   lifecycle {
     precondition {
       condition = alltrue([
-        for team in keys(local.team_roles) : contains(keys(var.foundation.projects), team)
+        for member in values(var.participant_members) : contains(keys(local.team_roles), member.team)
       ])
       error_message = "Every resolved participant team must have its actual foundation project."
     }

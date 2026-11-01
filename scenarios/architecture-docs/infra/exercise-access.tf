@@ -101,14 +101,3 @@ output "extension_authoring" {
   }
 
 }
-
-resource "azurerm_role_assignment" "spending_protection" {
-  for_each = {
-    runtime    = module.runtime_group.resource_id
-    extensions = module.exercise_group.resource_id
-  }
-  scope              = each.value
-  role_definition_id = var.foundation.protection_cutoff_role_id
-  principal_id       = var.foundation.protection_principal_id
-  principal_type     = "ServicePrincipal"
-}

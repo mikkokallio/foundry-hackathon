@@ -39,6 +39,12 @@ resource "azapi_resource" "project_telemetry" {
   type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview"
   name      = "platform-insights-${each.key}"
   parent_id = each.value.id
+  locks     = [module.foundry.resource_id]
+  retry = {
+    error_message_regex  = ["(?is)TransientError.*Etag conflict"]
+    interval_seconds     = 5
+    max_interval_seconds = 30
+  }
   # Foundry supports ProjectManagedIdentity for trace ingestion; the ARM enum lags.
   schema_validation_enabled = false
   body = {

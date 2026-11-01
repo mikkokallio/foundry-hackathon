@@ -30,7 +30,8 @@ resource "azurerm_api_management_api" "docs" {
   resource_group_name   = var.foundation.resource_group_name
   api_management_name   = var.foundation.gateway_name
   revision              = "1"
-  display_name          = "${var.organization_name} architecture documentation"
+  display_name          = local.docs_spec.info.title
+  description           = local.docs_spec.info.description
   path                  = local.gateway_paths.docs
   protocols             = ["https"]
   service_url           = module.runtime_app["backend"].fqdn_url
@@ -46,8 +47,10 @@ resource "azurerm_api_management_api_policy" "docs" {
   api_management_name = var.foundation.gateway_name
   resource_group_name = var.foundation.resource_group_name
   xml_content = templatefile("${path.module}/policies/backend.xml", {
-    auth     = local.gateway_auth
-    audience = azuread_application_identifier_uri.gateway.identifier_uri
+    auth          = local.gateway_auth
+    audience      = azuread_application_identifier_uri.gateway.identifier_uri
+    request_limit = var.gateway_tool_requests_per_minute
+    diagnostics   = ""
   })
   depends_on = [azuread_app_role_assignment.gateway_backend]
 }
@@ -56,6 +59,8 @@ resource "azapi_resource" "docs_mcp" {
   type      = "Microsoft.ApiManagement/service/apis@2025-09-01-preview"
   name      = "${var.workload_name}-docs-mcp"
   parent_id = var.foundation.gateway_id
+  # The live API accepts inline tools, but AzAPI's embedded schema does not yet include mcpTools.
+  schema_validation_enabled = false
   body = {
     properties = {
       type                 = "mcp"
@@ -63,24 +68,23 @@ resource "azapi_resource" "docs_mcp" {
       path                 = local.gateway_paths.mcp
       protocols            = ["https"]
       subscriptionRequired = false
-      mcpProperties        = { transportType = "streamable" }
-    }
-  }
-}
-
-resource "azapi_resource" "docs_tool" {
-  for_each  = local.docs_tools
-  type      = "Microsoft.ApiManagement/service/apis/tools@2025-09-01-preview"
-  name      = each.key
-  parent_id = azapi_resource.docs_mcp.id
-  body = {
-    properties = {
-      displayName = each.key
-      description = substr(each.value.description, 0, 1000)
-      operationId = "${replace(azurerm_api_management_api.docs.id, ";rev=1", "")}/operations/${each.key}"
+      mcpTools = [
+        for name, operation in local.docs_tools : {
+          name        = name
+          description = substr(operation.description, 0, 1000)
+          operationId = "${replace(azurerm_api_management_api.docs.id, ";rev=1", "")}/operations/${name}"
+        }
+      ]
     }
   }
   depends_on = [azurerm_api_management_api_policy.docs]
+}
+
+removed {
+  from = azapi_resource.docs_tool
+  lifecycle {
+    destroy = false
+  }
 }
 
 resource "azurerm_api_management_api_policy" "docs_mcp" {
@@ -89,7 +93,9 @@ resource "azurerm_api_management_api_policy" "docs_mcp" {
   resource_group_name = var.foundation.resource_group_name
   xml_content = templatefile("${path.module}/policies/docs-mcp.xml", {
     auth           = local.gateway_auth
+    request_limit  = var.gateway_tool_requests_per_minute
     query_encoding = file("${path.module}/policies/mcp-query-encoding.xml")
+    diagnostics    = var.mcp_protocol_diagnostics_enabled ? file("${path.module}/policies/mcp-protocol-diagnostics.xml") : ""
     json_body = templatefile("${path.module}/policies/mcp-json-body.xml", {
       docs_path = local.gateway_paths.docs
     })
@@ -137,8 +143,10 @@ resource "azurerm_api_management_api_policy" "toolkit" {
   api_management_name = var.foundation.gateway_name
   resource_group_name = var.foundation.resource_group_name
   xml_content = templatefile("${path.module}/policies/backend.xml", {
-    auth     = local.gateway_auth
-    audience = azuread_application_identifier_uri.gateway.identifier_uri
+    auth          = local.gateway_auth
+    audience      = azuread_application_identifier_uri.gateway.identifier_uri
+    request_limit = var.gateway_tool_requests_per_minute
+    diagnostics   = var.mcp_protocol_diagnostics_enabled ? file("${path.module}/policies/mcp-protocol-diagnostics.xml") : ""
   })
   depends_on = [azuread_app_role_assignment.gateway_backend]
 }
@@ -175,7 +183,7 @@ resource "azurerm_api_management_api_policy" "models" {
   xml_content = templatefile("${path.module}/policies/models.xml", {
     auth          = local.gateway_auth
     deployments   = local.gateway_model_deployments
-    request_limit = each.key == "models-tight" ? 2 : 30
+    request_limit = each.key == "models-tight" ? 2 : var.gateway_requests_per_minute
     token_limit   = each.key == "models-tight" ? 256 : var.gateway_tokens_per_minute
   })
   depends_on = [azapi_resource.gateway_diagnostic]

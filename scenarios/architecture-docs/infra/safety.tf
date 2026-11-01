@@ -10,9 +10,5 @@ resource "terraform_data" "boundary" {
       )
       error_message = "The workload must use the authenticated, explicitly selected foundation boundary."
     }
-    precondition {
-      condition     = timecmp(var.foundation.tags["expires-on"], plantimestamp()) > 0
-      error_message = "The foundation's spending authorization has expired."
-    }
   }
 }

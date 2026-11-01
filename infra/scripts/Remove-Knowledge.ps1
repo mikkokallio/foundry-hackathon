@@ -106,9 +106,25 @@ function Invoke-CleanupRequest([string]$Method, [string]$Url) {
     }
     return @{ status = $status; body = $body }
 }
+function Invoke-CleanupGet([string]$Url) {
+    $maximumAttempts = 3
+    for ($attempt = 1; $attempt -le $maximumAttempts; $attempt++) {
+        try {
+            return Invoke-CleanupRequest 'GET' $Url
+        } catch [System.Threading.Tasks.TaskCanceledException] {
+            if ($_.Exception.InnerException -isnot [System.TimeoutException]) { throw }
+            $retry = $attempt -lt $maximumAttempts -and [DateTimeOffset]::UtcNow -lt $deadline
+            $events.Add(@{ method = 'GET'; url = $Url; status = $null
+                failure = 'http-request-timeout'; attempt = $attempt; retry = $retry })
+            if (-not $retry) { throw }
+            Write-Warning "Knowledge cleanup GET timed out at $Url; retrying read attempt $($attempt + 1)/$maximumAttempts within the existing deadline."
+            Start-Sleep -Seconds ([Math]::Min(2, (Get-RemainingSeconds)))
+        }
+    }
+}
 function Remove-CleanupResource([string]$Url) {
     $null = Invoke-CleanupRequest 'DELETE' $Url
-    while ((Invoke-CleanupRequest 'GET' $Url).status -ne 404) {
+    while ((Invoke-CleanupGet $Url).status -ne 404) {
         Start-Sleep -Seconds ([Math]::Min(2, (Get-RemainingSeconds)))
     }
     Write-Output "Verified absent: $Url"
@@ -119,7 +135,7 @@ try {
     foreach ($entry in $Knowledge.project_ids.GetEnumerator()) {
         $name = "$($Knowledge.workload_name)-$($entry.Key)-knowledge"
         $url = "https://management.azure.com$($entry.Value)/connections/${name}?api-version=2025-06-01"
-        $current = Invoke-CleanupRequest 'GET' $url
+        $current = Invoke-CleanupGet $url
         if ($current.status -eq 404) { Write-Output "Already absent: $url"; continue }
         if ($current.body.properties.target -cne $mcp -or
             $current.body.properties.isSharedToAll -ne $false -or
@@ -129,7 +145,7 @@ try {
         Remove-CleanupResource $url
     }
     $base = "$search/knowledgebases/$($Knowledge.knowledge_base_name)?api-version=$baseVersion"
-    $current = Invoke-CleanupRequest 'GET' $base
+    $current = Invoke-CleanupGet $base
     if ($current.status -ne 404) {
         if (@($current.body.knowledgeSources).Count -ne 1 -or
             $current.body.knowledgeSources[0].name -cne $Knowledge.knowledge_source_name) {
@@ -138,7 +154,7 @@ try {
         Remove-CleanupResource $base
     } else { Write-Output "Already absent: $base" }
     $source = "$search/knowledgesources/$($Knowledge.knowledge_source_name)?api-version=$version"
-    $current = Invoke-CleanupRequest 'GET' $source
+    $current = Invoke-CleanupGet $source
     if ($current.status -ne 404) {
         if ($current.body.kind -cne 'searchIndex' -or
             $current.body.searchIndexParameters.searchIndexName -cne $Knowledge.index_name) {

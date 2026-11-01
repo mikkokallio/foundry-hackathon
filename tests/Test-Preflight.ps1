@@ -8,7 +8,7 @@ $previousCulture = [Globalization.CultureInfo]::CurrentCulture
 [Globalization.CultureInfo]::CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('fi-FI')
 
 # Test-scoped responses. Any command other than a declared read fails the test.
-$preflightTest = @{ mode = 'success'; calls = @(); timeouts = 0; stoppedJobs = 0; costAttempts = 0 }
+$preflightTest = @{ mode = 'success'; calls = @(); timeouts = 0; stoppedJobs = 0 }
 $member = '00000000-0000-0000-0000-000000000003'
 $settings = @{
     subscription_id = '00000000-0000-0000-0000-000000000001'
@@ -17,7 +17,6 @@ $settings = @{
     search_location = 'francecentral'
     teams = @{ alpha = @($member) }
     expected_participant_count = 1
-    protection = @{ monthly_cap_eur = 130; reserve_eur = 30; max_hourly_eur = 1 }
 }
 $review = & (Join-Path $root 'infra\scripts\Inspect-Deployment.ps1') -Scenario architecture-docs `
     -WorkloadInputs @{ librarians = @($member) } -AsJson | ConvertFrom-Json -AsHashtable -Depth 30
@@ -59,7 +58,7 @@ function az {
         'provider list' {
             @('Microsoft.CognitiveServices', 'Microsoft.Search', 'Microsoft.Storage', 'Microsoft.KeyVault',
                 'Microsoft.OperationalInsights', 'Microsoft.Insights', 'Microsoft.ContainerRegistry',
-                'Microsoft.App', 'Microsoft.ApiManagement', 'Microsoft.ApiCenter', 'Microsoft.Automation', 'Microsoft.Cache') |
+                'Microsoft.App', 'Microsoft.ApiManagement', 'Microsoft.ApiCenter', 'Microsoft.Cache') |
                 ForEach-Object { @{
                     namespace = $_
                     registrationState = if ($_ -eq 'Microsoft.Cache' -and $preflightTest.mode -eq 'cache-unregistered') { 'NotRegistered' } else { 'Registered' }
@@ -99,29 +98,8 @@ function az {
         }
         'rest --method' {
             $url = $args[[Array]::IndexOf($args, '--url') + 1]
-            if ($url -eq "https://management.azure.com/subscriptions/$($settings.subscription_id)/providers/Microsoft.CostManagement/query?api-version=2023-11-01") {
-                Assert-Preflight ($args[2] -ceq 'post') 'Cost Management query is a POST read, never a deployment operation.'
-                Assert-Preflight ('ClientType=modular-workshop-preflight' -in $args) 'Use an explicit Cost Management client type.'
-                $preflightTest.costAttempts++
-                if ($preflightTest.mode -eq 'cost-throttled' -or
-                    ($preflightTest.mode -eq 'cost-throttled-once' -and $preflightTest.costAttempts -eq 1)) {
-                    $global:LASTEXITCODE = 1
-                    Write-Output 'ERROR: 429 Too Many Requests'
-                    return
-                }
-                $path = $args[[Array]::IndexOf($args, '--body') + 1]
-                $body = Get-Content -LiteralPath $path.Substring(1) -Raw | ConvertFrom-Json
-                Assert-Preflight ($body.type -ceq 'ActualCost' -and $body.timeframe -ceq 'MonthToDate' -and
-                    -not $body.dataset.filter) 'Collect fresh costs for the whole subscription, not a workload-filtered subtotal.'
-                @{
-                    properties = @{
-                        columns = @(@{ name = 'PreTaxCost' }, @{ name = 'UsageDate' }, @{ name = 'Currency' })
-                        rows = ,@(10, 20261029, 'EUR')
-                    }
-                } | ConvertTo-Json -Depth 10
-                return
-            }
-            Assert-Preflight ($args[2] -eq 'get') 'All other preflight requests must be GETs, never configuration writes.'
+            Assert-Preflight ($url -notmatch 'Microsoft\.CostManagement') 'Preflight must not require subscription billing access.'
+            Assert-Preflight ($args[2] -eq 'get') 'Preflight requests must be GETs, never configuration writes.'
             if ($url -match '/locations\?') {
                 @(@{ name = 'swedencentral' }, @{ name = 'francecentral' }) | ConvertTo-Json
             } elseif ($url -match '/usages\?') {
@@ -179,12 +157,39 @@ try {
     $file = @(Get-ChildItem -LiteralPath $outputDirectory -Recurse -Filter 'preflight.json')
     $report = Get-Content -LiteralPath $file[0].FullName -Raw | ConvertFrom-Json -AsHashtable -Depth 75
     Assert-Preflight ($report.technical_checks_passed -and -not $report.deployment_ready) 'Passing diagnostics must not imply deployment approval or release acceptance.'
+    Assert-Preflight ($report.requested_configuration.gateway_sku -ceq $review.foundation.gateway_sku -and
+        $report.requested_configuration.search_configuration.sku -ceq $review.foundation.search_configuration.sku -and
+        $report.requested_configuration.models['chat-small'].capacity -eq $review.workload.models['chat-small'].capacity -and
+        -not $report.requested_configuration.semantic_cache_enabled) 'Preflight must retain the requested capacity, not imply effective deployed settings.'
+    Assert-Preflight ($report.scope -eq 'Full' -and $report.full_preflight_passed -and
+        $report.deferred_checks.Count -eq 0) 'Default preflight must check the complete roster and publisher identities.'
+    Assert-Preflight (($report.still_required -join ' ') -notmatch 'cost/expiry protection|whole-subscription cost snapshot') 'Preflight must not require retired billing/deletion controls.'
     $quota = @($report.checks | Where-Object name -EQ "quota/metric-$($review.workload.models['chat-small'].name)")
     Assert-Preflight ($quota.Count -eq 1 -and $quota[0].details.requested_allocation_units -eq 300) 'Aggregate aliases sharing one base-model quota; ignore fine-tuning variants and other account kinds.'
     Assert-Preflight (@($preflightTest.calls | Where-Object { $_[0] -eq 'provider' -and $_[1] -eq 'show' }).Count -eq 0) 'Disabled cache must not require cache deployment or registration.'
-    foreach ($mode in @('cost-throttled-once', 'graph-timeout-once')) {
+    $settings.teams.alpha = @()
+    $preflightTest.calls = @()
+    $infrastructureDirectory = Join-Path $outputDirectory 'infrastructure-only'
+    & $checker -Settings $settings -Review $review -Scope Infrastructure -OutputDirectory $infrastructureDirectory | Out-Null
+    $infrastructureFile = @(Get-ChildItem -LiteralPath $infrastructureDirectory -Recurse -Filter 'preflight.json')[0]
+    $infrastructureReport = Get-Content -LiteralPath $infrastructureFile.FullName -Raw | ConvertFrom-Json -AsHashtable -Depth 75
+    Assert-Preflight ($infrastructureReport.technical_checks_passed -and
+        -not $infrastructureReport.full_preflight_passed -and
+        -not $infrastructureReport.deployment_ready -and
+        $infrastructureReport.deferred_checks.Count -eq 1) 'Infrastructure preflight must explicitly defer identity readiness, not imply full acceptance.'
+    Assert-Preflight (@($preflightTest.calls | Where-Object { ($_ -join ' ') -match '/users/' }).Count -eq 0) 'Infrastructure preflight must not query an unavailable roster.'
+    $missingRosterRejected = $false
+    try {
+        & $checker -Settings $settings -Review $review -OutputDirectory (Join-Path $outputDirectory 'missing-roster') `
+            -WarningAction SilentlyContinue | Out-Null
+    } catch {
+        if ($_.Exception.Message -notmatch 'prerequisites failed') { throw }
+        $missingRosterRejected = $true
+    }
+    Assert-Preflight $missingRosterRejected 'Full preflight must still reject an empty roster.'
+    $settings.teams.alpha = @($member)
+    foreach ($mode in @('graph-timeout-once')) {
         $preflightTest.mode = $mode
-        $preflightTest.costAttempts = 0
         & $checker -Settings $settings -Review $review -OutputDirectory (Join-Path $outputDirectory $mode) `
             -WarningAction SilentlyContinue | Out-Null
     }
@@ -198,7 +203,7 @@ try {
     $cacheReport = Get-Content -LiteralPath $cacheFile.FullName -Raw | ConvertFrom-Json -AsHashtable -Depth 75
     Assert-Preflight (@($cacheReport.checks | Where-Object { $_.name -eq 'redis/advertised-region' -and $_.passed }).Count -eq 1) 'Selected Redis needs an actual provider-region check.'
 
-    foreach ($mode in @('quota-short', 'guest-pending', 'cache-unregistered', 'cache-region-unavailable', 'cost-throttled', 'graph-roles-unavailable', 'legacy-model', 'unknown-lifecycle', 'retired-model')) {
+    foreach ($mode in @('quota-short', 'guest-pending', 'cache-unregistered', 'cache-region-unavailable', 'graph-roles-unavailable', 'legacy-model', 'unknown-lifecycle', 'retired-model')) {
         $preflightTest.mode = $mode
         $preflightTest.calls = @()
         $directory = Join-Path $outputDirectory $mode

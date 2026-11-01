@@ -65,7 +65,7 @@ module "runtime_app" {
       image  = each.value.image
       cpu    = 0.25
       memory = "0.5Gi"
-      env = [
+      env = concat([
         { name = "ORGANIZATION_NAME", value = var.organization_name },
         { name = "STORAGE_MODE", value = "blob" },
         { name = "STORAGE_ACCOUNT_URL", value = "https://${var.foundation.storage_name}.blob.core.windows.net" },
@@ -77,7 +77,9 @@ module "runtime_app" {
         { name = "BACKEND_AUDIENCE", value = azuread_application.gateway.client_id },
         { name = "GATEWAY_PRINCIPAL_ID", value = var.foundation.gateway_principal_id },
         { name = "REFERENCE_DATE", value = var.reference_date }
-      ]
+        ], each.key == "toolkit" && var.mcp_protocol_diagnostics_enabled ? [
+        { name = "MCP_PROTOCOL_DIAGNOSTICS", value = "true" }
+      ] : [])
       readiness_probes = [{ transport = "HTTP", port = each.value.port, path = "/health" }]
       liveness_probes  = [{ transport = "HTTP", port = each.value.port, path = "/health", initial_delay = 10 }]
     }]

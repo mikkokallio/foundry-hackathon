@@ -1,32 +1,30 @@
 variable "foundation" {
   description = "Unmodified foundation output object from the APPLIED foundation state, not the terraform output -json envelope. Contract version 1 and AI Search are required; IDs, team projects and endpoints must belong to the same deployment."
   type = object({
-    contract_version          = number
-    subscription_id           = string
-    tenant_id                 = string
-    location                  = string
-    resource_group_id         = string
-    resource_group_name       = string
-    foundry_id                = string
-    foundry_name              = string
-    foundry_endpoint          = string
-    storage_id                = string
-    storage_name              = string
-    vault_id                  = string
-    search_id                 = string
-    search_endpoint           = string
-    search_principal_id       = string
-    registry_id               = string
-    registry_server           = string
-    container_environment_id  = string
-    gateway_principal_id      = string
-    gateway_id                = string
-    gateway_name              = string
-    gateway_url               = string
-    gateway_logger_id         = string
-    catalog_id                = string
-    protection_principal_id   = string
-    protection_cutoff_role_id = string
+    contract_version         = number
+    subscription_id          = string
+    tenant_id                = string
+    location                 = string
+    resource_group_id        = string
+    resource_group_name      = string
+    foundry_id               = string
+    foundry_name             = string
+    foundry_endpoint         = string
+    storage_id               = string
+    storage_name             = string
+    vault_id                 = string
+    search_id                = string
+    search_endpoint          = string
+    search_principal_id      = string
+    registry_id              = string
+    registry_server          = string
+    container_environment_id = string
+    gateway_principal_id     = string
+    gateway_id               = string
+    gateway_name             = string
+    gateway_url              = string
+    gateway_logger_id        = string
+    catalog_id               = string
     projects = map(object({
       id           = string
       principal_id = string
@@ -46,7 +44,7 @@ variable "semantic_cache_enabled" {
 }
 
 variable "gateway_tokens_per_minute" {
-  description = "Positive integer tokens/minute per team on the normal model gateway route; default 50000. Size for complete multi-step agent turns and shared deployment capacity. The separate models-tight exercise stays at 256. This throttle is not an absolute spending limit; the subscription spending protector is unchanged."
+  description = "Positive integer tokens/minute per team on the normal model gateway route; default 50000. Size for complete multi-step agent turns and shared deployment capacity. The separate models-tight exercise stays at 256. This throttle is not an absolute spending limit."
   type        = number
   default     = 50000
   nullable    = false
@@ -54,6 +52,35 @@ variable "gateway_tokens_per_minute" {
     condition     = var.gateway_tokens_per_minute > 0 && floor(var.gateway_tokens_per_minute) == var.gateway_tokens_per_minute
     error_message = "Use a positive whole-number token/minute limit for the normal model gateway."
   }
+}
+
+variable "gateway_requests_per_minute" {
+  description = "Positive integer requests/minute per team on the normal model gateway route; default 30. Include multi-step agent model calls when sizing. The separate models-tight exercise stays at 2."
+  type        = number
+  default     = 30
+  nullable    = false
+  validation {
+    condition     = var.gateway_requests_per_minute > 0 && floor(var.gateway_requests_per_minute) == var.gateway_requests_per_minute
+    error_message = "Use a positive whole-number request/minute limit for the normal model gateway."
+  }
+}
+
+variable "gateway_tool_requests_per_minute" {
+  description = "Positive integer requests/minute per team/API for normal documentation REST, documentation MCP and toolkit traffic; default 60. Include MCP discovery and multi-step tool calls when sizing. Model and models-tight limits are separate."
+  type        = number
+  default     = 60
+  nullable    = false
+  validation {
+    condition     = var.gateway_tool_requests_per_minute > 0 && floor(var.gateway_tool_requests_per_minute) == var.gateway_tool_requests_per_minute
+    error_message = "Use a positive whole-number request/minute limit for the normal tool gateways."
+  }
+}
+
+variable "mcp_protocol_diagnostics_enabled" {
+  description = "Opt-in metadata-only diagnostics for the docs MCP gateway and toolkit transport; default false. Logs HTTP status, fixed categories/booleans and bounded toolkit JSON-RPC error codes, never raw content, arguments, headers or credentials."
+  type        = bool
+  default     = false
+  nullable    = false
 }
 
 variable "runtime_images" {

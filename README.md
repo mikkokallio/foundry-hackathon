@@ -32,9 +32,30 @@ together, not to finish the day with a production-ready application.
 
 - **Participants:** start with [Participant: start here](PARTICIPANT-START.md).
 - **Deployment teams:** review the component checklist below, then follow
-  [Module 0](docs/module-0.md).
+  [Module 0's ordered deployment walkthrough](docs/module-0.md).
 - **Facilitators:** use the [coach guide](docs/coach-guide.md) and
   [preview notes and troubleshooting](docs/exercise-readiness.md).
+
+### Current deployment handoff
+
+Wait for the deployment team to publish the tested candidate before executing
+commands. The first joint rehearsal uses the existing approved test environment
+and test roster, preserving its original backend/state. Native Terraform remains
+preferred for new deployments; the optional composition wrapper is a separate
+route, not a backend migration.
+
+The customer roster is unavailable Sunday and arrives Monday morning; no action
+today requires obtaining it. Customer foundation infrastructure preflight and
+planning may precede it. Customer access/workload require complete real accounts,
+team assignments and the explicitly selected human publisher; infrastructure-only
+checks are not Full preflight. Concrete target and saved-plan approval still
+precede every apply.
+
+Acceptance requires non-admin M2 connection creation/readback **after the new
+deployment containing the targeted IaC fix**. Alpha-only manual access and local
+tests do not close that gate. See the [closeout checklist](DEPLOY-NEXT.md) for
+deadlines and [Module 0](docs/module-0.md) for approval, state retention and
+stop/resume boundaries.
 
 ## Customer deployment: components and policy checklist
 
@@ -47,20 +68,19 @@ workload, not just the services participants create during exercises.
 
 | Component | Azure resource type / provider | Current configuration and purpose |
 |---|---|---|
-| Dedicated resource groups | `Microsoft.Resources/subscriptions/resourceGroups` | Foundation, workload runtime, extension-authoring boundary and separate surviving protection group. Use new lab groups, not production groups. |
+| Dedicated resource groups | `Microsoft.Resources/subscriptions/resourceGroups` | Foundation, workload runtime and extension-authoring boundary. Use new lab groups, not production groups. |
 | Microsoft Foundry | `Microsoft.CognitiveServices/accounts`, `/projects`, `/deployments` | AIServices S0 account, team/facilitator projects and workload-owned chat, judge and embedding deployments. Model/version/SKU/capacity are explicit deployment inputs; verify quota and availability. |
 | API Management | `Microsoft.ApiManagement/service` | BasicV2 capacity 1 in the rehearsed `lite` profile; StandardV2 capacity 1 in the alternative profile. Public gateway, managed identity, model/API routes, policies, native MCP APIs/tools and project connections. Not the separate preview AI Gateway resource. |
 | API Center | `Microsoft.ApiCenter/services` | Free tier; API/MCP catalog registrations, versions, definitions and metadata. |
-| Azure AI Search | `Microsoft.Search/searchServices` | Basic, one replica/partition, Entra authentication; indexes, indexers, embedding/vectorizer and preview knowledge source/base/MCP connection. Required for this scenario even if B1 is not attempted. |
+| Azure AI Search | `Microsoft.Search/searchServices` | Reference input selects S1, three replicas/one partition and standard semantic/agentic billing; unoverridden native defaults remain Basic, one replica/partition. Entra authentication; indexes, ingestion, embedding/vectorizer and preview knowledge source/base/MCP connection. Required for this scenario even if B1 is not attempted. Review the actual plan. |
 | Blob Storage | `Microsoft.Storage/storageAccounts` | Standard LRS; shared keys and anonymous blob access disabled. Synthetic documents/proposals/templates/glossary and Search ingestion. |
 | Key Vault | `Microsoft.KeyVault/vaults` | Standard, RBAC; seven-day soft delete and purge protection disabled in the current disposable-lab profile. Check any policy requiring purge protection. |
 | Container Registry | `Microsoft.ContainerRegistry/registries` | Basic, admin account disabled; remote Linux image builds and immutable application images. Build access to required base-image/package registries is needed. |
 | Container Apps | `Microsoft.App/managedEnvironments`, `/containerApps` | Shared environment and two externally reachable authenticated apps: documentation backend and toolkit. Each app has one replica, 0.25 vCPU and 0.5 GiB. Separate extension group supports B2 authoring. |
 | Content Safety | `Microsoft.CognitiveServices/accounts` | Separate ContentSafety S0 account and gateway backend for B4. This prerequisite is provisioned even if the bonus is not attempted. |
 | Traces and logs | `Microsoft.OperationalInsights/workspaces`, `Microsoft.Insights/components` | Log Analytics PerGB2018 and workspace-based Application Insights, project connections and ingestion/query grants. |
-| Spending/expiry protector | `Microsoft.Automation/automationAccounts` | Basic account, managed identity, PowerShell runbook, variables and schedules. Reads whole-subscription costs and can delete explicitly enrolled disposable lab groups. |
-| Monitoring | `Microsoft.Insights/diagnosticSettings`, `/actionGroups`, `/metricAlerts` | Application/container diagnostics and protector alerting. |
-| Identity and authorization | `Microsoft.ManagedIdentity/userAssignedIdentities`, `Microsoft.Authorization/roleDefinitions`, `/roleAssignments` | Application/service managed identities, scoped runtime/participant grants and custom authoring/protection roles; some definitions/grants are subscription-scoped. |
+| Monitoring | `Microsoft.Insights/diagnosticSettings` | Application, gateway and container diagnostics. |
+| Identity and authorization | `Microsoft.ManagedIdentity/userAssignedIdentities`, `Microsoft.Authorization/roleDefinitions`, `/roleAssignments` | Application/service managed identities, scoped runtime/participant grants and custom authoring roles; some definitions/grants are subscription-scoped. |
 | Optional semantic cache | `Microsoft.Cache/redisEnterprise`, `/databases` | Only when `semantic_cache_enabled` is true: Balanced_B0, RediSearch, TLS, no HA, public endpoint and explicitly enabled access-key authentication, with a Key Vault-backed APIM connection. Separate cost/key-policy approval required. |
 
 **Entra tenant changes are also required:** workload app registration, service
@@ -74,14 +94,14 @@ group, and shared-service authoring is not hard team isolation.
 
 - **Policy and regions:** allow the listed resource providers, child-resource
   types, SKUs and public endpoints, including Storage, Key Vault, Search, ACR,
-  Automation and Container Apps ingress. France Central is preferred; Sweden
+  and Container Apps ingress. France Central is preferred; Sweden
   Central and West Europe are supported selections. Validate each service/model
   in the selected region. A public-endpoint exception for one service does not
   automatically cover the rest. Review model deployment SKU/data-processing
   geography separately: a `GlobalStandard` deployment in a European resource
   region is not a guarantee of EU-only inference processing.
 - **Operator rights:** resource creation, custom-role definition and assignment
-  rights at the plan's actual scopes, subscription cost reads, and tenant-approved
+  rights at the plan's actual scopes and tenant-approved
   Graph/app-registration/app-role operations. Resource-group Contributor alone
   is insufficient. Have administrators approve/register missing providers
   before deployment.
@@ -89,19 +109,18 @@ group, and shared-service authoring is not hard team isolation.
   capacity; operator/participant access to Azure, Entra, package sources and
   required public service endpoints. No private-endpoint/VNet alternative is
   included in this lab profile.
-- **Shared-subscription spending and deletion:** current protection uses EUR and
-  whole-subscription month-to-date costs, including unrelated existing spend.
-  Customer-approved limits, reserve and expiry must fit that subscription;
-  do not copy organizer limits or an old expiry. Explicitly approve deletion of
-  only the new enrolled disposable groups and their data on cutoff, expiry or
-  cost-visibility failure. The monitoring group survives; delayed billing means
-  this is not a guaranteed hard cap. Review the saved plan's exact scopes.
+- **Costs and lifecycle:** review ongoing service and model costs. Budget
+  monitoring and teardown are managed by the subscription owner; the lab does
+  not deploy automatic budget- or expiry-based deletion.
 - **Deployment:** run [Module 0](docs/module-0.md)'s read-only
   preflight, then review separate foundation/access/workload plans before any
   apply. Keep state and deployment inputs private. Deployment-specific
   troubleshooting is in the [preview notes](docs/exercise-readiness.md).
 
-Windows deployment commands have been tested. Linux/Cloud Shell alternatives
+Windows deployment components have been exercised; this is not acceptance of
+the new shared human deployment or all-team non-admin access. Five recovered
+reference E2E cycles are historical reference evidence, not five fresh
+deployments or uninterrupted passes. Linux/Cloud Shell alternatives
 are included but have not yet been deployment-tested; see
 [Module 0](docs/module-0.md#linux-workstations-and-azure-cloud-shell).
 Cloud Shell persistent storage is configured separately. B6 remote-state/OIDC
@@ -139,7 +158,7 @@ the [component design notes](docs/reuse-evidence.md) explain key choices.
   apply operation.
 Runtime applications, API/MCP/catalog wiring, Search ingestion/knowledge setup,
 extension authoring permissions, Content Safety/model-pool prerequisites,
-read-only preflight and spending/expiry protection are included in the
+read-only prerequisite checks are included in the
 deployment. Participants build their own integrations alongside the supplied
 reference implementations.
 

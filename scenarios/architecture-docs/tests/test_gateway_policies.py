@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -8,8 +9,9 @@ import pytest
 POLICIES = Path(__file__).resolve().parents[1] / "infra" / "policies"
 
 
-@pytest.fixture(scope="module")
-def policies(tmp_path_factory):
+@pytest.fixture(scope="module", params=[(rpm, diagnostics) for rpm in (60, 300, 600) for diagnostics in (False, True)])
+def policies(tmp_path_factory, request):
+    rpm, diagnostics_enabled = request.param
     def template(name, variables):
         return f"templatefile({json.dumps(str(POLICIES / name))}, {variables})"
 
@@ -25,14 +27,18 @@ def policies(tmp_path_factory):
     )
     json_body = template("mcp-json-body.xml", '{"docs_path": "scenario-a/docs-api"}')
     query = f"file({json.dumps(str(POLICIES / 'mcp-query-encoding.xml'))})"
+    diagnostics = f"file({json.dumps(str(POLICIES / 'mcp-protocol-diagnostics.xml'))})" if diagnostics_enabled else '""'
     expressions = {
         "identity": identity,
         "backend": template(
-            "backend.xml", f'{{auth = {identity}, audience = "api://test-workload"}}'
+            "backend.xml", f'{{auth = {identity}, audience = "api://test-workload", request_limit = {rpm}, diagnostics = ""}}'
+        ),
+        "toolkit": template(
+            "backend.xml", f'{{auth = {identity}, audience = "api://test-workload", request_limit = {rpm}, diagnostics = {diagnostics}}}'
         ),
         "mcp": template(
             "docs-mcp.xml",
-            f"{{auth = {identity}, json_body = {json_body}, query_encoding = {query}}}",
+            f"{{auth = {identity}, json_body = {json_body}, query_encoding = {query}, request_limit = {rpm}, diagnostics = {diagnostics}}}",
         ),
         "models": template(
             "models.xml",
@@ -48,21 +54,24 @@ def policies(tmp_path_factory):
     expression = "jsonencode({" + ", ".join(
         f'"{name}" = {value}' for name, value in expressions.items()
     ) + "})"
+    scratch = tmp_path_factory.mktemp("policy-render-only")
     result = subprocess.run(
         ["terraform", "console", "-no-color"],
         input=expression + "\n",
         capture_output=True,
         text=True,
-        cwd=tmp_path_factory.mktemp("policy-render-only"),
+        cwd=scratch,
+        env={**os.environ, "TF_DATA_DIR": str(scratch / "terraform-data")},
         timeout=60,
-        check=True,
+        check=False,
     )
+    assert result.returncode == 0, result.stderr
     rendered = json.loads(json.loads(result.stdout))
     assert all("${" not in value for value in rendered.values())
     return {
         name: ET.fromstring(f"<fragment>{value}</fragment>" if name == "identity" else value)
         for name, value in rendered.items()
-    }
+    } | {"tool_request_limit": str(rpm), "diagnostics_enabled": diagnostics_enabled}
 
 
 def test_identity_accepts_configured_teams_not_a_fixed_team_number(policies):
@@ -79,6 +88,7 @@ def test_identity_accepts_configured_teams_not_a_fixed_team_number(policies):
 
 def test_backend_authenticates_with_identity_and_gates_publication(policies):
     inbound = policies["backend"].find("inbound")
+    assert inbound.find("rate-limit-by-key").attrib["calls"] == policies["tool_request_limit"]
     assert inbound.find("authentication-managed-identity").attrib["resource"] == "api://test-workload"
     publication_checks = [
         when
@@ -91,6 +101,7 @@ def test_backend_authenticates_with_identity_and_gates_publication(policies):
 
 def test_native_mcp_posts_keep_the_workload_namespace_and_real_errors(policies):
     inbound = policies["mcp"].find("inbound")
+    assert inbound.find("rate-limit-by-key").attrib["calls"] == policies["tool_request_limit"]
     requests = inbound.findall(".//send-request")
     assert len(requests) == 1
     assert '"/scenario-a/docs-api" + path' in requests[0].findtext("set-url")
@@ -99,6 +110,26 @@ def test_native_mcp_posts_keep_the_workload_namespace_and_real_errors(policies):
     body = inbound.findtext(".//return-response/set-body")
     assert '"isError", response.StatusCode >= 400' in body
     assert "response.Body.As<string>()" in body
+
+
+def test_mcp_diagnostics_are_opt_in_metadata_only_and_do_not_change_responses(policies):
+    assert not policies["backend"].findall(".//trace")
+    for route in ("mcp", "toolkit"):
+        for section in ("outbound", "on-error"):
+            nodes = list(policies[route].find(section))
+            assert nodes[0].tag == "base"
+            assert [node.tag for node in nodes] == (["base", "trace"] if policies["diagnostics_enabled"] else ["base"])
+            if policies["diagnostics_enabled"]:
+                trace = nodes[1]
+                assert trace.attrib == {"source": "mcp-protocol", "severity": "information"}
+                message = trace.findtext("message")
+                assert '"http_status", context.Response.StatusCode' in message
+                assert '"gateway_error", context.LastError != null' in message
+                assert "context.Request" not in message
+                assert ".Body" not in message
+                assert "context.Variables" not in message
+                assert "LastError.Message" not in message
+                assert "set-body" not in message
 
 
 @pytest.mark.parametrize("name, requests, tokens", [("models", "30", "10000"), ("models-tight", "2", "256")])
