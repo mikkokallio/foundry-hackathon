@@ -198,6 +198,20 @@ incomplete evidence.
 
 ### 5. If the tests fail, record that and continue the workshop
 
+**This is an intentionally difficult final challenge. Passing every evaluation
+is not required to complete the hackathon.** After recording the original
+comparison, try improving a new agent version:
+
+- Inspect the worst answer and its tool trace before changing the instructions.
+- Clarify tool-use order and name/ID resolution; add a short example of the
+  expected behavior, rather than a test-case answer.
+- Change one thing at a time and rerun the same cases. Keep the original versions,
+  inputs, thresholds and results unchanged.
+- Optionally explore [Prompt Optimizer](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/prompt-optimizer)
+  for instruction suggestions, or [Agent optimizer](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-optimizer-overview)
+  as a further experiment if available. Review every proposed change; an
+  optimization is not proof of improvement. Neither feature is required.
+
 Keep the actual responses, manifests and trace investigation. If a few genuine
 attempts still fail, explicitly stop and record **workshop-only/not qualified**
 with the reason: wrong/missing facts or tools, missing trace evidence, or an

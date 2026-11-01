@@ -16,13 +16,13 @@ New-Item -ItemType Directory -Path .\out -Force | Out-Null
 Copy-Item .\infra\people.example.json .\out\people.private.json
 ```
 
-Edit **`out\people.private.json`**: fill in the APIM contact email, librarian UPNs (approved publishers) and team-member UPNs. Remove unused team keys; do not commit this file. The generator supplies Contoso, five team projects (alpha, beta, gamma, delta, epsilon), France Central, Basic v2 APIM, Standard Search with three replicas, and the shared model/cache/limit defaults.
+Edit **`out\people.private.json`**: fill in only `publisher_email`, the monitored APIM contact. Librarians and team members are added in Step 3. Keep this file private. The generator supplies Contoso, five team projects (alpha, beta, gamma, delta, epsilon), France Central, Basic v2 APIM, Standard Search with three replicas, and the shared model/cache/limit defaults.
 
 ```powershell
 az login
 $subscription = Read-Host 'Target subscription ID'
 .\infra\scripts\New-NativeDeploymentInputs.ps1 -SubscriptionId $subscription `
-  -PeopleFile .\out\people.private.json -OutputDirectory .\out
+  -PeopleFile .\out\people.private.json -OutputDirectory .\out -FoundationOnly
 $out = (Resolve-Path .\out).Path
 $f = (Resolve-Path .\infra\foundation).Path
 $a = (Resolve-Path .\infra\access).Path
@@ -46,9 +46,11 @@ $foundation = terraform "-chdir=$f" output -json foundation |
 
 ## 3. Grant access and build the applications
 
-The roster must be complete before this step. Images are built remotely in ACR; local Docker is not needed.
+Complete the same private people file: `librarians` lists the humans allowed to review/publish documents; `teams` maps participating teams to member UPNs. Include at least one member per listed team; remove keys for entirely unused teams. Images are built remotely in ACR; local Docker is not needed.
 
 ```powershell
+.\infra\scripts\New-NativeDeploymentInputs.ps1 -SubscriptionId $config.subscription_id `
+  -PeopleFile "$out\people.private.json" -OutputDirectory $out
 $vars = (Resolve-Path "$out\native-access.tfvars.json").Path
 $plan = Join-Path $out 'access.tfplan'
 $ai = Get-Content $vars -Raw | ConvertFrom-Json -AsHashtable
@@ -110,7 +112,9 @@ Give the facilitator the folders in **`out\packs\<team>`**. Each team receives o
 
 Input schemas: [foundation](../infra/foundation/variables.tf), [access](../infra/access/versions.tf), [workload](../scenarios/architecture-docs/infra/variables.tf) and [models](../scenarios/architecture-docs/infra/models.tf). Use native Terraform inputs, not the differently shaped composition JSON example. The commands add applied `foundation`, resolved `participant_members` and built `runtime_images`; do not fill those with placeholders.
 
-The generator creates `native-foundation.tfvars.json`, `native-access.tfvars.json` and `native-workload.tfvars.json` in `out`. If the roster is not yet known, add `-FoundationOnly` in Step 1 and run Step 2. Later complete the same people file and rerun the generator without that switch, in the same checkout and output directory; it reuses the foundation inputs. Then continue Step 3. Keep the original Terraform state and inputs when resuming.
+Step 1 generates only `native-foundation.tfvars.json`; Step 3 reuses it and adds `native-access.tfvars.json` and `native-workload.tfvars.json`. Existing access/workload inputs are not overwritten. Use actual tenant UPNs or object IDs for people; a guest's sign-in UPN can differ from their email.
+
+Before granting access, remove an absent person's entry, not their whole team. Remove the team key only if nobody remains. If access was already applied, changing the people file alone does not revoke it: update the access inputs and review/apply an access plan using the same Terraform state.
 
 | Deployed capability | Purpose |
 |---|---|

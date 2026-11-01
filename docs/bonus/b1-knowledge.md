@@ -83,5 +83,37 @@ templates. You will inspect both the retrieved sources and the answer's accuracy
 **Discuss:** what should win when narrative prose disagrees with structured
 inventory? What does a project-local connection *not* guarantee about networking?
 
+## Alternative: explore the existing index
+
+If agent retrieval is blocked, investigate the indexed content instead. This is
+a useful alternative exercise, not proof that the agent's retrieval connection
+works.
+
+1. In **Azure portal -> Search services**, open the assigned Search service,
+   then **Search management -> Indexes**. Select the existing
+   `<workload>-knowledge` index, usually `architecture-docs-knowledge`.
+2. Inspect its fields: which contain searchable text, provenance, identifiers
+   and vectors? Do not edit the schema, indexers or data.
+3. Open **Search explorer** and use its JSON query view. With your assigned
+   identity's existing data access, try:
+
+   ```json
+   {"search":"*","top":3,"select":"title,source_url"}
+   ```
+
+   Then compare it with a targeted query:
+
+   ```json
+   {"search":"interface documentation","top":3,"select":"title,content,source_url"}
+   ```
+
+4. Inspect the returned passages and source URLs. Explain what an agent could
+   learn from them, what is missing, and why an indexed passage might disagree
+   with the current `getDocumentationStandard` response.
+
+If Search explorer denies access, ask the coach to demonstrate the queries with
+an already-authorized identity. Do not obtain admin keys, change roles or create
+a replacement service just to continue this exercise.
+
 **If stuck:** verify the existing endpoint/identity with the coach. Do not reset
 reference indexes, rerun initialization or fabricate a retrieval answer.
