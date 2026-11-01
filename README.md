@@ -1,9 +1,5 @@
 # AI platform hackathon
 
-> [!NOTE]
-> **Preview.** Minor updates to M1-M5 are likely. Initial setup may receive
-> targeted infrastructure fixes if deployment testing identifies a need.
-
 A full-day Microsoft Foundry hackathon with **4.5 hours of hands-on work**.
 Build an architecture documentation agent, connect tools, explore gateway
 governance, discover reusable APIs and evaluate different agent configurations.
@@ -11,8 +7,8 @@ The exercises use synthetic business data.
 
 ## What we're building
 
-A **toy architecture-documentation assistant** for an imaginary organization.
-You use it to:
+An **architecture-documentation assistant** that demonstrates how these services
+can work together. You use it to:
 
 - Ask which systems exist, who owns them and how they connect.
 - Find missing or inconsistent architecture documentation.
@@ -20,7 +16,7 @@ You use it to:
 - Review a proposed update and explicitly approve saving it for human review.
   Publication is a separate human action.
 
-The MCP servers expose **mock business-system interfaces backed by synthetic
+The MCP servers expose **business-system interfaces backed by synthetic
 inventory and documents**. Tool calls run against the lab services, not real
 business systems or production data. You interact with the agent in Foundry;
 an optional bonus adds a small local frontend.
@@ -34,7 +30,7 @@ together, not to finish the day with a production-ready application.
 - **Deployment teams:** review the component checklist below, then follow
   [Module 0's ordered deployment walkthrough](docs/module-0.md).
 - **Facilitators:** use the [coach guide](docs/coach-guide.md) and
-  [preview notes and troubleshooting](docs/exercise-readiness.md).
+  [deployment notes and troubleshooting](docs/exercise-readiness.md).
 
 ### Deployment boundaries
 
@@ -103,7 +99,7 @@ group, and shared-service authoring is not hard team isolation.
 - **Deployment:** follow [Module 0](docs/module-0.md), then review the separate
   foundation/access/workload plans before any
   apply. Keep state and deployment inputs private. Deployment-specific
-  troubleshooting is in the [preview notes](docs/exercise-readiness.md).
+  troubleshooting is in the [deployment notes](docs/exercise-readiness.md).
 
 For Cloud Shell, configure persistent storage separately and keep deployment
 state and private inputs backed up. B6 remote-state/OIDC

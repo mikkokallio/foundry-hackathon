@@ -2,9 +2,10 @@
 
 ## Before the event
 
-The customer event is a full day with **4.5 hours of hands-on work**, sixteen
-people in four teams of four. Provisioning is outside participant time. Plan
-breaks separately and allow for model calls, tracing and evaluation collection.
+The customer event is a full day with **4.5 hours of hands-on work**.
+Confirm team sizes and coach assignments against the approved deployment roster.
+Provisioning is outside participant time. Plan breaks separately and allow for
+model calls, tracing and evaluation collection.
 
 Terraform owns the hack-ready starting resources and reference implementations.
 Participants are encouraged to author their own APIs, MCPs, agents, connections,
@@ -39,6 +40,7 @@ Check with a **non-admin participant identity**, not only the deployer:
 | APIM | Import owned REST, add MCP/tools/policy/diagnostics and call through valid Entra auth. |
 | API Center | Create owned record/version/definition and retrieve actual exported specification, not merely list metadata. |
 | Insights/workspace | Query the assigned traces/logs/metrics and inspect a run. |
+| Search (B1) | Open the existing index and run the Search explorer queries with participant data-read access. |
 | Evaluation | Invoke judge, collect real responses and verify remote scores/native provenance. |
 | Extensions (B2) | Build/push image; create app in extension group; attach preassigned pull identity/environment. |
 | Human publisher | Selected coach can review/publish for the non-blocking demonstration; participants/agents cannot impersonate that role. |
@@ -115,7 +117,7 @@ the existing connection's portal recognition. Do not create duplicates or turn
 on APIM body/token logging. Content-filter metadata is inspected when emitted,
 not promised for every model/span. Missing trace evidence blocks the checkpoint.
 
-Rehearsed navigation: **Build -> Agents -> open the agent -> Traces**.
+Agent traces: **Build -> Agents -> open the agent -> Traces**.
 The Agents list itself has Agents/Routines/Workflows tabs, not all-project
 Traces; Operate has Overview/Assets/Compliance. Newly created agents may start
 with Web search and a connected medium model: remove the tool and explicitly
@@ -192,5 +194,5 @@ defect requires an explicit scoped exception, not hidden deployment changes.
 Check the participant path with a non-admin account, including connections,
 authoring, export and save/readback. B6 needs its separate delivery setup.
 B3/B9 invite participant implementation; B9 also has an optional local reference.
-Consult [preview notes and troubleshooting](exercise-readiness.md) for current
+Consult [deployment notes and troubleshooting](exercise-readiness.md) for current
 exercise guidance.
