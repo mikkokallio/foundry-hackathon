@@ -12,67 +12,82 @@ Read [Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concept
 and [knowledge base concepts](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base).
 The organizer already created the reference knowledge base. Do not recreate it.
 
-The reference connection supports retrieval from the published standards and
-templates. You will inspect both the retrieved sources and the answer's accuracy.
+Choose either **agent retrieval** below or the **existing-index exercise** at
+the end. The second route is useful even if the agent connection is unavailable.
+Neither route requires creating Search resources or changing infrastructure.
 
 ## Build
 
-1. Inspect the existing `<workload>-<team>-knowledge` connection in your project.
-   Confirm its actual Search knowledge endpoint and project-managed-identity auth.
-   Indexing success alone does not establish successful agent retrieval.
-   In the portal it appears under **Tools -> Add -> Add tools ->
-   Configured** as a RemoteTool connection. The separate Knowledge menu offered
-   **Connect to Foundry IQ**; do not create a resource, enter a key or change a
-   shared association to replace the existing MCP connection.
-2. Create a newly named candidate copying your steward's configuration. A new
-   prompt or chat is not a new candidate; creating an identical version can
-   return the existing version. Add the existing knowledge/MCP
-   connection through the supported tool UI. It appears under Knowledge, but
-   the card may offer only Details/Remove, not approval/allowlist controls.
-   Saving produced an auto-approved MCP definition with no tool allowlist.
-   Before inference, use the helper below (or have the coach help) to create and
-   inspect a candidate restricted to the actual read-only
-   `knowledge_base_retrieve` operation, requiring approval.
-   The retrieval tool accepts 1-3 queries, each at most 150 characters.
-   For this workshop, use exactly one short query, at most 150 characters and
-   under twelve words. This is a workshop policy, not the API's query-count limit.
-   Do not assume the native card has established those controls. Use a fresh
-   candidate after connection changes if an existing one cannot enumerate tools.
+### 1. Find the existing knowledge connection
 
-   From the configured participant terminal, use the saved immutable steward
-   binding, an unused agent name and a new output file:
+In your Foundry project, open **Tools -> Add -> Add tools -> Configured** and
+inspect `<workload>-<team>-knowledge`, shown as a RemoteTool connection.
+Note its Search knowledge endpoint and project-managed-identity authentication.
+Do not add it to your measured M5 agent or create a replacement service.
 
-   ```powershell
-   lab knowledge --binding "out\$prefix-steward.json" --name "$prefix-knowledge-new" --output "out\$prefix-knowledge-new.json"
-   lab chat --binding "out\$prefix-knowledge-new.json" "Retrieve using exactly one short query. Explain interface documentation expectations, cite a source URL and quote, and distinguish retrieved prose from the current authoritative standard."
-   ```
+### 2. Create a retrieval candidate
 
-   Substitute your actual steward binding filename. This clones the actual
-   immutable base rather than rebuilding or overwriting it, checks the existing
-   project connection and records a new candidate. Reusing an existing name or
-   output is refused. In the terminal, inspect the printed tool name and
-   exact query. Enter `y` at **Approve this exact tool and arguments? [y/N]**
-   only for the single short retrieval query you intend to run. Enter `n`
-   to deny it. In the portal, the equivalent is **Approve -> Approve once**.
-3. Ask the same narrative question before/after, for example: "Explain the
-   architecture-documentation standard's expectations for interfaces and unknown
-   operational details. Retrieve using exactly one query, cite the source filename
-   and source_url, and distinguish indexed prose from the current standard."
-   Inspect the pending arguments before approving (`y` in the terminal, or
-   **Approve -> Approve once** in the portal). If the agent requests multiple
-   queries, deny and ask it to use exactly one.
-   Then ask a specific owner/interface question that should still use inventory.
-4. Inspect retrieval arguments, source identifiers/citations and native spans.
-   Compare cited prose with the real published document and inventory.
-   If citations are blank, ask for the exact filenames, `source_url` values and
-   a supporting quote from the passages already retrieved; verify them against
-   the tool result. Source URLs identify provenance, not public download access.
-   An indexed copy of the standard is still Search content: the current
-   `getDocumentationStandard` response remains authoritative.
-5. Record fresh behavior/provenance and any quality findings. The existing core
-   runner rejects unreviewed tool types/names: do not expand its allowlist blindly
-   or claim a score-only run is qualification. A separately reviewed retrieval
-   evaluation is an extension, not a prerequisite blocking this workshop bonus.
+Use the PowerShell shell from M3/M5. You need the saved steward binding JSON
+created by `lab agent`. If your steward was created only in the portal, ask the
+coach for help with its binding, or use the existing-index exercise below.
+
+Set `$baseBinding` to your actual binding file and run:
+
+```powershell
+$baseBinding = Read-Host 'Path of your saved steward binding JSON'
+$knowledgeBinding = Join-Path 'out' "$prefix-knowledge-new.json"
+lab knowledge --binding $baseBinding --name "$prefix-knowledge-new" --output $knowledgeBinding
+```
+
+This command creates a separately named candidate from the saved steward
+version and adds the existing knowledge connection. It allows only the read-only
+`knowledge_base_retrieve` operation and requires approval. No manual tool-card
+configuration is needed. Use an unused name/output file; the helper refuses
+to overwrite an existing one.
+
+### 3. Compare answers with and without retrieval
+
+Ask your original steward:
+
+> Explain interface documentation expectations. Cite a source URL and supporting
+> quote, and distinguish published prose from the current authoritative standard.
+
+Then run the same question on the retrieval candidate:
+
+```powershell
+lab chat --binding $knowledgeBinding "Retrieve using exactly one short query. Explain interface documentation expectations, cite a source URL and supporting quote, and distinguish published prose from the current authoritative standard."
+```
+
+At **Approve this exact tool and arguments? [y/N]**, inspect the tool name and
+query. Enter `y` only for `knowledge_base_retrieve` with exactly one query,
+at most 150 characters and under twelve words. Otherwise enter `n` and ask for
+a single short query. Expect retrieved passages followed by a sourced answer;
+an answer without a retrieval result does not demonstrate the connection.
+
+Compare the answers and inspect the tool result and trace. Do the cited URL and
+quote actually occur in a returned passage? Source URLs identify provenance;
+they are not necessarily public download links. If citations are missing, ask
+for the filename, `source_url` and a quote from the passages already retrieved.
+
+Finally ask both candidates a specific owner/interface question. Check that they
+still use inventory tools for structured facts. The current
+`getDocumentationStandard` response remains authoritative over indexed prose.
+
+<details>
+<summary>Tool-card controls and evaluation limits</summary>
+
+The portal's Knowledge card may expose only Details/Remove and save an
+auto-approved MCP definition without an allowlist. The helper above establishes
+the intended controls before inference; do not assume the card has done so.
+The retrieval API accepts 1-3 queries; this workshop deliberately permits only
+one short query per approval.
+
+Keep the new candidate version, actual retrieval trace and quality findings.
+The core evaluator rejects this additional tool; do not expand its allowlist
+or present a score-only run as qualification. A separately reviewed retrieval
+evaluation is optional, not required for this exercise.
+
+</details>
 
 ## Validate
 
@@ -95,13 +110,14 @@ works.
 2. Inspect its fields: which contain searchable text, provenance, identifiers
    and vectors? Do not edit the schema, indexers or data.
 3. Open **Search explorer** and use its JSON query view. With your assigned
-   identity's existing data access, try:
+   identity's existing data access, paste this query and select **Search**:
 
    ```json
    {"search":"*","top":3,"select":"title,source_url"}
    ```
 
-   Then compare it with a targeted query:
+   Expect up to three document titles and source URLs. Then run this targeted
+   query, which also returns passage text:
 
    ```json
    {"search":"interface documentation","top":3,"select":"title,content,source_url"}

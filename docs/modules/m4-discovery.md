@@ -23,19 +23,20 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
 
 1. Open [Azure portal](https://portal.azure.com), search for **API Centers**, and
    select the instance assigned by the coach. Open **Inventory/Assets**.
-   Register your documentation API/MCP with its actual endpoint, version,
-   deployment/environment, owner, intended use, lifecycle, classification and
-   limitations. Use your personal prefix. Do not edit Terraform-owned entries.
+   You will register your own M2 MCP server in the following steps; do not
+   edit the shared reference entries.
 2. Use **Register an asset -> MCP server**. Use a short Title such as
    `alpha-p2-docs`, replacing the prefix with your own. Keep the complete title
    **at most 24 characters**; put longer explanations in Summary/Description.
    Add a **Remote** using your actual M2
    connection endpoint and select your existing development environment. Set
    version title/identification, for example `v1`, and Development lifecycle,
-   then **Create**.
+   then **Create**. In the asset's metadata, record its owner, intended use,
+   classification and limitations.
 3. Open the saved version. Check **both definitions** and the deployment runtime
    URL. Compare that URL with the actual `alpha-p2-docs-mcp` URL you copied in
-   M2. Seeing the asset in the list is not enough.
+   M2. The saved asset should describe your existing server; registration does
+   not deploy a new server or grant access.
 
 <details>
 <summary>If registration partly fails, or its generated paths are wrong</summary>
@@ -57,29 +58,36 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
 
 ### 2. Inspect the registered toolkit description
 
-Find the reference documentation entry and inspect its independent-toolkit
-   discovery link. Examine the actual endpoint, owner, contract and limitations.
-   Export/retrieve the registered OpenAPI definition rather than substituting the
-   copy in the source repository. In **Versions**, expand the version's chevron
-   and open **OpenAPI definition -> Download**. Clicking the version title
-   instead opens its metadata editor.
-Ask: would you attach this endpoint to a production agent? What is missing
-   from its metadata or access contract?
+Open the **reference documentation entry** in API Center. Find its independent
+toolkit discovery link and note the endpoint, owner and limitations.
+
+Under **Versions**, expand the version's chevron, then select **OpenAPI
+definition -> Download**. Clicking the version title opens its metadata editor
+instead. Inspect the downloaded definition and toolkit link; use the actual
+catalog export, not the repository's copy.
+
+Would this description give you enough information to attach the toolkit to
+a production agent? Identify one missing detail.
 
 ### 3. Add the toolkit to your agent
 
 Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
 Agents -> your steward**, for example `alpha-p2-steward`.
-Add the discovered toolkit to a new version of your steward, using the
-   existing `<workload>-<team>-toolkit` project-managed-identity connection.
-   For Alpha, find the configured connection whose name ends in `-alpha-toolkit`;
-   the workload prefix comes from the deployment, not your personal name.
-   Inspect the actual discovered operations: `generate_context_diagram`,
-   `lint_document` and `compare_with_inventory`. In Playground use **Tools ->
-   Add -> Add tools -> Configured**, select that existing connection and
-   **Add tool**. Under its **Actions -> Configure**, restrict allowed tools to
-   those three names and auto-approve only those read-only operations. Preserve
-   the documentation tool's proposal-approval requirement, then **Save**.
+
+1. In Playground, select **Tools -> Add -> Add tools -> Configured**.
+2. Select the existing `<workload>-<team>-toolkit` connection and **Add tool**.
+   For Alpha, its name ends in `-alpha-toolkit`; it does not use your personal
+   prefix. Do not create a replacement connection.
+3. Under **Actions -> Configure**, allow these three read-only operations:
+
+   ```text
+   generate_context_diagram,lint_document,compare_with_inventory
+   ```
+
+   Auto-approve only those operations. Keep the documentation tool's existing
+   proposal-approval requirement.
+4. Select **Save** to create the updated steward version.
+
 ### 4. Try the tools and inspect their results
 
 Ask:
@@ -87,9 +95,17 @@ Ask:
 > Read the inventory record for SYS-011, then use the toolkit to generate its
 > context diagram. Explain the systems and interfaces shown. Do not save or publish.
 
-Then ask for a context diagram of another system returned by inventory and compare a
-   draft with the inventory. Inspect genuine toolkit calls/results and native
-   tool spans. Its results complement the authoritative documentation API.
+Expect an inventory lookup followed by a `generate_context_diagram` call.
+Expand the tool results and check that the diagram's systems/interfaces match
+the inventory; a fluent description alone is not evidence that the toolkit ran.
+
+Then paste your M2 draft into the conversation and ask:
+
+> Check the draft you produced in M2 with lint_document and
+> compare_with_inventory. Explain the findings. Do not save or publish.
+
+Inspect both tool results and the matching trace. The toolkit supplements the
+documentation API; it does not replace the authoritative standard or inventory.
 
 <details>
 <summary>Optional Python helper / registration fallback</summary>
@@ -98,6 +114,8 @@ Use the [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) first
 For these commands, `$prefix` is your own assigned prefix, for example `alpha-p2`.
 
 ```powershell
+$prefix = $global:FoundryLabSession.Prefix
+$context = Get-Content -LiteralPath $global:FoundryLabSession.Pack -Raw | ConvertFrom-Json
 lab catalog list
 lab catalog register
 $catalogExport = Join-Path 'out' "$prefix-catalog-openapi.json"

@@ -6,18 +6,15 @@ Compare **two models with two instruction sets**: four configurations in total.
 Each answers the same twelve test cases using the same documentation and toolkit
 tools. Compare the measured results, not just which answer sounds fluent.
 
-This module's main route uses **PowerShell and the supplied Python helper**;
-it is not browser-only. Use the
-[helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) and keep that
-shell open. Choose **local PowerShell** or **Cloud Shell PowerShell** there.
-Cloud Shell uses the public repository, your team's `workshop.json` and the
-extra scoped sign-in; uploading a complete pack is not required.
-For long runs, prefer local PowerShell or already-mounted persistent Cloud Shell
-storage. In a temporary session, download each complete result folder immediately
-after its run, before closing or resetting the shell. The commands below are the
-same after setup in either shell.
-You inspect the resulting evaluations and traces in Foundry.
-No application coding is required.
+Use the **PowerShell shell from M3**, where `lab` already works, and inspect
+results in Foundry. No application coding is required. If you need a new shell,
+use [M3's expandable setup](m3-governance.md#2-send-one-normal-model-request).
+Choose **local PowerShell** or **Cloud Shell PowerShell**; keep it open during
+the run. In temporary Cloud Shell, download the results afterward as shown below.
+
+**This is an intentionally difficult final challenge. Passing every evaluation
+is not required.** The goal is to compare actual results and investigate a
+failure, not to obtain four green runs.
 
 <details>
 <summary>Optional reading and evaluator background</summary>
@@ -62,9 +59,11 @@ Do not edit that MCP or publish documents while collecting results.
 
 ### 2. Create and test your assigned configuration
 
-This example is **Alpha participant 2 running small-concise**. It creates
-`alpha-p2-comparison-small-concise`. Change `$prefix` to your own name and set
-`$cell`, `$model` and `$prompt` to your row in the table:
+**A. Create your comparison agent.** Change `$prefix` to your assigned prefix,
+set `$cell`, `$model` and `$prompt` from your table row, and set `$docsOwner`
+to the shared M2 MCP owner's prefix. Then run this block; the helper creates
+the agent and saves its version binding. You do not need to create it in the
+portal first.
 
 ```powershell
 $prefix = 'alpha-p2'
@@ -74,15 +73,27 @@ $prompt = 'instructions-concise'
 $docsOwner = 'alpha-p1' # Replace with your team's chosen real practice owner.
 $binding = Join-Path 'out' "$prefix-comparison-$cell.json"
 lab agent --name "$prefix-comparison-$cell" --model $model --prompt $prompt --docs practice --docs-owner $docsOwner --toolkit --reasoning low --output $binding
+```
+
+**B. Run the twelve-case evaluation**
+
+```powershell
 lab eval --binding $binding --comparison
 ```
 
-The helper reports the actual result folder under `.foundry\results`.
-Find its `manifest.json` and keep that file's full path for Step 4. It records
-which version, inputs and checks were used; do not edit it.
+This sends real requests and runs the evaluator. Expect a result folder under
+`.foundry\results`, plus an evaluation/run in Foundry. A failed quality check is
+an outcome to investigate; an authentication, service or missing-evidence error
+needs separate attention. Do not rerun just to make the status green.
 
-If using a temporary **Cloud Shell** session, keep a downloadable copy before
-closing it. Paste the actual result folder reported by `lab eval`:
+Keep the reported folder and its `manifest.json` for Step 4. The manifest records
+the measured version, inputs and checks; do not edit it. All candidates use the
+same `low` reasoning setting. Coordinate runs if shared capacity is throttled.
+
+<details>
+<summary>Cloud Shell: download and verify the complete result folder before closing</summary>
+
+Paste the actual result folder reported by `lab eval`:
 
 ```powershell
 $resultFolder = (Resolve-Path (Read-Host 'Paste the full evaluation result folder path')).Path
@@ -106,6 +117,8 @@ copy to the teammate doing Step 4; keep the original while this shell is open.
 If download fails, tell the coach and preserve the current session;
 do not treat archive creation as a successful backup.
 
+</details>
+
 <details>
 <summary>If Cloud Shell reconnects without the original result folder</summary>
 
@@ -117,12 +130,6 @@ the cases. Native results can still be inspected, but incomplete evidence must
 not be presented as a qualified run.
 
 </details>
-
-All four candidates explicitly use the same `low` reasoning setting; do not
-change it for only one matrix cell.
-Start collection as soon as the final configurations exist; use the waiting
-time to inspect cases and predict likely failure modes. Stagger team runs if
-shared gateway/model limits require it.
 
 ### 3. Open the evaluation and investigate one result
 
@@ -183,12 +190,11 @@ $comparisonFolder = Join-Path 'out' "$prefix-team-comparison"
 lab compare $smallStandard $smallConcise $mediumStandard $mediumConcise --output $comparisonFolder
 ```
 
-It verifies matrix/input/coverage compatibility, identical actual tools/settings
-and project, then writes Markdown/CSV with outcome/failure clusters, quality,
-latency and available token measurements. Price only when all matching
-model/token-category rates are known. Otherwise compare tokens/task; missing
-prices, reasoning tokens or telemetry are not zero cost. Judge and shared-service
-charges are separate from agent token estimates.
+The command checks that the four runs are comparable, then writes Markdown/CSV
+reports with quality, failure groups, latency and available token measurements.
+If it refuses incomplete or incompatible evidence, inspect the individual runs
+instead; do not force a ranking. Compare tokens rather than cost when prices
+are unavailable; missing prices or telemetry do not mean zero cost.
 
 Open the generated Markdown report in VS Code; **Ctrl+Shift+V** opens its preview.
 Compare quality and failures, response time, and the available token measurements.
@@ -275,9 +281,6 @@ Before any human publication, the coach records that **all teams' frozen-corpus
 attempts are completed or explicitly stopped**. Retain the corpus boundary and
 actual outcomes. Later runs against changed published content are a new corpus,
 not the original baseline; do not compare them as unchanged-corpus evidence.
-
-Every later run against changed published documents uses different source
-content; do not present it as the original unchanged comparison.
 
 </details>
 
