@@ -8,9 +8,10 @@ limits on your own APIs, then test a tool limit and restore it.
 This module uses the **browser and PowerShell commands**. Complete the
 [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) and keep that
 shell open. Choose **local PowerShell** or **Cloud Shell PowerShell** there;
-Cloud Shell needs the extra scoped sign-in: the linked setup shows how to clone
-the public repository yourself and upload/extract your complete team pack.
-Its full helper route is still awaiting rehearsal verification.
+Cloud Shell needs scoped sign-in: the linked setup shows how to clone the
+public repository, supply only your team's JSON configuration and enable `lab`.
+The starter assembles the common exercise files locally; no complete pack upload
+is needed. Input assembly is not proof of effective participant permissions.
 The `lab` commands below are the same after setup in either shell.
 No application coding is required. For these examples, `$prefix`
 is `alpha-p2`, meaning Alpha participant 2; use your own assigned prefix.

@@ -107,12 +107,21 @@ try {
         foundry_endpoint = 'https://aif-test.services.ai.azure.com'
         gateway_url = 'https://apim-test.azure-api.net'
         projects = @{ alpha = @{ endpoint = 'https://aif-test.services.ai.azure.com/api/projects/alpha' } }
+        workspace_id = "/subscriptions/$subscription/resourceGroups/test/providers/Microsoft.OperationalInsights/workspaces/log-test"
+        applicationinsights_id = "/subscriptions/$subscription/resourceGroups/test/providers/Microsoft.Insights/components/appi-test"
+        foundry_id = "/subscriptions/$subscription/resourceGroups/test/providers/Microsoft.CognitiveServices/accounts/aif-test"
+        catalog_id = "/subscriptions/$subscription/resourceGroups/test/providers/Microsoft.ApiCenter/services/apic-test"
+        gateway_id = "/subscriptions/$subscription/resourceGroups/test/providers/Microsoft.ApiManagement/service/apim-test"
     } } }
     $workload = @{
         gateway = @{ value = @{
             docs_url = 'https://apim-test.azure-api.net/architecture-docs/docs-api'
             docs_mcp = 'https://apim-test.azure-api.net/architecture-docs/docs-mcp/mcp'
             toolkit_mcp = 'https://apim-test.azure-api.net/architecture-docs/toolkit/mcp'
+            models = @{
+                models = 'https://apim-test.azure-api.net/architecture-docs/models/chat/completions?api-version=2024-10-21'
+                'models-tight' = 'https://apim-test.azure-api.net/architecture-docs/models-tight/chat/completions?api-version=2024-10-21'
+            }
         } }
         gateway_identity = @{ value = @{ client_id = $client; scope = "api://$client/Lab.Access"; roles = @{ alpha = 'test-role' } } }
         model_deployments = @{ value = @{
@@ -125,7 +134,12 @@ try {
             judge = 'architecture-docs-alpha-models/judge'
         } } } } }
         extension_authoring = @{ value = @{ resource_group_id = "/subscriptions/$subscription/resourceGroups/test-extensions" } }
-        gateway_exercises = @{ value = @{ semantic_cache_enabled = $false; live_accepted = $false } }
+        gateway_exercises = @{ value = @{
+            semantic_cache_enabled = $false; live_accepted = $false
+            model_backend_ids = @{
+                'chat-small' = "/subscriptions/$subscription/resourceGroups/test/providers/Microsoft.ApiManagement/service/apim-test/backends/architecture-docs-chat-small"
+            }
+        } }
     }
     $inputFile = Join-Path $scratch 'inputs.json'
     $foundationFile = Join-Path $scratch 'foundation.json'
@@ -170,6 +184,12 @@ try {
         ($api | ConvertTo-Json -Compress -Depth 50)) 'Participant OpenAPI may change only operation summaries, not the API contract.'
     foreach ($entry in $receipt.sha256.GetEnumerator()) {
         Assert ((Get-FileHash -LiteralPath (Join-Path $destination $entry.Key) -Algorithm SHA256).Hash -ieq $entry.Value) 'Pack receipt hash mismatch.'
+    }
+    $configDestination = Join-Path $scratch 'config-pack'
+    & $export -Configuration (Join-Path $destination 'workshop.json') -Team alpha `
+        -OutputDirectory $configDestination -WarningAction SilentlyContinue | Out-Null
+    foreach ($entry in $receipt.sha256.GetEnumerator()) {
+        Assert ((Get-FileHash -LiteralPath (Join-Path $configDestination $entry.Key) -Algorithm SHA256).Hash -ieq $entry.Value) "Config-only/organizer pack parity failed: $($entry.Key)."
     }
     foreach ($file in Get-ChildItem -LiteralPath $destination -Recurse -File) {
         $text = Get-Content -LiteralPath $file.FullName -Raw

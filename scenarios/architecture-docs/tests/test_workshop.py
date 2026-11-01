@@ -772,11 +772,14 @@ def test_core_guides_use_examples_and_explore_import_before_configuration():
 
 def test_required_command_guides_cover_both_shells_and_scoped_sign_in():
     start = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
-    assert "Option A: local Windows PowerShell" in start
-    assert "Option B: Cloud Shell PowerShell" in start
-    assert "./.venv/bin/python" in start
-    assert "repository and complete team pack" in start
-    assert "az login --tenant $context.tenant_id --scope $context.gateway_scope" in start
+    starter = (ROOT / "workshop" / "Start-Lab.ps1").read_text("utf-8")
+    assert "Cloud Shell PowerShell" in start and "PowerShell 7.5+" in start
+    assert "supply only" in (ROOT / "docs" / "modules" / "m3-governance.md").read_text("utf-8")
+    assert "only the coach-supplied **`workshop.json`**" in start
+    assert ". ./workshop/Start-Lab.ps1 -Configuration" in start
+    assert "az login --tenant $context.tenant_id --scope $context.gateway_scope" in starter
+    assert "bin\\python" in starter and "Scripts\\python.exe" in starter
+    assert "function global:lab" in starter
     for name in ("m2-tools.md", "m3-governance.md", "m5-evaluation.md"):
         text = (ROOT / "docs" / "modules" / name).read_text("utf-8")
         assert "Cloud Shell PowerShell" in text
@@ -864,13 +867,14 @@ def test_m2_tool_filter_uses_exact_comma_separated_operation_names():
 
 def test_cloud_setup_is_self_service_without_coach_source_upload():
     text = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
-    cloud = text.split("### Option B: Cloud Shell PowerShell", 1)[1].split(
-        "### Continue in either shell", 1
+    cloud = text.split("### 1. Clone the public tools", 1)[1].split(
+        "### 4. Check access", 1
     )[0]
     assert "git clone --depth 1 https://github.com/mikkokallio/foundry-hackathon.git" in cloud
-    assert "no GitHub sign-in or coach-prepared shell" in cloud
-    assert "**complete team pack ZIP**" in cloud
-    assert "Expand-Archive -LiteralPath $packArchive -DestinationPath $packFolder" in cloud
-    assert "Select-Object -ExpandProperty FullName" in cloud
+    assert "No GitHub sign-in or coach-prepared shell" in cloud
+    assert "not a ZIP, prompts," in cloud
+    assert "Path of your workshop.json in this shell" in cloud
+    assert "-Team $team -Prefix $prefix" in cloud
+    assert "Expand-Archive" not in cloud
     assert "The repository is private" not in text
     assert "the coach must make" not in cloud

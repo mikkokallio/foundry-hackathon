@@ -1,9 +1,10 @@
 #requires -Version 7.5
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Applied')]
 param(
-    [Parameter(Mandatory)][string]$FoundationOutputs,
-    [Parameter(Mandatory)][string]$WorkloadOutputs,
-    [Parameter(Mandatory)][string]$Inputs,
+    [Parameter(Mandatory, ParameterSetName = 'Applied')][string]$FoundationOutputs,
+    [Parameter(Mandatory, ParameterSetName = 'Applied')][string]$WorkloadOutputs,
+    [Parameter(Mandatory, ParameterSetName = 'Applied')][string]$Inputs,
+    [Parameter(Mandatory, ParameterSetName = 'Configuration')][string]$Configuration,
     [Parameter(Mandatory)][ValidatePattern('^[a-z][a-z0-9-]{0,30}$')][string]$Team,
     [string]$OutputDirectory
 )
@@ -29,6 +30,128 @@ function Read-Output([System.Collections.IDictionary]$Values, [string]$Name) {
     return $Values[$Name].value
 }
 
+if ($PSCmdlet.ParameterSetName -eq 'Configuration') {
+    $config = Read-Object $Configuration
+    function Assert-TokenFree([object]$Value) {
+        if ($Value -is [System.Collections.IDictionary]) {
+            foreach ($key in $Value.Keys) {
+                if ($key -match '^(?i:password|client_secret|access_token|refresh_token|authorization|connection_string|account_key|api_key|sas_token)$') {
+                    throw 'Configuration must contain deployment settings only, never credentials.'
+                }
+                Assert-TokenFree $Value[$key]
+            }
+        } elseif ($Value -is [array]) {
+            foreach ($item in $Value) { Assert-TokenFree $item }
+        } elseif ($Value -is [string] -and $Value -match '(?i)Bearer\s|SharedAccessSignature|DefaultEndpointsProtocol=|[?&]sig=') {
+            throw 'Configuration must not contain tokens, signed URLs or connection strings.'
+        }
+    }
+    Assert-TokenFree $config
+    foreach ($key in @('subscription_id', 'tenant_id')) {
+        $parsed = [guid]::Empty
+        if (-not [guid]::TryParse($config[$key], [ref]$parsed) -or $parsed -eq [guid]::Empty) {
+            throw "Configuration requires a nonempty GUID for $key."
+        }
+    }
+    $projectEndpoint = $config.project_endpoint
+    if ($config.Contains('projects')) {
+        if ($config.projects -isnot [System.Collections.IDictionary] -or -not $config.projects.Contains($Team)) {
+            throw 'Select an actual team declared in configuration projects.'
+        }
+        $projectEndpoint = $config.projects[$Team]
+    } elseif ($config.team -cne $Team) {
+        throw 'Selected team does not match the supplied team configuration.'
+    }
+    $projectUri = $null
+    if (-not [uri]::TryCreate($projectEndpoint, [UriKind]::Absolute, [ref]$projectUri) -or
+        $projectUri.Scheme -cne 'https' -or
+        $projectUri.Host -notmatch '^[a-z0-9-]+\.services\.ai\.azure\.com$' -or
+        $projectUri.AbsolutePath -cne "/api/projects/$Team" -or
+        $projectUri.UserInfo -or $projectUri.Query -or $projectUri.Fragment) {
+        throw 'Configuration project endpoint must be the actual HTTPS Foundry project for the selected team.'
+    }
+    $workloadName = $config.workload_name
+    if ($workloadName -notmatch '^[a-z][a-z0-9-]{2,28}[a-z0-9]$') { throw 'Invalid workload name.' }
+    $organization = $config.organization_name
+    if ($organization -isnot [string] -or [string]::IsNullOrWhiteSpace($organization) -or
+        $organization -match '[\r\n]|\{\{|\}\}') {
+        throw 'Supply the chosen organization name as a single line without template markers.'
+    }
+    $referenceDate = $config.reference_date
+    $settings = $config
+    $gateway = @{}
+    $docsUri = $null
+    if (-not [uri]::TryCreate($config.docs_url, [UriKind]::Absolute, [ref]$docsUri)) {
+        throw 'Configuration requires the actual documentation gateway URL.'
+    }
+    $gatewayBase = $docsUri.GetLeftPart([UriPartial]::Authority)
+    foreach ($pair in @{
+        docs_url = "$gatewayBase/$workloadName/docs-api"
+        docs_mcp = "$gatewayBase/$workloadName/docs-mcp/mcp"
+        toolkit_mcp = "$gatewayBase/$workloadName/toolkit/mcp"
+    }.GetEnumerator()) {
+        $uri = [uri]$config[$pair.Key]
+        if ($uri.Scheme -cne 'https' -or $uri.UserInfo -or $uri.Query -or $uri.Fragment -or
+            $config[$pair.Key] -cne $pair.Value) {
+            throw "Configuration '$($pair.Key)' does not match this workload/gateway."
+        }
+        $gateway[$pair.Key] = $pair.Value
+    }
+    $gateway.models = $config.gateway_models
+    foreach ($route in @('models', 'models-tight')) {
+        $modelUri = $null
+        if ($gateway.models -isnot [System.Collections.IDictionary] -or
+            -not [uri]::TryCreate($gateway.models[$route], [UriKind]::Absolute, [ref]$modelUri) -or
+            $modelUri.GetLeftPart([UriPartial]::Authority) -cne $gatewayBase -or
+            $modelUri.AbsolutePath -cne "/$workloadName/$route/chat/completions" -or
+            $modelUri.Query -cnotmatch '^\?api-version=\d{4}-\d{2}-\d{2}(?:-preview)?$' -or
+            $modelUri.UserInfo -or $modelUri.Fragment) {
+            throw "Configuration gateway_models requires the actual '$route' gateway route."
+        }
+    }
+    $scopeClient = [guid]::Empty
+    if ($config.gateway_scope -cnotmatch '^api://([0-9a-fA-F-]{36})/Lab\.Access$' -or
+        -not [guid]::TryParse($Matches[1], [ref]$scopeClient) -or $scopeClient -eq [guid]::Empty) {
+        throw 'Configuration gateway_scope must be api://APP_ID/Lab.Access.'
+    }
+    $identity = @{ scope = $config.gateway_scope }
+    $foundation = @{}
+    foreach ($pair in @{
+        workspace_id = 'workspace_resource_id'
+        applicationinsights_id = 'application_insights_resource_id'
+        foundry_id = 'foundry_resource_id'
+        catalog_id = 'catalog_resource_id'
+        gateway_id = 'gateway_resource_id'
+    }.GetEnumerator()) {
+        $resourceId = $config[$pair.Value]
+        if ($resourceId -isnot [string] -or
+            -not $resourceId.StartsWith("/subscriptions/$($config.subscription_id)/resourceGroups/", [StringComparison]::OrdinalIgnoreCase) -or
+            $resourceId -match '[?#\r\n]') {
+            throw "Configuration requires '$($pair.Value)' in the selected subscription."
+        }
+        $foundation[$pair.Key] = $resourceId
+    }
+    if ($projectUri.Host -ine "$(($foundation.foundry_id -split '/')[-1]).services.ai.azure.com") {
+        throw 'Foundry project endpoint and resource ID refer to different accounts.'
+    }
+    $models = @{}
+    $teamNativeModels = @{ agent_model_ids = @{} }
+    foreach ($alias in @('chat-small', 'chat-medium', 'judge', 'embedding')) {
+        $models[$alias] = "$workloadName-$alias"
+        $teamNativeModels.agent_model_ids[$alias] = "$workloadName-$Team-models/$alias"
+    }
+    $extensions = $config.extension_authoring
+    $gatewayExercises = $config.gateway_exercises
+    if ($extensions -isnot [System.Collections.IDictionary] -or
+        $extensions.resource_group_id -notlike "/subscriptions/$($settings.subscription_id)/resourceGroups/*") {
+        throw 'Configuration extension resource group must be in the selected subscription.'
+    }
+    if ($gatewayExercises -isnot [System.Collections.IDictionary] -or
+        $gatewayExercises.model_backend_ids -isnot [System.Collections.IDictionary] -or
+        $gatewayExercises.model_backend_ids['chat-small'] -cne "$($foundation.gateway_id)/backends/$workloadName-chat-small") {
+        throw 'Configuration requires the actual small-model backend ID for M3.'
+    }
+} else {
 $settings = Read-Object $Inputs
 $foundation = Read-Output (Read-Object $FoundationOutputs) 'foundation'
 $workload = Read-Object $WorkloadOutputs
@@ -103,6 +226,7 @@ if (-not [guid]::TryParse($identity.client_id, [ref]$clientId) -or $clientId -eq
 if ($extensions.resource_group_id -notlike "/subscriptions/$($settings.subscription_id)/resourceGroups/*") {
     throw 'Extension resource group is outside the selected subscription.'
 }
+}
 
 $files = @{}
 foreach ($file in Get-ChildItem -LiteralPath (Join-Path $source 'prompts') -Filter '*.md') {
@@ -117,6 +241,10 @@ if ($referenceDate -cne $plan.reference_date) {
     throw 'Review the frozen evaluation corpus/ground truths before exporting a different reference date.'
 }
 $dataset = Join-Path $source 'evaluation\eval_set.jsonl'
+if ($PSCmdlet.ParameterSetName -eq 'Configuration' -and $config.evaluation_dataset_sha256 -and
+    $config.evaluation_dataset_sha256 -cne (Get-FileHash -LiteralPath $dataset -Algorithm SHA256).Hash.ToLowerInvariant()) {
+    throw 'Configuration dataset hash differs from this source revision; obtain matching configuration/source.'
+}
 $cases = @(Get-Content -LiteralPath $dataset | Where-Object { $_.Trim() } |
     ForEach-Object { $_ | ConvertFrom-Json -AsHashtable -Depth 20 })
 if ($cases.Count -ne 25 -or @($cases.id | Sort-Object -Unique).Count -ne 25) {
@@ -165,6 +293,19 @@ $files['pricing.json'] = Get-Content -LiteralPath (Join-Path $source 'pricing.js
 $matrix = foreach ($alias in $plan.model_aliases) {
     foreach ($instruction in $plan.instruction_files) {
         @{ model_alias = $alias; deployment = $models[$alias]; agent_model_id = $teamNativeModels.agent_model_ids[$alias]; instructions = "prompts\$instruction" }
+    }
+}
+if ($PSCmdlet.ParameterSetName -eq 'Configuration' -and -not $config.Contains('projects')) {
+    if (@($config.model_variants).Count -ne @($matrix).Count) {
+        throw 'Configuration must preserve all four frozen model/instruction variants.'
+    }
+    foreach ($variant in $matrix) {
+        $matching = @($config.model_variants | Where-Object {
+            $_.model_alias -ceq $variant.model_alias -and
+            $_.instructions.Replace('\', '/') -ceq $variant.instructions.Replace('\', '/') -and
+            $_.deployment -ceq $variant.deployment -and $_.agent_model_id -ceq $variant.agent_model_id
+        })
+        if ($matching.Count -ne 1) { throw 'Configuration model bindings differ from the selected workload/team or frozen matrix.' }
     }
 }
 $files['workshop.json'] = @{
@@ -228,11 +369,18 @@ foreach ($file in Get-ChildItem -LiteralPath $output -Recurse -File) {
     $hashes[[IO.Path]::GetRelativePath($output, $file.FullName)] =
         (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
 }
+$sourceRevision = & git -C $root rev-parse HEAD 2>$null
+if ($LASTEXITCODE -ne 0) { throw 'Cannot record the source revision; use a Git checkout of the workshop.' }
+$sourceChanges = & git -C $root status --porcelain --untracked-files=normal
+if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect workshop source status.' }
 @{
     generated_at = [DateTimeOffset]::UtcNow.ToString('o')
     input_pack_written = $true; runtime_accepted = $false
     dataset_cases = $cases.Count; smoke_cases = 4; write_back_cases = 3; model_variants = @($matrix).Count
     sha256 = $hashes
+    source_revision = $sourceRevision
+    source_modified = [bool]$sourceChanges
+    assembly_source = $PSCmdlet.ParameterSetName
     note = 'Local inputs only. No Azure calls, registered evaluation, fabricated response or live acceptance.'
 } | ConvertTo-Json -Depth 20 |
     Set-Content -LiteralPath (Join-Path $output 'assembly-receipt.json') -Encoding utf8NoBOM

@@ -79,36 +79,15 @@ and compare evaluation runs. They are not just emergency fallbacks in those
 modules. M1, M2 and M4 have browser routes without the Python helper.
 You do not need to write application code.
 
-If your coach already set up the terminal, reuse that setup rather than creating
-another Python environment or changing its sign-in. Choose one option:
+If your coach already enabled `lab`, keep that shell open. Otherwise use
+**Cloud Shell PowerShell**, or local **PowerShell 7.5+** with Git, Azure CLI and
+Python 3.11+. Cloud Shell has these tools already and runs Linux; it cannot see
+your laptop's files.
 
-### Option A: local Windows PowerShell
+### 1. Clone the public tools
 
-Use PowerShell 7, Azure CLI and Python 3.11+. Open the terminal at the repository
-root, where the `workshop` folder is. Keep your coach-supplied team pack on this
-computer. For a new setup, create the Python environment and install its
-dependencies **only if `.venv` does not already exist**:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r .\scenarios\architecture-docs\scripts\requirements-gate.txt
-```
-
-Set the interpreter:
-
-```powershell
-$python = (Resolve-Path .\.venv\Scripts\python.exe).Path
-```
-
-### Option B: Cloud Shell PowerShell
-
-In Azure portal select the **Cloud Shell** toolbar button and choose
-**PowerShell**. Azure CLI and Python are already available. Cloud Shell runs
-Linux and cannot see files on your laptop.
-
-For M3/M5, you need the **repository and complete team pack** in this shell.
-Clone the public repository yourself; no GitHub sign-in or coach-prepared shell
-is needed:
+No GitHub sign-in or coach-prepared shell is needed.
+In Azure portal open **Cloud Shell -> PowerShell**, then:
 
 ```powershell
 Set-Location $HOME
@@ -123,78 +102,64 @@ over it. Do not overwrite an existing exercise or pull changes during a run.
 Record the printed source revision with your results. A clone contains the
 published commit, not unpublished changes on somebody else's laptop.
 
-Use **Manage files -> Upload** to upload your assigned **complete team pack ZIP**,
-then extract it. The team pack contains deployment-specific settings and exercise
-files; cloning the repository does not replace it.
+### 2. Supply only your deployment configuration
+
+You need only the coach-supplied **`workshop.json`**, not a ZIP, prompts,
+evaluation files or an integrity receipt. In Cloud Shell use
+**Manage files -> Upload** for that one JSON file. Locally, use its existing
+path. `./workshop.json` works when that file is in your current directory.
+Keep configuration private; do not commit it to the repository.
 
 ```powershell
-$packArchive = Read-Host 'Path of the uploaded team pack ZIP'
-$packFolder = Join-Path $HOME 'workshop-team-pack'
-Expand-Archive -LiteralPath $packArchive -DestinationPath $packFolder
-Get-ChildItem -LiteralPath $packFolder -Filter workshop.json -Recurse |
-    Select-Object -ExpandProperty FullName
+$configuration = Read-Host 'Path of your workshop.json in this shell'
+$team = 'alpha'       # Your assigned team.
+$prefix = 'alpha-p2'  # Your assigned team and participant.
 ```
 
-Keep the printed `workshop.json` path for the sign-in step below. Do not use
-`-Force` to overwrite an earlier pack. Uploading only `workshop.json` is enough
-for M2's REST check, but not for the Python helper, which checks the other files
-against the pack's integrity receipt.
+Use the JSON from the **same deployment and team** you are rehearsing.
+Matching exercise files alone do not prove that your account has access.
+If the coach supplies a common deployment JSON instead, its `projects` map must
+declare your actual team endpoint. Do not invent a team or edit model bindings.
 
-From the cloned repository root, create an environment **only if `.venv`
-does not already exist**, then select its Linux interpreter:
+### 3. Assemble the local inputs and enable `lab`
+
+From the clone's root run the following. The **dot followed by a space** matters:
+it keeps the command available in this PowerShell session.
 
 ```powershell
-python -m venv .venv
-./.venv/bin/python -m pip install -r ./scenarios/architecture-docs/scripts/requirements-gate.txt
-$python = (Resolve-Path ./.venv/bin/python).Path
+. ./workshop/Start-Lab.ps1 -Configuration $configuration -Team $team -Prefix $prefix
 ```
 
-**Test coverage:** Cloud Shell PowerShell setup, authenticated reads, practice
-API/MCP creation, model calls and request/token throttling have passed rehearsal.
-MCP connection creation required a separately approved Alpha participant
-permission fix; do not assume every team's access is ready. One real evaluation
-completed with failed checks, and knowledge retrieval executed. The complete
-four-way Cloud evaluation/comparison route is not yet verified. Result export
-using the native `download` command passed with a nested 6 MiB test and with
-four real result folders uploaded from local evaluation, repacked in Cloud Shell
-and downloaded: archive SHA256 matched and all 172 result files matched locally.
-That transfer check does not turn local evaluations into Cloud execution.
-Verify that export works in your session before starting M5.
+The starter assembles the prompts, portal OpenAPI, unchanged evaluation inputs
+and a new integrity receipt from this checkout under ignored `out/`.
+It prints their location and records the source revision. It uses `.venv`,
+installing the declared dependencies only when required modules are missing.
+It installs prebuilt wheels, not local compiler builds. If compatible wheels
+are unavailable on your computer, keep the error and use Cloud Shell; do not
+install Rust or change package versions to get past it.
+It does not deploy infrastructure, create agents or run evaluations.
 
-### Continue in either shell: sign in and enable the commands
+If sign-in is needed, open the printed device-login page in Edge and use
+**your own workshop account**. The starter uses a separate Azure CLI profile for
+your prefix, not the organizer's login. Cloud Shell's automatic sign-in does not
+necessarily include the required `Lab.Access` scope. A token acquisition error
+before the sign-in prompt means this isolated profile needs authentication;
+if sign-in itself fails, stop and report that error.
 
-Use the location of `workshop.json` **in the shell you chose**, not its path on
-another computer. In Cloud Shell, use the path printed after extraction above;
-`./workshop.json` also works if your current folder contains that file.
-This example is for Alpha participant 2.
-When `az login` prints a device code, open its sign-in page in Edge, enter the
-code and finish signing in with your **own workshop account**. If asked, select
-the coach's subscription. Cloud Shell's automatic sign-in alone does not give
-access to the documentation API; the `--scope` below is required.
-If you completed M2's login in this same shell, reuse it and skip `az login`
-and `az account set`.
+### 4. Check access, then continue M3
 
 ```powershell
-$pack = Read-Host 'Paste the full path of your team pack workshop.json in this shell'
-$prefix = 'alpha-p2' # Replace with your assigned team and participant.
-$context = Get-Content $pack -Raw | ConvertFrom-Json
-$env:AZURE_CONFIG_DIR = Join-Path $HOME ".foundry-hackathon-$prefix"
-az login --tenant $context.tenant_id --scope $context.gateway_scope --use-device-code
-if ($LASTEXITCODE -ne 0) { throw 'Workshop sign-in failed.' }
-az account set --subscription $context.subscription_id
-if ($LASTEXITCODE -ne 0) { throw 'Workshop subscription selection failed.' }
-function lab {
-    & $python -m workshop --pack $pack --prefix $prefix @args
-    if ($LASTEXITCODE -ne 0) { throw 'Workshop command failed; inspect the error above.' }
-}
 lab check
+lab practice status
 ```
 
-The separate sign-in folder avoids replacing the coach's Azure CLI login.
-
-Keep this shell open: `lab` is the function you just defined, not a built-in Azure
-command. `lab check` checks that it can list agents and read the documentation
-API. It does not prove you have permission for every later task.
+Keep this shell open. `lab check` performs real Foundry agent-list and
+authenticated documentation-read checks; it is **not** authoring-permission or
+release acceptance. `lab practice status` reports your own existing practice
+APIs; missing ones are expected until you create them in the exercises.
+Input assembly cannot repair a missing permission. The targeted M2 permission
+fix must be verified with a non-admin account after the new deployment;
+historical Alpha-only access is not proof every team works.
 
 Cloud Shell sessions without storage are temporary. Rehearsal lost its workspace
 after a disconnected session expired, and **Manage files -> Download** failed.
@@ -208,9 +173,10 @@ alone is not a copy of the results. M5 shows the archive and hash commands. If
 download fails, keep the current shell open and tell the coach; do not create storage,
 share links or change access permissions as an improvised workaround.
 
-The helper checks that the exercise files have not changed. If it reports a
-file mismatch, ask the coach for a fresh export. Do not edit the integrity receipt
-or change `runtime_accepted`.
+The helper checks the generated files against their receipt. If they change,
+keep the error and rerun setup from the correct unchanged source/configuration.
+Do not edit the receipt or change `runtime_accepted`. New setup creates a fresh
+input directory rather than overwriting old evidence.
 
 </details>
 
