@@ -18,6 +18,34 @@ Copy-Item .\infra\people.example.json .\out\people.private.json
 
 Edit **`out\people.private.json`**: fill in only `publisher_email`, the monitored APIM contact. Librarians and team members are added in Step 3. Keep this file private. The generator supplies Contoso, five team projects (alpha, beta, gamma, delta, epsilon), France Central, Basic v2 APIM, Standard Search with three replicas, and the shared model/cache/limit defaults.
 
+<details>
+<summary>Sample people.private.json</summary>
+
+- `publisher_email`: APIM's monitored contact email; grants no permissions.
+- `librarians` and team members: actual sign-in UPNs in the deployment tenant, not necessarily their contact emails. Librarians can review/publish proposals and may also be participants.
+
+This fictional example uses John's contact email and his sign-in UPN in the
+same Contoso directory as all ten participants. Replace them with real values.
+UPNs can use a verified domain such as `contoso.com`; `onmicrosoft.com` is not
+required. Use the actual UPN shown in Microsoft Entra ID.
+
+```json
+{
+  "publisher_email": "john.publisher@contoso.com",
+  "librarians": ["john.publisher@contoso.onmicrosoft.com"],
+  "teams": {
+    "alpha": ["dummy1@contoso.onmicrosoft.com", "dummy2@contoso.onmicrosoft.com"],
+    "beta": ["dummy3@contoso.onmicrosoft.com", "dummy4@contoso.onmicrosoft.com"],
+    "gamma": ["dummy5@contoso.onmicrosoft.com", "dummy6@contoso.onmicrosoft.com"],
+    "delta": ["dummy7@contoso.onmicrosoft.com", "dummy8@contoso.onmicrosoft.com"],
+    "epsilon": ["dummy9@contoso.onmicrosoft.com", "dummy10@contoso.onmicrosoft.com"]
+  }
+}
+```
+
+</details>
+
+
 ```powershell
 az login
 $subscription = Read-Host 'Target subscription ID'

@@ -861,6 +861,40 @@ def test_required_command_guides_cover_both_shells_and_scoped_sign_in():
     assert "finally" in tools and "$token = $null" in tools
 
 
+def test_m3_cloud_setup_is_inline_and_optional_for_an_existing_lab_shell():
+    text = (ROOT / "docs" / "modules" / "m3-governance.md").read_text("utf-8")
+    intro = text.split("## Build and investigate", 1)[0]
+    assert "Complete the" not in intro
+    step = text.split("### 2. Send one normal model request", 1)[1].split("### 3.", 1)[0]
+    setup = step.split("<details>", 1)[1].split("</details>", 1)[0]
+    assert "skip if lab already works" in setup
+    assert "git clone --depth 1 https://github.com/mikkokallio/foundry-hackathon.git" in setup
+    assert "**Manage files -> Upload**" in setup
+    assert "$configuration = Join-Path $HOME 'workshop.json'" in setup
+    assert "$team = 'alpha'" in setup and "$prefix = 'alpha-p2'" in setup
+    assert ". ./workshop/Start-Lab.ps1 -Configuration $configuration -Team $team -Prefix $prefix" in setup
+    assert "lab check" in setup and "**your own workshop account**" in setup
+    assert "lab practice status" in step.split("</details>", 1)[1]
+
+
+def test_module_zero_people_example_is_valid_fictional_five_team_roster():
+    import re
+
+    text = (ROOT / "docs" / "module-0.md").read_text("utf-8")
+    sample = text.split("<summary>Sample people.private.json</summary>", 1)[1].split("</details>", 1)[0]
+    blocks = re.findall(r"```json\n(.*?)```", sample, re.DOTALL)
+    assert len(blocks) == 1
+    people = json.loads(blocks[0])
+    assert people["publisher_email"] == "john.publisher@contoso.com"
+    assert people["librarians"] == ["john.publisher@contoso.onmicrosoft.com"]
+    assert list(people["teams"]) == ["alpha", "beta", "gamma", "delta", "epsilon"]
+    assert all(len(members) == 2 for members in people["teams"].values())
+    assert [member for members in people["teams"].values() for member in members] == [
+        f"dummy{number}@contoso.onmicrosoft.com" for number in range(1, 11)
+    ]
+    assert "`onmicrosoft.com` is not\nrequired" in sample
+
+
 def test_m2_authenticated_request_has_small_blocks_with_adjacent_guidance():
     import re
 

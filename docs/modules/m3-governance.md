@@ -5,14 +5,10 @@
 Find your agent's model request in APIM logs, test separate request and token
 limits on your own APIs, then test a tool limit and restore it.
 
-This module uses the **browser and PowerShell commands**. Complete the
-[helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) and keep that
-shell open. Choose **local PowerShell** or **Cloud Shell PowerShell** there;
-Cloud Shell needs scoped sign-in: the linked setup shows how to clone the
-public repository, supply only your team's JSON configuration and enable `lab`.
-The starter assembles the common exercise files locally; no complete pack upload
-is needed. Input assembly is not proof of effective participant permissions.
-The `lab` commands below are the same after setup in either shell.
+This module uses the **browser and PowerShell commands**. Step 2 includes
+expandable Cloud Shell setup instructions; if `lab` already works, skip setup
+and keep using that shell. You can also use
+[local PowerShell](../../PARTICIPANT-START.md#powershell-helper-setup).
 No application coding is required. For these examples, `$prefix`
 is `alpha-p2`, meaning Alpha participant 2; use your own assigned prefix.
 Never change the shared reference's limits.
@@ -51,11 +47,67 @@ APIM connection's traffic dashboard.
 
 ### 2. Send one normal model request
 
-If you have finished Step 1, continue here; do not repeat M1 or M2. If `lab`
-is not available yet, open **Cloud Shell -> PowerShell** and follow the
-[public clone + team JSON setup](../../PARTICIPANT-START.md#1-clone-the-public-tools),
-then return here. Keep the same assigned prefix and your existing M2 MCP server
-and steward. Setup does not recreate them or deploy infrastructure.
+If you have finished Step 1, continue here; do not repeat M1 or M2.
+Keep the same assigned prefix and your existing M2 MCP server and steward.
+If `lab` is not available in your shell, expand the instructions below.
+
+<details>
+<summary>Set up Cloud Shell PowerShell here (skip if lab already works)</summary>
+
+In [Azure portal](https://portal.azure.com), open **Cloud Shell** using the
+terminal icon in the top bar, then choose **PowerShell**.
+Cloud Shell runs separately from your laptop; files on your laptop are not
+automatically available there. Keep this shell open through the exercises.
+
+**A. Clone the public tools**
+
+No GitHub sign-in is needed. Run:
+
+```powershell
+Set-Location $HOME
+git clone --depth 1 https://github.com/mikkokallio/foundry-hackathon.git
+if ($LASTEXITCODE -ne 0) { throw 'Workshop repository download failed.' }
+Set-Location (Join-Path $HOME 'foundry-hackathon')
+git rev-parse HEAD
+```
+
+If `foundry-hackathon` already exists, enter that checkout instead of cloning
+over it. Do not overwrite your work or pull changes during an exercise.
+
+**B. Upload your team configuration**
+
+Use **Manage files -> Upload** in Cloud Shell to upload the coach-supplied
+**`workshop.json`** for your team. You supply only that JSON file, not a ZIP or
+complete pack. Keep it private; do not commit it to Git.
+For an upload to your home directory, run:
+
+```powershell
+$configuration = Join-Path $HOME 'workshop.json'
+if (-not (Test-Path -LiteralPath $configuration)) {
+  throw 'Upload your team workshop.json to your Cloud Shell home directory first.'
+}
+$team = 'alpha'       # Replace with your assigned team.
+$prefix = 'alpha-p2'  # Use the same prefix as your M2 MCP server and steward.
+```
+
+**C. Enable the lab commands and sign in**
+
+Run this from the checkout's root. The **dot followed by a space** matters:
+
+```powershell
+. ./workshop/Start-Lab.ps1 -Configuration $configuration -Team $team -Prefix $prefix
+lab check
+```
+
+The starter prepares the exercise files and installs missing declared Python
+dependencies. It does not deploy infrastructure or recreate your agents/APIs.
+If it prints a device-login code, open the printed login page and sign in as
+**your own workshop account**. Cloud Shell's automatic sign-in may not include
+the gateway scope; the starter uses an isolated profile for your prefix.
+If setup or `lab check` fails, keep the error and ask the coach before continuing.
+A successful read check does not prove authoring permissions.
+
+</details>
 
 Make a normal authenticated request, inspect actual usage/status and available
 remaining-token/retry headers:
