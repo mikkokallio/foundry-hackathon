@@ -45,7 +45,10 @@ $interpreter = if ($IsWindows) { Join-Path $venv 'Scripts\python.exe' } else { J
 if (-not (Test-Path -LiteralPath $interpreter -PathType Leaf)) {
     throw 'Existing .venv has no interpreter for this operating system. Keep it intact and use a fresh checkout.'
 }
-& $interpreter -c 'import azure.ai.projects, azure.identity, azure.monitor.query, openai, yaml'
+& {
+    $PSNativeCommandUseErrorActionPreference = $false
+    & $interpreter -c 'import azure.ai.projects, azure.identity, azure.monitor.query, openai, yaml'
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Host 'Required Python modules are missing; installing the declared workshop dependencies.'
     & $interpreter -m pip install --only-binary=:all: -r (Join-Path $root 'scenarios\architecture-docs\scripts\requirements-gate.txt')
@@ -55,11 +58,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 $env:AZURE_CONFIG_DIR = Join-Path $HOME ".foundry-hackathon-$Prefix"
 if (-not $SkipSignIn) {
-    $accountTenant = & az account show --subscription $context.subscription_id --query tenantId --output tsv
+    $accountTenant = & {
+        $PSNativeCommandUseErrorActionPreference = $false
+        & az account show --subscription $context.subscription_id --query tenantId --output tsv
+    }
     $requiresSignIn = $LASTEXITCODE -ne 0 -or $accountTenant -ine $context.tenant_id
     if (-not $requiresSignIn) {
-        & az account get-access-token --subscription $context.subscription_id `
-            --scope $context.gateway_scope --query expiresOn --output tsv
+        & {
+            $PSNativeCommandUseErrorActionPreference = $false
+            & az account get-access-token --subscription $context.subscription_id `
+                --scope $context.gateway_scope --query expiresOn --output tsv
+        }
         $requiresSignIn = $LASTEXITCODE -ne 0
     }
     if ($requiresSignIn) {

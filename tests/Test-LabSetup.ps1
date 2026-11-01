@@ -1,5 +1,6 @@
 #requires -Version 7.5
 $ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $export = Join-Path $root 'scenarios\architecture-docs\scripts\Export-ExerciseInputs.ps1'
 $starter = Join-Path $root 'workshop\Start-Lab.ps1'
@@ -76,9 +77,32 @@ try {
     Assert ($rendered.Contains($config.organization_name) -and $rendered -notmatch '\{\{[^}]+\}\}') 'Prompts must be rendered from actual config.'
     $prepared = @(& $starter -Configuration $inputFile -Team alpha -Prefix alpha-p2 -PrepareOnly -WarningAction SilentlyContinue)
     $preparedDirectory = Split-Path -Parent $prepared[-1]
+    $probeTokens = $null; $probeErrors = $null
+    $starterAst = [System.Management.Automation.Language.Parser]::ParseFile(
+        $starter, [ref]$probeTokens, [ref]$probeErrors
+    )
+    $moduleProbe = $starterAst.Find({
+        param($node)
+        $node -is [System.Management.Automation.Language.ScriptBlockExpressionAst] -and
+            $node.Extent.Text.Contains('import azure.ai.projects')
+    }, $true)
+    Assert ($null -ne $moduleProbe) 'Dependency probe must run in a scope that handles an expected nonzero exit.'
+    $oldPythonPath = $env:PYTHONPATH
+    try {
+        Set-Content -LiteralPath (Join-Path $scratch 'azure.py') -Value "raise ModuleNotFoundError('Synthetic missing workshop dependency')"
+        $env:PYTHONPATH = $scratch
+        $interpreter = (Get-Command python -ErrorAction Stop).Source
+        $probe = $moduleProbe.ScriptBlock.GetScriptBlock()
+        & $probe
+        Assert ($LASTEXITCODE -ne 0) 'Missing dependency must reach the install decision, not terminate the starter.'
+        Assert $PSNativeCommandUseErrorActionPreference 'Dependency probe must preserve caller native strictness.'
+    } finally {
+        $env:PYTHONPATH = $oldPythonPath
+    }
     $oldProfile = $env:AZURE_CONFIG_DIR
     & {
         $global:LabTestNeedsLogin = $false
+        $global:LabTestNeedsScope = $false
         $global:LabTestTenant = $config.tenant_id
         $global:LabTestAzCalls = [Collections.Generic.List[object]]::new()
         function global:az {
@@ -90,13 +114,22 @@ try {
             switch ("$($args[0]) $($args[1])") {
                 'account show' {
                     if ($global:LabTestNeedsLogin) {
-                        $global:LASTEXITCODE = 1
+                        & python -c 'import sys; sys.exit(1)'
                     } else {
                         Write-Output $global:LabTestTenant
                     }
                 }
-                'account get-access-token' { Write-Output 'fixture-expiry-not-a-token' }
-                'login --tenant' { $global:LabTestNeedsLogin = $false }
+                'account get-access-token' {
+                    if ($global:LabTestNeedsScope) {
+                        & python -c 'import sys; sys.exit(1)'
+                    } else {
+                        Write-Output 'fixture-expiry-not-a-token'
+                    }
+                }
+                'login --tenant' {
+                    $global:LabTestNeedsLogin = $false
+                    $global:LabTestNeedsScope = $false
+                }
                 'account set' {}
                 default { throw 'Unexpected Azure CLI call in the offline setup test.' }
             }
@@ -115,6 +148,12 @@ try {
             . $starter -Configuration $inputFile -Team alpha -Prefix alpha-p2 -WarningAction SilentlyContinue
             $loginCalls = @($global:LabTestAzCalls | Where-Object { $_[0] -ceq 'login' })
             Assert ($loginCalls.Count -eq 1 -and $loginCalls[0] -contains '--scope' -and $loginCalls[0] -contains '--use-device-code') 'Missing profile requires one explicit scoped device sign-in.'
+            Remove-Item -LiteralPath (Split-Path -Parent $global:FoundryLabSession.Pack) -Recurse
+            $global:LabTestNeedsScope = $true
+            . $starter -Configuration $inputFile -Team alpha -Prefix alpha-p2 -WarningAction SilentlyContinue
+            $loginCalls = @($global:LabTestAzCalls | Where-Object { $_[0] -ceq 'login' })
+            Assert ($loginCalls.Count -eq 2) 'An expired or missing gateway scope must reach explicit device sign-in.'
+            Assert $PSNativeCommandUseErrorActionPreference 'Account and token probes must preserve caller native strictness.'
         } finally {
             if ($global:FoundryLabSession) {
                 Remove-Item -LiteralPath (Split-Path -Parent $global:FoundryLabSession.Pack) -Recurse
@@ -122,7 +161,7 @@ try {
                 Remove-Item Function:\lab
             }
             Remove-Item Function:\az
-            Remove-Variable LabTestNeedsLogin,LabTestTenant,LabTestAzCalls -Scope Global
+            Remove-Variable LabTestNeedsLogin,LabTestNeedsScope,LabTestTenant,LabTestAzCalls -Scope Global
             $env:AZURE_CONFIG_DIR = $oldProfile
         }
     }
