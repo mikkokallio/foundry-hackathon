@@ -126,41 +126,73 @@ but **not** substitute proof that your agent's model traffic uses that route.
 
 ### 3. Test request and token limits separately
 
-Create your own model practice APIs. Reuse existing model deployments and the
-reference auth/routing policy. Keep one API request-limited with a generous
-token allowance, and another token-limited with a higher request allowance.
-If both are tight on one route, the first failure can mask the other.
-
-The helper creates two model APIs with your own prefix. For example, Alpha
-participant 2's names start with `alpha-p2-`; the helper reports the actual names.
-It does not create new model deployments:
+**Run this command first.** It creates both practice APIs and configures their
+limits; no manual API creation or policy editing is needed beforehand.
+It reuses the existing models and authentication/routing policy:
 
 ```powershell
 lab practice models
+```
+
+The helper reports two APIs with your prefix, such as `alpha-p2-models-requests`
+and `alpha-p2-models-tokens`. Their limits deliberately isolate the two tests:
+
+| Route | Request limit | Token limit |
+|---|---|---|
+| `requests` | 2 requests/minute | 50,000 tokens/minute |
+| `tokens` | 30 requests/minute | 256 tokens/minute |
+
+**Run each test separately and inspect its output before continuing.**
+Each `--burst` sends at most six requests and stops at the first 429.
+If all six succeed, it reports `Bounded burst did not observe a 429`.
+That means this test did not reach a limit, not that API creation failed.
+
+**A. Request-limit test**
+
+```powershell
 lab gateway --route requests --burst
+```
+
+Expect initial successful responses followed by a 429 from the request limiter.
+This limit is low enough to test on your own; another participant's traffic is
+not required. Timing and gateway counter behavior can affect exactly when it
+triggers, so six requests do not guarantee a 429.
+
+**B. Token-limit test with a short prompt**
+
+```powershell
 lab gateway --route tokens --burst
 ```
 
-The bounded burst stops on a real 429 or fails after six attempts. Inspect the
-originating policy/upstream result; respect `Retry-After` and demonstrate a later
-successful request. If the token test does not trigger, use one deliberately
-longer synthetic prompt or adjust **your practice policy**, rather than hammering
-shared capacity. Never change shared reference limits or bypass the gateway.
+Inspect the returned token usage. These short requests may all succeed without
+reaching 256 tokens within the limiter's window. That is a useful contrast with
+the request-limit test: request count alone does not determine token usage.
 
-<details>
-<summary>If the token test did not reach the limit</summary>
-
-Try this longer synthetic prompt once. The helper still stops after six attempts:
+**C. If the short token test did not return 429, run this longer-prompt test once**
 
 ```powershell
 lab gateway --route tokens --burst --query 'Write a detailed synthetic explanation of how a fictional architecture team maintains documentation. Use at least 200 words. Do not describe any real customer.'
 ```
 
-The response length is capped by the helper; this is a traffic-limit test, not a
-test of whether the model writes 200 words. Stop when you see 429, respect
-`Retry-After`, then make one normal request to check recovery.
+The longer prompt increases token demand and is more likely to trigger the
+token limiter. The helper still caps output at 64 tokens and sends at most six
+requests; this is not a test of whether the model writes 200 words.
+If B already returned 429, skip C.
 
-</details>
+**After a 429**, record `retry_after`, wait that many seconds, then make one
+non-burst request on the same route to check recovery:
+
+```powershell
+lab gateway --route requests
+# After a token-route 429 and its wait, use this instead:
+lab gateway --route tokens
+```
+
+Confirm a successful response with token usage. Check the logs to distinguish
+your practice limiter from an upstream/shared-capacity 429; the status alone
+does not identify the cause. If neither token test throttles, inspect the policy
+below rather than repeating bursts. Never change shared reference limits or
+bypass the gateway.
 
 In Azure portal, open your assigned **API Management services** instance ->
 **APIs**, then select one of the new APIs with your prefix. In **Design ->
