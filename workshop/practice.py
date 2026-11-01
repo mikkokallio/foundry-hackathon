@@ -89,6 +89,22 @@ def practice(args: Any, pack: dict[str, Any], identity: Any) -> None:
         )
         copy_policy(pack, identity, service, workload + "-docs-api", prefix + "-docs-api")
         mcp = f"{service}/apis/{prefix}-docs-mcp"
+        tools = []
+        for methods in spec["paths"].values():
+            for method, operation in methods.items():
+                if method not in ("get", "post") or operation["operationId"] in (
+                    "health",
+                    "publishProposal",
+                ):
+                    continue
+                name = operation["operationId"]
+                tools.append(
+                    {
+                        "name": name,
+                        "description": operation.get("description", "")[:1000],
+                        "operationId": f"{api}/operations/{name}",
+                    }
+                )
         add(
             pack,
             identity,
@@ -100,28 +116,9 @@ def practice(args: Any, pack: dict[str, Any], identity: Any) -> None:
                 "path": prefix + "/docs-mcp",
                 "protocols": ["https"],
                 "subscriptionRequired": False,
-                "mcpProperties": {"transportType": "streamable"},
+                "mcpTools": sorted(tools, key=lambda tool: tool["name"]),
             },
         )
-        for methods in spec["paths"].values():
-            for method, operation in methods.items():
-                if method not in ("get", "post") or operation["operationId"] in (
-                    "health",
-                    "publishProposal",
-                ):
-                    continue
-                name = operation["operationId"]
-                add(
-                    pack,
-                    identity,
-                    f"{mcp}/tools/{name}",
-                    "2025-09-01-preview",
-                    {
-                        "displayName": name,
-                        "description": operation.get("description", "")[:1000],
-                        "operationId": f"{api}/operations/{name}",
-                    },
-                )
         copy_policy(
             pack,
             identity,

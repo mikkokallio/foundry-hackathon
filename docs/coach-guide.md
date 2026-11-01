@@ -11,6 +11,22 @@ Participants are encouraged to author their own APIs, MCPs, agents, connections,
 catalog records and extension apps. Do not reapply Terraform over their work.
 Do not modify shared references to rescue an exercise.
 
+### Publish the participant source before rehearsal
+
+Keep the Cloud Shell helper in this repository with its exercises and tests;
+a separate copy would require synchronizing fixes and evaluation inputs.
+Participants can clone the public repository themselves, then upload/extract
+their assigned complete team pack. A prepared coach shell is not required.
+
+Public visibility does not mean the source is current. Review and commit the
+participant changes, publish the reviewed revision, then verify an independent
+clone of that exact commit with the complete pack in Cloud Shell. Include new
+helper dependencies, not just edits to tracked files. Record the source revision
+with the evidence. Do not claim a local working-tree test validates GitHub's
+published version. Keep private handoffs, customer material, generated packs,
+credentials and result traces out of the public release; do not bundle
+unapproved infrastructure changes into a participant-doc/tooling release.
+
 ### Effective-access checklist
 
 Check with a **non-admin participant identity**, not only the deployer:
@@ -23,11 +39,33 @@ Check with a **non-admin participant identity**, not only the deployer:
 | Insights/workspace | Query the assigned traces/logs/metrics and inspect a run. |
 | Evaluation | Invoke judge, collect real responses and verify remote scores/native provenance. |
 | Extensions (B2) | Build/push image; create app in extension group; attach preassigned pull identity/environment. |
-| Librarian | Separate authorized human can review/publish; participants/agents cannot impersonate that role. |
+| Human publisher | Selected coach can review/publish for the non-blocking demonstration; participants/agents cannot impersonate that role. |
 
 Include MCP connection creation in the participant access check: Foundry User
 does not explicitly grant ARM connection writes. If the supported portal path is
 denied, arrange a scoped permission review before the event.
+
+Rehearsal confirmed that both the portal and helper needed
+`Microsoft.CognitiveServices/accounts/projects/connections/write`.
+A separately approved single-action role, assigned only to the test participant
+on Alpha, enabled both routes. This is not an all-team access fix and is not
+encoded in the frozen IaC. Review any rollout with the organizer before changing
+deployment code or assignments.
+
+For Cloud Shell M5, verify a small archive downloads and extracts locally
+**before** starting evaluations. Rehearsal reproduced a server-side
+`FileDownloadError` even for a synthetic archive, then lost undownloaded results
+when the ephemeral session expired. The cause of the download failure is not
+established. The native `download $archive` command, followed by clicking its
+**Download file** filename link, subsequently passed with a nested 6 MiB archive:
+remote/local SHA256 matched and local extraction succeeded. Use that procedure
+and verify participants have an actual local copy. A subsequent round trip of
+four real, locally evaluated result folders also passed: upload, Cloud extraction
+and repacking, native download, matching archive SHA256 and all 172 original
+files matching after local extraction. This verifies result preservation, not
+Cloud execution of those evaluations. No new storage or extra
+permission was needed. Provision or change persistent storage only with
+organizer approval and an equivalent participant-wide access design.
 
 ## Module facilitation
 
@@ -42,7 +80,7 @@ cells. Do not leave three people idle watching a driver unless they choose that.
 | M3 | Positive model-route evidence, isolated model/tool throttles and real chart. | Which counter/identity did this request use? |
 | M4 | Own useful registration, actual definition retrieval, first toolkit use. | Why can discoverable still mean unauthorized? |
 | M5 | Comparable real results and numerical choice, or genuine attempts explicitly stopped as workshop-only/not qualified; worst-row investigation. | Is a lower token price a lower cost per successful task? |
-| Core approval | Denial saves nothing, approval matches stored text, separate librarian publication. | Exactly what did the human authorize? |
+| Core approval | Denial saves nothing; approval matches valid stored text/status on readback. No publisher needed for team completion. | Exactly what did the human authorize? |
 
 **Reference catch-up:** inspect current state; add missing owned objects or attach
 the unchanged reference to a new owned agent. Never delete an attempt. Record
@@ -115,7 +153,11 @@ Distinguish missing facts/tools (quality), missing native provenance and
 incomplete collection caused by 429s. These need different follow-up actions.
 Inspect incomplete manifests directly rather than ranking them with `lab compare`.
 
-**Across all teams:** record collection closure only after every team's
+Core approval completes at valid proposal saving/readback; an absent publisher
+or another team's progress must not block it. Publication is an optional coach
+demonstration.
+
+**Before that demonstration:** record collection closure only after every team's
 frozen-corpus attempts completed or were explicitly stopped, before any librarian
 publication. Proposals can be drafted/saved beforehand. Record the corpus
 boundary; later changed-corpus runs are not the original baseline. Publication

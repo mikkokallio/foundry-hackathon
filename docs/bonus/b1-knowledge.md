@@ -50,14 +50,17 @@ templates. You will inspect both the retrieved sources and the answer's accuracy
    Substitute your actual steward binding filename. This clones the actual
    immutable base rather than rebuilding or overwriting it, checks the existing
    project connection and records a new candidate. Reusing an existing name or
-   output is refused. Review the proposed query, then use
-   **Approve -> Approve once** to allow that retrieval.
+   output is refused. In the terminal, inspect the printed tool name and
+   exact query. Enter `y` at **Approve this exact tool and arguments? [y/N]**
+   only for the single short retrieval query you intend to run. Enter `n`
+   to deny it. In the portal, the equivalent is **Approve -> Approve once**.
 3. Ask the same narrative question before/after, for example: "Explain the
    architecture-documentation standard's expectations for interfaces and unknown
    operational details. Retrieve using exactly one query, cite the source filename
    and source_url, and distinguish indexed prose from the current standard."
-   Inspect the pending arguments before **Approve -> Approve once**. If the
-   agent requests multiple queries, deny and ask it to use exactly one.
+   Inspect the pending arguments before approving (`y` in the terminal, or
+   **Approve -> Approve once** in the portal). If the agent requests multiple
+   queries, deny and ask it to use exactly one.
    Then ask a specific owner/interface question that should still use inventory.
 4. Inspect retrieval arguments, source identifiers/citations and native spans.
    Compare cited prose with the real published document and inventory.

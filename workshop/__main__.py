@@ -496,6 +496,8 @@ def chat(args: argparse.Namespace, pack: dict[str, Any], identity: Any) -> None:
 
 
 def gateway_token(pack: dict[str, Any]) -> str:
+    from cli_credential import cli_cache_lock
+
     scope = pack["gateway_scope"]
     app_id = uuid.UUID(urlparse(scope).netloc)
     if scope != f"api://{app_id}/Lab.Access":
@@ -504,27 +506,28 @@ def gateway_token(pack: dict[str, Any]) -> str:
     if executable is None:
         raise ValueError("Azure CLI is required to acquire the delegated gateway token.")
     # AzureCliCredential converts this delegated scope into an incorrect resource URI.
-    result = subprocess.run(
-        [
-            executable,
-            "account",
-            "get-access-token",
-            "--subscription",
-            pack["subscription_id"],
-            "--scope",
-            scope,
-            "--query",
-            "accessToken",
-            "--output",
-            "tsv",
-            "--only-show-errors",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        check=False,
-        shell=False,
-    )
+    with cli_cache_lock():
+        result = subprocess.run(
+            [
+                executable,
+                "account",
+                "get-access-token",
+                "--subscription",
+                pack["subscription_id"],
+                "--scope",
+                scope,
+                "--query",
+                "accessToken",
+                "--output",
+                "tsv",
+                "--only-show-errors",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            shell=False,
+        )
     if result.returncode:
         raise ValueError("Delegated gateway token acquisition failed: " + result.stderr.strip())
     token = result.stdout.strip()
@@ -793,11 +796,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "compare":
             compare(args.manifests, args.output)
             return 0
-        from azure.identity import AzureCliCredential
+        from cli_credential import CachedAzureCliCredential
 
         from workshop.practice import catalog, practice
 
-        with AzureCliCredential(tenant_id=pack["tenant_id"], process_timeout=30) as identity:
+        with CachedAzureCliCredential(tenant_id=pack["tenant_id"], process_timeout=30) as identity:
             if args.command == "check":
                 from azure.ai.projects import AIProjectClient
 

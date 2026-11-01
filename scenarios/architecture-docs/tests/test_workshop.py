@@ -90,6 +90,97 @@ def test_idempotent_creation_never_puts_existing_or_different_object():
         assert arm.call_args_list[1].kwargs["method"] == "PUT"
 
 
+def test_practice_mcp_can_resume_with_actual_apim_readback_shape(tmp_path):
+    pack = {
+        **example_pack(),
+        "docs_url": "https://example.azure-api.net/example/docs-api",
+        "gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access",
+        "gateway_exercises": {
+            "model_backend_ids": {"chat-small": "/service/backends/chat-small"}
+        },
+    }
+    (tmp_path / "openapi.json").write_text('{"paths": {}}', encoding="utf-8")
+    args = SimpleNamespace(prefix="alpha-p1", kind="docs", pack=tmp_path / "workshop.json")
+    with (
+        patch.object(
+            practice,
+            "arm",
+            return_value={"properties": {"serviceUrl": "https://backend.example"}},
+        ),
+        patch.object(practice, "copy_policy"),
+        patch.object(practice, "project_id", return_value="/project"),
+        patch.object(practice, "add") as add,
+    ):
+        practice.practice(args, pack, None)
+    mcp = next(
+        call for call in add.call_args_list if call.args[2].endswith("/alpha-p1-docs-mcp")
+    )
+    desired = mcp.args[4]
+    assert "mcpProperties" not in desired
+    actual = {
+        **desired,
+        "mcpProperties": {"endpoints": None, "federation": None, "isFederationRouter": False},
+    }
+    with patch.object(practice, "arm", return_value={"properties": actual}) as arm:
+        practice.add(pack, None, mcp.args[2], mcp.args[3], desired)
+    arm.assert_called_once()
+
+
+def test_practice_docs_creates_tools_inline_like_the_working_reference(tmp_path):
+    pack = {
+        **example_pack(),
+        "docs_url": "https://example.azure-api.net/example/docs-api",
+        "gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access",
+        "gateway_exercises": {
+            "model_backend_ids": {"chat-small": "/service/backends/chat-small"}
+        },
+    }
+    spec = {
+        "paths": {
+            "/systems": {
+                "get": {"operationId": "listSystems", "description": "List systems"}
+            },
+            "/validate": {
+                "post": {"operationId": "validateDocument", "description": "Validate"}
+            },
+            "/health": {"get": {"operationId": "health"}},
+            "/publish": {"post": {"operationId": "publishProposal"}},
+        }
+    }
+    (tmp_path / "openapi.json").write_text(json.dumps(spec), encoding="utf-8")
+    args = SimpleNamespace(prefix="alpha-p1", kind="docs", pack=tmp_path / "workshop.json")
+    with (
+        patch.object(
+            practice,
+            "arm",
+            return_value={"properties": {"serviceUrl": "https://backend.example"}},
+        ),
+        patch.object(practice, "copy_policy"),
+        patch.object(practice, "project_id", return_value="/project"),
+        patch.object(practice, "add") as add,
+    ):
+        practice.practice(args, pack, None)
+    mcp = next(
+        call for call in add.call_args_list if call.args[2].endswith("/alpha-p1-docs-mcp")
+    )
+    assert mcp.args[4]["mcpTools"] == [
+        {
+            "name": "listSystems",
+            "description": "List systems",
+            "operationId": "/service/apis/alpha-p1-docs-api/operations/listSystems",
+        },
+        {
+            "name": "validateDocument",
+            "description": "Validate",
+            "operationId": "/service/apis/alpha-p1-docs-api/operations/validateDocument",
+        },
+    ]
+    assert not any("/tools/" in call.args[2] for call in add.call_args_list)
+    with patch.object(practice, "arm", return_value={"properties": mcp.args[4]}) as arm:
+        practice.add(pack, None, mcp.args[2], mcp.args[3], mcp.args[4])
+    arm.assert_called_once()
+
+
 def test_arm_refuses_different_subscription_before_request():
     identity = Mock()
     with pytest.raises(ValueError, match="outside"):
@@ -432,6 +523,32 @@ def test_comparison_refuses_uncontrolled_matrix(tmp_path, monkeypatch, differenc
     assert not (tmp_path / "out" / "comparison").exists()
 
 
+def test_one_remaining_participant_can_supply_four_distinct_matrix_cells(tmp_path, monkeypatch):
+    monkeypatch.setattr(workshop, "ROOT", tmp_path)
+    paths = comparison_files(tmp_path)
+    for cell, path in enumerate(paths):
+        name = f"alpha-p1-comparison-{cell}"
+        manifest = json.loads(path.read_text())
+        manifest["context"]["agent_name"] = name
+        path.write_text(json.dumps(manifest))
+        agent_path = path.parent / "agent-version.json"
+        agent = json.loads(agent_path.read_text())
+        agent["name"] = name
+        agent_path.write_text(json.dumps(agent))
+    destination = tmp_path / "out" / "comparison"
+    workshop.compare(paths, destination)
+    import csv
+
+    with (destination / "comparison.csv").open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == 4
+    assert {row["agent"] for row in rows} == {
+        f"alpha-p1-comparison-{cell}" for cell in range(4)
+    }
+    assert rows[0]["result"] == "failed"
+
+
+@pytest.mark.parametrize("agent_suffix", ["comparison", "comparison-small", "comparison-medium"])
 @pytest.mark.parametrize("role", ["instructions", "writer", "reviewer"])
 @pytest.mark.parametrize(
     "endpoint",
@@ -441,7 +558,7 @@ def test_comparison_refuses_uncontrolled_matrix(tmp_path, monkeypatch, differenc
     ],
 )
 def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
-    tmp_path, monkeypatch, role, endpoint
+    tmp_path, monkeypatch, role, endpoint, agent_suffix
 ):
     monkeypatch.setattr(workshop, "ROOT", tmp_path)
     pack = example_pack() | {
@@ -458,7 +575,7 @@ def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
             "alpha-p2",
             "agent",
             "--name",
-            "alpha-p2-comparison",
+            f"alpha-p2-{agent_suffix}",
             "--prompt",
             role,
             "--docs",
@@ -495,7 +612,7 @@ def test_agent_can_reuse_one_team_practice_mcp_without_changing_ownership(
         workshop.create_agent(args, pack, None)
     assert connection_read.call_args.args[2].endswith("/connections/alpha-p1-docs")
     call = project.agents.create_version.call_args
-    assert call.kwargs["agent_name"] == "alpha-p2-comparison"
+    assert call.kwargs["agent_name"] == f"alpha-p2-{agent_suffix}"
     tool = call.kwargs["definition"].as_dict()["tools"][0]
     assert tool["server_url"] == endpoint
     assert tool["project_connection_id"].endswith("/connections/alpha-p1-docs")
@@ -610,11 +727,16 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
     assert len(guides) == 6 and len(bonuses) == 9
     for guide in [*guides, *bonuses]:
         text = guide.read_text("utf-8")
-        assert "## Understand" in text, guide
-        assert re.search(r"^## Build", text, re.MULTILINE), guide
-        assert "## Validate" in text, guide
-        articles = re.findall(r"\]\((https://[^)]+)\)", text)
-        assert 1 <= len(articles) <= 2, guide
+        assert re.search(
+            r"^## (?:Understand|What you will do)\b", text, re.MULTILINE
+        ), guide
+        assert re.search(r"^## (?:Build\b|1\. )", text, re.MULTILINE), guide
+        assert re.search(
+            r"^## (?:Validate|You are done when)\b", text, re.MULTILINE
+        ), guide
+        assert text.count("<details>") == text.count("</details>"), guide
+        articles = re.findall(r"\]\((https://learn\.microsoft\.com/[^)]+)\)", text)
+        assert 1 <= len(articles) <= (4 if guide.name == "m2-tools.md" else 2), guide
     for guide in [
         *guides,
         *bonuses,
@@ -626,3 +748,129 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
             if target.startswith(("https://", "#")):
                 continue
             assert (guide.parent / target.split("#")[0]).resolve().exists(), (guide, target)
+
+
+def test_core_guides_use_examples_and_explore_import_before_configuration():
+    guides = list((ROOT / "docs" / "modules").glob("m[1-5]-*.md"))
+    assert len(guides) == 5
+    for guide in guides:
+        text = guide.read_text("utf-8")
+        assert "alpha-p2" in text, guide
+        assert "<details>" in text, guide
+    tools = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
+    assert tools.index("### 2. Explore") < tools.index("### 3. Configure")
+    assert "**Tab** and press **Enter**" in tools
+    assert "**reference REST API from Step 1**" in tools
+    assert "Confirm **API URL suffix** is `alpha-p2/docs-api`" in tools
+    assert 'Write-Output "Testing your API: $systemsUrl"' in tools
+    assert "**404 / Resource not found:**" in tools
+    start = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
+    assert "## PowerShell helper setup" in start
+    for guide in guides:
+        assert "PARTICIPANT-START.md#optional-python" not in guide.read_text("utf-8")
+
+
+def test_required_command_guides_cover_both_shells_and_scoped_sign_in():
+    start = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
+    assert "Option A: local Windows PowerShell" in start
+    assert "Option B: Cloud Shell PowerShell" in start
+    assert "./.venv/bin/python" in start
+    assert "repository and complete team pack" in start
+    assert "az login --tenant $context.tenant_id --scope $context.gateway_scope" in start
+    for name in ("m2-tools.md", "m3-governance.md", "m5-evaluation.md"):
+        text = (ROOT / "docs" / "modules" / name).read_text("utf-8")
+        assert "Cloud Shell PowerShell" in text
+        assert "local PowerShell" in text or "Local PowerShell" in text
+    tools = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
+    assert "existing **Rehearsal Architecture Docs API**" in tools
+    assert "az login --tenant $context.tenant_id --scope $context.gateway_scope" in tools
+    assert "finally" in tools and "$token = $null" in tools
+
+
+def test_m2_authenticated_request_has_small_blocks_with_adjacent_guidance():
+    import re
+
+    text = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
+    walkthrough = text.split("**A. Load your team pack and prefix**", 1)[1].split(
+        "In your API's **Settings -> Diagnostics", 1
+    )[0]
+    blocks = re.findall(r"```powershell\n(.*?)```", walkthrough, re.DOTALL)
+    assert len(blocks) == 4
+    assert "$context = Get-Content" in blocks[0] and "az login" not in blocks[0]
+    assert "az login --tenant" in blocks[1] and "Invoke-RestMethod" not in blocks[1]
+    assert "$systemsUrl =" in blocks[2] and "get-access-token" not in blocks[2]
+    assert "get-access-token" in blocks[3] and "Invoke-RestMethod" in blocks[3]
+    assert "finally" in blocks[3] and "$token = $null" in blocks[3]
+    assert all(len(block.strip().splitlines()) <= 10 for block in blocks)
+    assert "Skip this block if you already completed" in walkthrough
+    assert "device code appears" in walkthrough
+    assert "rerun Block D" in walkthrough
+
+
+def test_m2_policy_copy_has_exact_editor_target_and_post_connection_checks():
+    text = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
+    assert "https://learn.microsoft.com/en-us/azure/api-management/set-edit-policies" in text
+    assert "This is the MCP server's policy editor" in text
+    assert '"/architecture-docs/docs-api" + path;' in text
+    assert '"/alpha-p2/docs-api" + path;' in text
+    assert "Do not save changes on the reference." in text
+    checks = text.index("**Check the connection before trying the larger tasks:**")
+    assert checks > text.index("### 5. Connect the tools")
+    assert 'domain "Parts & Logistics"' in text[checks:]
+    assert 'markdown exactly "# Validation test"' in text[checks:]
+    assert "validation stores nothing" in text[checks:]
+
+
+def test_m2_audience_is_locatable_in_the_team_pack():
+    text = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
+    connection = text.split("### 5. Connect the tools", 1)[1]
+    assert "open your team pack's `workshop.json`" in connection
+    assert "search for **`gateway_scope`**" in connection
+    assert '"gateway_scope": "api://33333333-3333-3333-3333-333333333333/Lab.Access"' in connection
+    assert "paste only `33333333-3333-3333-3333-333333333333` into **Audience**" in connection
+    assert "copy the actual ID from **your pack**" in connection
+    assert "You do not need to locate the reference connection in the portal." in connection
+
+
+def test_cloud_evaluation_guidance_requires_verified_result_preservation():
+    start = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
+    evaluation = (ROOT / "docs" / "modules" / "m5-evaluation.md").read_text("utf-8")
+    assert "verify that a small file can" in start
+    assert "actually be downloaded and opened locally" in start
+    assert "do not create storage" in start
+    assert "local PowerShell remains an alternative" in evaluation
+    assert "download $archive" in evaluation
+    assert "Click the archive filename in the **Download file** notification" in evaluation
+    assert "Get-FileHash $archive -Algorithm SHA256" in evaluation
+    assert "compare the SHA256" in evaluation
+    assert "do not treat archive creation as a successful backup" in evaluation
+
+
+def test_m2_tool_filter_uses_exact_comma_separated_operation_names():
+    text = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
+    connection = text.split("### 5. Connect the tools", 1)[1]
+    names = connection.split("```text\n", 1)[1].split("\n```", 1)[0].split(",")
+    expected = (workshop.gate.READ_TOOLS - set(workshop.TOOLKIT_TOOLS)) | {
+        "submitProposal"
+    }
+    assert len(names) == 12 and set(names) == expected
+    assert "**comma-separated**" in connection
+    assert "Do not use semicolons." in connection
+    assert "Leaving this field blank can expose all tools" in connection
+    assert "Tool availability and approval are separate settings." in connection
+    assert "https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/tool-best-practice" in connection
+    assert "[M3 - See the traffic and test gateway limits](m3-governance.md)" in text
+
+
+def test_cloud_setup_is_self_service_without_coach_source_upload():
+    text = (ROOT / "PARTICIPANT-START.md").read_text("utf-8")
+    cloud = text.split("### Option B: Cloud Shell PowerShell", 1)[1].split(
+        "### Continue in either shell", 1
+    )[0]
+    assert "git clone --depth 1 https://github.com/mikkokallio/foundry-hackathon.git" in cloud
+    assert "no GitHub sign-in or coach-prepared shell" in cloud
+    assert "**complete team pack ZIP**" in cloud
+    assert "Expand-Archive -LiteralPath $packArchive -DestinationPath $packFolder" in cloud
+    assert "Select-Object -ExpandProperty FullName" in cloud
+    assert "The repository is private" not in text
+    assert "the coach must make" not in cloud
