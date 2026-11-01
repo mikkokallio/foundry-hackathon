@@ -17,6 +17,8 @@ from workshop.__main__ import (
     save_new,
 )
 
+NATIVE_MCP_API_VERSION = "2025-09-01-preview"
+
 
 def gateway_id(pack: dict[str, Any]) -> str:
     backend = pack["gateway_exercises"]["model_backend_ids"]["chat-small"]
@@ -60,7 +62,12 @@ def practice(args: Any, pack: dict[str, Any], identity: Any) -> None:
         for name in ("docs-api", "docs-mcp", "models-requests", "models-tokens"):
             resource = f"{service}/apis/{prefix}-{name}"
             try:
-                found = arm(pack, identity, resource, version)
+                found = arm(
+                    pack,
+                    identity,
+                    resource,
+                    NATIVE_MCP_API_VERSION if name == "docs-mcp" else version,
+                )
             except HTTPError as exc:
                 if exc.code != 404:
                     raise
@@ -109,7 +116,7 @@ def practice(args: Any, pack: dict[str, Any], identity: Any) -> None:
             pack,
             identity,
             mcp,
-            "2025-09-01-preview",
+            NATIVE_MCP_API_VERSION,
             {
                 "type": "mcp",
                 "displayName": prefix + " documentation MCP",

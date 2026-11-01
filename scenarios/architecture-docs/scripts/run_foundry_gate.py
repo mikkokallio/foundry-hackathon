@@ -84,9 +84,11 @@ def load_inputs(root: Path) -> tuple[dict, dict, list[dict], dict]:
 
 
 class Evidence:
-    def __init__(self, root: Path, destination: Path, environment: str, context: dict):
+    def __init__(self, root: Path, destination: Path, environment: str, context: dict,
+                 isolated_metadata: bool = False):
         self.root, self.destination, self.environment = root, destination, environment
-        self.overlay = root / ".foundry" / "agent-metadata.rehearsal.yaml"
+        self.overlay = (destination / "agent-metadata.yaml" if isolated_metadata
+                        else root / ".foundry" / "agent-metadata.rehearsal.yaml")
         self.manifest = {
             "startedAt": dt.datetime.now(dt.UTC).isoformat(),
             "status": "incomplete", "context": context, "suites": [],
@@ -228,7 +230,8 @@ def create_response(client: Any, kwargs: dict, turn: dict, path: Path, deadline:
 
 def invoke(client: Any, case: dict, name: str, version: str, path: Path, deadline: float) -> dict:
     started = time.monotonic()
-    turn: dict = {"id": case["id"], "query": case["query"], "response_ids": [],
+    turn: dict = {"id": case["id"], "query": case["query"],
+                  "started_at": dt.datetime.now(dt.UTC).isoformat(), "response_ids": [],
                   "responses": [], "tool_calls": [], "approvals": [], "status": "incomplete"}
     current: Any = case["query"]
     previous = None
@@ -280,6 +283,7 @@ def invoke(client: Any, case: dict, name: str, version: str, path: Path, deadlin
         turn["status"], turn["error"] = "failed", str(exc)
         raise
     finally:
+        turn["finished_at"] = dt.datetime.now(dt.UTC).isoformat()
         write_json(path, turn)
 
 
@@ -307,26 +311,96 @@ def native_identity(d: dict, name: str, version: str) -> bool:
     )
 
 
+def observed_mcp_urls(turn: dict, mcp_servers: dict[str, str]) -> set[str]:
+    labels = {call.get("server_label") for call in turn["tool_calls"]}
+    for response in turn.get("responses", []):
+        labels.update(item.get("server_label") for item in response.get("output", [])
+                      if item.get("type") == "mcp_list_tools")
+    return {url for label, url in mcp_servers.items() if label in labels}
+
+
+def native_span_index(records: list[dict]) -> dict[tuple[str, str], dict]:
+    by_id: dict[tuple[str, str], dict] = {}
+    for record in records:
+        operation, span = record.get("operation_Id"), record.get("id")
+        if not isinstance(operation, str) or not operation or not isinstance(span, str) or not span:
+            continue
+        key = (operation, span)
+        # Legacy HTTP request IDs can repeat; only W3C span IDs form parent links.
+        if not re.fullmatch(r"[0-9a-f]{16}", key[1]):
+            continue
+        if key in by_id:
+            raise GateError("App Insights contains ambiguous duplicate span identities.")
+        by_id[key] = record
+    return by_id
+
+
+def mcp_forwarding_markers(
+    records: list[dict], exceptions: list[dict], turn: dict, mcp_servers: dict[str, str],
+) -> list[dict]:
+    """Recognize the no-HTTP-result policy phase reproduced on native MCP initialization."""
+    if turn.get("status") != "completed":
+        return []
+    urls = observed_mcp_urls(turn, mcp_servers)
+    by_id = native_span_index(records)
+    statuses = {"initialize": "200", "tools/list": "200", "tools/call": "200",
+                "notifications/initialized": "202"}
+    markers = []
+    for key, record in by_id.items():
+        parent_span = record.get("operation_ParentId")
+        if not isinstance(parent_span, str):
+            continue
+        parent_key = (key[0], parent_span)
+        parent = by_id.get(parent_key)
+        if parent is None:
+            continue
+        d, p = dimensions(record), dimensions(parent)
+        operation = p.get("gen_ai.operation.name")
+        if (
+            record.get("name") != "forward-request" or record.get("target") != "forward-request"
+            or record.get("type") != "HTTP" or record.get("data") != "REQUEST -"
+            or record.get("url") not in ("", None) or record.get("resultCode") != ""
+            or not str(record.get("telemetryTable", "")).endswith(".dependencies")
+            or span_success(record.get("success")) or d.get("error.type")
+            or d.get("gen_ai.operation.name") or d.get("Source") != "forward-request"
+            or d.get("Service Type") != "API Management" or not d.get("Service ID")
+            or d.get("Service ID") != p.get("Service ID")
+            or p.get("Service Type") != "API Management" or p.get("api.type") != "mcp-backend"
+            or p.get("network.protocol.name") != "MCP" or operation not in statuses
+            or not str(parent.get("telemetryTable", "")).endswith(".requests")
+            or parent.get("url") not in urls
+            or parent.get("name") != f"POST {urlparse(parent['url']).path}"
+            or not span_success(parent.get("success")) or p.get("error.type")
+            or parent.get("resultCode") != statuses[operation]
+            or any((exc.get("operation_Id"), exc.get("operation_ParentId")) in (key, parent_key)
+                   for exc in exceptions)
+        ):
+            continue
+        if operation == "tools/call" and not any(
+            call.get("name") == p.get("gen_ai.tool.name") and not call.get("error")
+            and mcp_servers.get(call.get("server_label")) == parent["url"]
+            for call in turn["tool_calls"]
+        ):
+            continue
+        markers.append({
+            "classification": "native_mcp_policy_phase_without_http_backend_result",
+            "operation_id": key[0], "span_id": key[1], "request_span_id": parent_key[1],
+            "server_url": parent["url"], "mcp_operation": operation,
+            "request_result_code": parent["resultCode"],
+        })
+    return markers
+
+
 def transport_cancellations(
     records: list[dict], exceptions: list[dict], turn: dict, mcp_servers: dict[str, str],
 ) -> list[dict]:
     """Classify only observed GET-200 client disconnects and proven forwarding children."""
     if turn.get("status") != "completed":
         return []
-    declared_urls = {
-        mcp_servers[call["server_label"]] for call in turn["tool_calls"]
-        if call.get("server_label") in mcp_servers
-    }
+    declared_urls = observed_mcp_urls(turn, mcp_servers)
     partial = "200 [not sent in full (see exception telemetries)]"
     message = "Client connection was unexpectedly closed."
-    by_id: dict[tuple[str, str], dict] = {}
-    for record in records:
-        key = (record.get("operation_Id"), record.get("id"))
-        if not all(isinstance(value, str) and value for value in key):
-            continue
-        if key in by_id:
-            raise GateError("App Insights contains ambiguous duplicate span identities.")
-        by_id[key] = record
+    by_id = native_span_index(records)
     approved: dict[tuple[str, str], dict] = {}
     for key, record in by_id.items():
         d = dimensions(record)
@@ -376,7 +450,10 @@ def transport_cancellations(
         for key, record in by_id.items():
             if key in approved:
                 continue
-            parent_key = (key[0], record.get("operation_ParentId"))
+            parent_span = record.get("operation_ParentId")
+            if not isinstance(parent_span, str):
+                continue
+            parent_key = (key[0], parent_span)
             parent = approved.get(parent_key)
             if parent is None:
                 continue
@@ -432,7 +509,8 @@ def match_trace(
     relevant = [record for record in records if record.get("operation_Id") in roots]
     relevant_exceptions = [exc for exc in exceptions if exc.get("operation_Id") in roots]
     cancellations = transport_cancellations(relevant, relevant_exceptions, turn, mcp_servers or {})
-    classified = {(item["operation_id"], item["span_id"]) for item in cancellations}
+    markers = mcp_forwarding_markers(relevant, relevant_exceptions, turn, mcp_servers or {})
+    classified = {(item["operation_id"], item["span_id"]) for item in (*cancellations, *markers)}
     classified_exceptions = {
         index for item in cancellations for index in item["exception_indices"]
     }
@@ -469,7 +547,7 @@ def match_trace(
                 "response_ids": turn["response_ids"], "tool_names": sorted(matched_tools),
                 "expected_tool_names": expected,
                 "missing_expected_tool_names": sorted(set(expected) - matched_tools),
-                "transport_cancellations": cancellations}
+                "transport_cancellations": cancellations, "native_mcp_forwarding_markers": markers}
     return None
 
 
@@ -515,10 +593,14 @@ union (spans | where operation_Id in (operations)),
         exceptions = [row for row in rows if row.get("evidence_kind") == "exception"]
         if len(records) + len(exceptions) != len(rows):
             raise GateError("App Insights returned unknown evidence row types.")
+        write_json(path, {"verified": False, "query": query, "records": records,
+                          "exceptions": exceptions, "transport_cancellations": []})
         servers = getattr(args, "declared_mcp_servers", {})
         cancellations = transport_cancellations(records, exceptions, turn, servers)
+        markers = mcp_forwarding_markers(records, exceptions, turn, servers)
         write_json(path, {"verified": False, "query": query, "records": records,
-                          "exceptions": exceptions, "transport_cancellations": cancellations})
+                          "exceptions": exceptions, "transport_cancellations": cancellations,
+                          "native_mcp_forwarding_markers": markers})
         proof = match_trace(records, turn, args.agent_name, args.agent_version, case["expected_tools"],
                             exceptions=exceptions, mcp_servers=servers)
         if proof:
@@ -650,8 +732,8 @@ def evaluate(client: Any, args: argparse.Namespace, rows: list[dict], suite: dic
 
 def run_worker(args: argparse.Namespace, evidence: Evidence) -> int:
     from azure.ai.projects import AIProjectClient
-    from azure.identity import AzureCliCredential
     from azure.monitor.query import LogsQueryClient
+    from cli_credential import CachedAzureCliCredential
 
     root = args.scenario_root.resolve()
     sys.path.insert(0, str(root / "backend" / "src"))
@@ -661,7 +743,7 @@ def run_worker(args: argparse.Namespace, evidence: Evidence) -> int:
     plan, gate, cases, hashes = load_inputs(root)
     evidence.manifest["input_sha256"] = hashes
     evidence.save()
-    with AzureCliCredential(process_timeout=30) as credential, AIProjectClient(
+    with CachedAzureCliCredential(process_timeout=30) as credential, AIProjectClient(
         endpoint=args.project_endpoint, credential=credential, retry_total=0,
         connection_timeout=30, read_timeout=120,
     ) as project, project.get_openai_client(timeout=120, max_retries=0) as client, LogsQueryClient(credential) as logs:
@@ -762,6 +844,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--trace-timeout-seconds", type=int, default=300)
     result.add_argument("--comparison", action="store_true",
                         help="Fresh twelve-case educational comparison only; never full release qualification.")
+    result.add_argument("--isolated-metadata", action="store_true",
+                        help="Keep rehearsal metadata inside this run's evidence for concurrent collection.")
     result.add_argument("--worker-results", type=Path, help=argparse.SUPPRESS)
     result.add_argument("--started-at", help=argparse.SUPPRESS)
     return result
@@ -796,7 +880,7 @@ def main(argv: list[str] | None = None) -> int:
         "project_endpoint", "agent_name", "agent_version", "judge_deployment",
         "app_insights_resource_id", "workspace_id", "environment", "scenario_root",
     )}
-    evidence = Evidence(root, destination, args.environment, context)
+    evidence = Evidence(root, destination, args.environment, context, args.isolated_metadata)
     try:
         if args.worker_results:
             return run_worker(args, evidence)

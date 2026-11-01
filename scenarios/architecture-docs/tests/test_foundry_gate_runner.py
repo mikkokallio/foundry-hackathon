@@ -135,6 +135,19 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(gate["checks"]["template_compliance"]["min_mean"], 0.5)
         self.assertEqual(len(hashes), 3)
 
+    def test_isolated_concurrent_evidence_never_updates_shared_metadata(self):
+        context = {"agent_version": "1"}
+        first = runner.Evidence(self.directory, self.directory / "first", "alpha", context, True)
+        second = runner.Evidence(self.directory, self.directory / "second", "alpha", context, True)
+        first.manifest["status"] = "completed"
+        first.save()
+        self.assertNotEqual(first.overlay, second.overlay)
+        self.assertFalse((self.directory / ".foundry" / "agent-metadata.rehearsal.yaml").exists())
+        self.assertEqual(yaml.safe_load(first.overlay.read_text())["environments"]["alpha"]["lastEval"]["status"],
+                         "completed")
+        self.assertEqual(yaml.safe_load(second.overlay.read_text())["environments"]["alpha"]["lastEval"]["status"],
+                         "incomplete")
+
     def test_no_dataset_reduction_or_threshold_change(self):
         target = self.directory / "exercises" / "evaluation"
         shutil.copytree(ROOT / "exercises" / "evaluation", target)
@@ -285,11 +298,13 @@ class RunnerTests(unittest.TestCase):
         for header, deadline in (("301", time.monotonic() + 1000), ("8", time.monotonic() + 1)):
             client = Mock()
             client.responses.create.side_effect = self.http_error(headers={"Retry-After": header})
-            with patch.object(runner.time, "sleep") as sleep, self.assertRaisesRegex(runner.GateError, "budget exhausted"):
+            with patch.object(runner, "write_json") as evidence_write, patch.object(
+                runner.time, "sleep"
+            ) as sleep, self.assertRaisesRegex(runner.GateError, "budget exhausted"):
                 runner.invoke(client, self.case, "agent", "7", self.directory / "retry-timeout.json", deadline)
             sleep.assert_not_called()
             self.assertEqual(client.responses.create.call_count, 1)
-            saved = json.loads((self.directory / "retry-timeout.json").read_text())
+            saved = evidence_write.call_args.args[1]
             self.assertEqual(saved["response_create_retries"][0]["retry_after_seconds"], float(header))
 
     def test_unrelated_errors_are_reraised_without_retry(self):
@@ -461,6 +476,125 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(runner.GateError, "failed execution span"):
             runner.match_trace(records, turn, "agent", "7", ["getSystem"])
 
+    def mcp_phase_records(self, operation="initialize"):
+        records = self.records()
+        url = "https://gateway.invalid/docs-mcp/mcp"
+        records.extend([
+            {"operation_Id": "a" * 32, "id": "b" * 16, "name": "POST /docs-mcp/mcp",
+             "url": url, "success": "True", "resultCode": "200",
+             "telemetryTable": "app('test').requests", "customDimensions": {
+                 "api.type": "mcp-backend", "network.protocol.name": "MCP",
+                 "gen_ai.operation.name": operation, "gen_ai.tool.name": "getSystem",
+                 "Service Type": "API Management", "Service ID": "test-gateway"}},
+            {"operation_Id": "a" * 32, "id": "c" * 16, "operation_ParentId": "b" * 16,
+             "name": "forward-request", "target": "forward-request", "type": "HTTP",
+             "data": "REQUEST -", "resultCode": "", "success": "False",
+             "telemetryTable": "app('test').dependencies", "customDimensions": {
+                 "Source": "forward-request", "Service Type": "API Management",
+                 "Service ID": "test-gateway"}},
+        ])
+        turn = {"status": "completed", "response_ids": ["resp_real"], "tool_calls": [{
+            "name": "getSystem", "server_label": "docs", "response_id": "resp_real",
+        }]}
+        return records, turn, {"docs": url}
+
+    def test_proven_native_mcp_policy_phase_is_not_a_failed_backend_execution(self):
+        for operation, status in (
+            ("initialize", "200"), ("tools/list", "200"),
+            ("tools/call", "200"), ("notifications/initialized", "202"),
+        ):
+            with self.subTest(operation=operation):
+                records, turn, servers = self.mcp_phase_records(operation)
+                records[-2]["resultCode"] = status
+                before = copy.deepcopy(records)
+                proof = runner.match_trace(records, turn, "agent", "7", ["getSystem"], mcp_servers=servers)
+                self.assertTrue(proof["verified"])
+                self.assertEqual(proof["native_mcp_forwarding_markers"][0]["span_id"], "c" * 16)
+                self.assertEqual(proof["native_mcp_forwarding_markers"][0]["mcp_operation"], operation)
+                self.assertEqual(records, before)
+
+    def test_mcp_marker_cannot_hide_failed_unknown_or_unrelated_backend_spans(self):
+        mutations = [
+            (0, "success", "False"), (0, "resultCode", "422"),
+            (0, "url", "https://untrusted.invalid/mcp"),
+            (1, "target", "https://backend.invalid"), (1, "resultCode", "500"),
+            (1, "data", "REQUEST - GET https://backend.invalid"), (1, "type", "SQL"),
+            (1, "operation_ParentId", "d" * 16),
+        ]
+        for index, key, value in mutations:
+            with self.subTest(key=key, value=value):
+                records, turn, servers = self.mcp_phase_records()
+                records[-2 + index][key] = value
+                with self.assertRaises(runner.GateError):
+                    runner.match_trace(records, turn, "agent", "7", ["getSystem"], mcp_servers=servers)
+        for index, key, value in (
+            (0, "api.type", "http"), (0, "network.protocol.name", "HTTP"),
+            (0, "gen_ai.operation.name", "unknown"), (0, "Service ID", "another-gateway"),
+            (1, "Source", "other-policy"), (1, "error.type", "BackendConnectionFailure"),
+        ):
+            with self.subTest(dimension=key, value=value):
+                records, turn, servers = self.mcp_phase_records()
+                records[-2 + index]["customDimensions"][key] = value
+                with self.assertRaises(runner.GateError):
+                    runner.match_trace(records, turn, "agent", "7", ["getSystem"], mcp_servers=servers)
+
+    def test_mcp_marker_keeps_real_tool_failures_exceptions_and_omissions_visible(self):
+        records, turn, servers = self.mcp_phase_records("tools/call")
+        records[-2]["customDimensions"]["gen_ai.tool.name"] = "unobservedTool"
+        with self.assertRaises(runner.GateError):
+            runner.match_trace(records, turn, "agent", "7", ["getSystem"], mcp_servers=servers)
+        records, turn, servers = self.mcp_phase_records()
+        records[1]["success"] = False
+        with self.assertRaises(runner.GateError):
+            runner.match_trace(records, turn, "agent", "7", ["getSystem"], mcp_servers=servers)
+        records, turn, servers = self.mcp_phase_records()
+        exceptions = [{"operation_Id": "a" * 32, "operation_ParentId": "c" * 16,
+                       "type": "BackendConnectionFailure"}]
+        with self.assertRaisesRegex(runner.GateError, "unclassified execution exception"):
+            runner.match_trace(records, turn, "agent", "7", ["getSystem"],
+                               exceptions=exceptions, mcp_servers=servers)
+        records, turn, servers = self.mcp_phase_records()
+        proof = runner.match_trace(records, turn, "agent", "7", ["getSystem", "getDocument"],
+                                   mcp_servers=servers)
+        self.assertEqual(proof["missing_expected_tool_names"], ["getDocument"])
+
+    def test_repeated_legacy_http_ids_do_not_alias_native_span_ids_or_hide_failures(self):
+        turn = {"status": "completed", "response_ids": ["resp_real"],
+                "tool_calls": [{"name": "getSystem", "response_id": "resp_real"}]}
+        records = self.records()
+        legacy = {"operation_Id": "a" * 32, "id": "c" * 32, "success": True,
+                  "customDimensions": {}, "type": "HTTP"}
+        records.extend(({**legacy, "name": "GET identity-configuration"}, {**legacy, "name": "POST token"}))
+        proof = runner.match_trace(records, turn, "agent", "7", ["getSystem"])
+        self.assertTrue(proof["verified"])
+        self.assertEqual(len(records), 4)
+        records[-1]["success"] = False
+        with self.assertRaisesRegex(runner.GateError, "failed execution span"):
+            runner.match_trace(records, turn, "agent", "7", ["getSystem"])
+
+    def test_ambiguous_native_spans_are_preserved_before_classification_fails(self):
+        from azure.monitor.query import LogsQueryStatus
+
+        record = {"operation_Id": "a" * 32, "id": "b" * 16,
+                  "success": True, "customDimensions": {}, "evidence_kind": "span"}
+        records = [record, dict(record)]
+        columns = list(record)
+        table = SimpleNamespace(columns=columns, rows=[[row[key] for key in columns] for row in records])
+        logs = Mock()
+        logs.query_workspace.return_value = SimpleNamespace(status=LogsQueryStatus.SUCCESS, tables=[table])
+        args = SimpleNamespace(
+            app_insights_resource_id="/subscriptions/s/resourceGroups/g/providers/Microsoft.Insights/components/a",
+            workspace_id=str(uuid.uuid4()), started_at="2026-10-29T00:00:00Z",
+            trace_timeout_seconds=1, agent_name="agent", agent_version="7",
+        )
+        path = self.directory / "ambiguous-trace.json"
+        with redirect_stdout(io.StringIO()), self.assertRaisesRegex(runner.GateError, "ambiguous duplicate"):
+            runner.verify_trace(logs, args, {"status": "completed", "response_ids": ["resp_real"],
+                                          "tool_calls": []}, self.case, path, time.monotonic() + 5)
+        saved = json.loads(path.read_text())
+        self.assertFalse(saved["verified"])
+        self.assertEqual(saved["records"], records)
+
     def test_partial_log_query_never_passes(self):
         from azure.monitor.query import LogsQueryStatus
         logs = Mock()
@@ -592,8 +726,10 @@ union (spans | where operation_Id in (operations)),
         client.evals.runs.output_items.list.return_value = SimpleNamespace(
             data=[], has_next_page=lambda: False)
         args = SimpleNamespace(agent_name="agent", agent_version="7", judge_deployment="actual-judge", eval_timeout_seconds=10)
-        with self.assertRaisesRegex(runner.GateError, "cancelled"):
-            runner.evaluate(client, args, [], suite, evidence, time.monotonic() + 10)
+        with patch.object(runner.time, "monotonic", return_value=100), self.assertRaisesRegex(
+            runner.GateError, "cancelled"
+        ):
+            runner.evaluate(client, args, [], suite, evidence, 110)
         metadata = yaml.safe_load(evidence.overlay.read_text(encoding="utf-8"))
         self.assertEqual(metadata["environments"]["local-test"]["lastEval"]["evalRunId"], "run_real")
         self.assertTrue((evidence.destination / "regression" / "remote-run.json").exists())
@@ -614,7 +750,8 @@ union (spans | where operation_Id in (operations)),
         first_page = SimpleNamespace(data=[], has_next_page=lambda: True, get_next_page=lambda: last_page)
         client.evals.runs.output_items.list.return_value = first_page
         args = SimpleNamespace(agent_name="agent", agent_version="7", judge_deployment="actual-judge", eval_timeout_seconds=10)
-        outputs = runner.evaluate(client, args, [row], suite, evidence, time.monotonic() + 10)
+        with patch.object(runner.time, "monotonic", return_value=100):
+            outputs = runner.evaluate(client, args, [row], suite, evidence, 110)
         self.assertEqual(outputs, [output])
         request = client.post.call_args_list[1].kwargs["body"]["data_source"]
         params = request["item_generation_params"]

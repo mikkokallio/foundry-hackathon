@@ -90,6 +90,77 @@ def test_idempotent_creation_never_puts_existing_or_different_object():
         assert arm.call_args_list[1].kwargs["method"] == "PUT"
 
 
+@pytest.fixture
+def practice_status_pack():
+    return {
+        **example_pack(),
+        "docs_url": "https://example.azure-api.net/example/docs-api",
+        "gateway_exercises": {
+            "model_backend_ids": {"chat-small": "/service/backends/chat-small"}
+        },
+    }
+
+
+def test_practice_status_reads_existing_native_mcp_with_supported_version(
+    practice_status_pack, capsys
+):
+    def read(pack, identity, resource, version):
+        if resource.endswith("-docs-mcp") and version != "2025-09-01-preview":
+            raise HTTPError(resource, 404, "Native MCP requires supported API version", {}, None)
+        return {"properties": {"path": "alpha-p1/" + resource.rsplit("-", 1)[-1]}}
+
+    with patch.object(practice, "arm", side_effect=read) as arm:
+        practice.practice(
+            SimpleNamespace(prefix="alpha-p1", kind="status"), practice_status_pack, None
+        )
+
+    assert [call.args[3] for call in arm.call_args_list] == [
+        "2024-05-01",
+        "2025-09-01-preview",
+        "2024-05-01",
+        "2024-05-01",
+    ]
+    assert all(not call.kwargs for call in arm.call_args_list)
+    output = capsys.readouterr().out
+    assert output.count("Present: ") == 4
+    assert "Missing: " not in output
+
+
+@pytest.mark.parametrize("missing", ["docs-api", "docs-mcp", "models-requests", "models-tokens"])
+def test_practice_status_preserves_genuine_missing_resources(practice_status_pack, missing, capsys):
+    def read(pack, identity, resource, version):
+        if resource.endswith("/alpha-p1-" + missing):
+            raise HTTPError(resource, 404, "Actually missing", {}, None)
+        return {"properties": {"path": "existing"}}
+
+    with patch.object(practice, "arm", side_effect=read) as arm:
+        practice.practice(
+            SimpleNamespace(prefix="alpha-p1", kind="status"), practice_status_pack, None
+        )
+
+    assert arm.call_count == 4
+    output = capsys.readouterr().out
+    assert f"Missing: /service/apis/alpha-p1-{missing}\n" in output
+    assert output.count("Missing: ") == 1
+    assert output.count("Present: ") == 3
+
+
+@pytest.mark.parametrize("status", [401, 403, 429, 500])
+def test_practice_status_propagates_native_mcp_non404_errors(practice_status_pack, status, capsys):
+    error = HTTPError("https://example.invalid", status, "Explicit failure", {}, None)
+    with patch.object(
+        practice, "arm", side_effect=[{"properties": {"path": "existing"}}, error]
+    ) as arm, pytest.raises(HTTPError) as caught:
+        practice.practice(
+            SimpleNamespace(prefix="alpha-p1", kind="status"), practice_status_pack, None
+        )
+
+    assert caught.value is error
+    assert arm.call_count == 2
+    assert arm.call_args.args[3] == "2025-09-01-preview"
+    assert "Missing: " not in capsys.readouterr().out
+
+
 def test_practice_mcp_can_resume_with_actual_apim_readback_shape(tmp_path):
     pack = {
         **example_pack(),

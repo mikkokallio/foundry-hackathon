@@ -17,7 +17,7 @@ Finish this stage during Module 0 before offering B6.
   role-management permission. Account inference is not universal APIM enforcement.
 - Explicitly selected state operators; the deploying human is not added silently.
 
-The state group survives normal lab teardown/cutoff and has its own small storage
+The state group survives normal lab teardown and has its own small storage
 cost, included in whole-subscription costs. It is not automatically enrolled for
 deletion. An account lock does not prevent data-plane blob changes: versioning and
 soft delete provide recovery, not immutable or undeletable state.

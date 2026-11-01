@@ -59,7 +59,11 @@ lab practice status
 lab gateway
 ```
 
-This command directly exercises the model gateway. It is useful policy evidence,
+`lab practice status` only reads your owned routes, using the native MCP API
+version for the MCP server. `Missing` means that route returned 404; permission
+or service errors stop the command instead. It does not create missing routes.
+
+`lab gateway` directly exercises the model gateway. It is useful policy evidence,
 but **not** substitute proof that your agent's model traffic uses that route.
 
 ### 3. Test request and token limits separately

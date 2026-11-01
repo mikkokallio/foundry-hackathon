@@ -27,7 +27,7 @@ is not team isolation.
   The normal per-team throttle is configurable with
   `gateway_tokens_per_minute` (default 50000); the deliberately restrictive
   exercise route remains 256. Multiple model/tool steps share that minute's
-  allowance. Neither setting replaces the subscription spending protector.
+  allowance. Neither setting is an absolute spending limit.
   Connection existence is not proof of a passed agent/provenance gate.
 - **M5 access:** remote evaluators invoke the judge using the participant's
   identity. The workload grants selected participants `Cognitive Services
