@@ -37,7 +37,8 @@
       "participant11@tenant.example",
       "participant12@tenant.example",
       "participant13@tenant.example"
-    ]
+    ],
+    "epsilon": []
   },
   "tags": {},
   "model_overrides": {
@@ -67,7 +68,13 @@
     }
   },
   "workload_inputs": {
-    "organization_name": null,
+    "organization_name": "Contoso",
+    "embedding_dimensions": 3072,
+    "gateway_tokens_per_minute": 100000,
+    "gateway_requests_per_minute": 60,
+    "gateway_tool_requests_per_minute": 300,
+    "mcp_protocol_diagnostics_enabled": true,
+    "reference_date": "2026-11-01",
     "runtime_images": null,
     "semantic_cache_enabled": true,
     "librarians": null

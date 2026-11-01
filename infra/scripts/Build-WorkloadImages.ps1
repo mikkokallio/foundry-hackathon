@@ -11,7 +11,8 @@ param(
     [hashtable]$Foundation,
     [Parameter(Mandatory)]
     [string]$OutputDirectory,
-    [string[]]$Artifacts = @()
+    [string[]]$Artifacts = @(),
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = 'Stop'
@@ -161,7 +162,15 @@ try {
     $complete = $images.Count -eq $manifest.container_artifacts.Count
     $imageFile = Join-Path $receiptDirectory $(if ($complete) { 'runtime-images.json' } else { 'built-images.json' })
     $images | ConvertTo-Json | Set-Content -LiteralPath $imageFile -Encoding utf8NoBOM
-    Write-Output "Built immutable image values (complete set: $complete): $imageFile"
+    if ($PassThru) {
+        [pscustomobject]@{
+            ImageFile = (Resolve-Path -LiteralPath $imageFile).Path
+            Complete = $complete
+            SourceSha256 = $sourceHash
+        }
+    } else {
+        Write-Output "Built immutable image values (complete set: $complete): $imageFile"
+    }
     Write-Warning 'Artifacts only: no Terraform apply, runtime acceptance or Foundry evaluation has occurred.'
 } finally {
     Remove-Item -LiteralPath $bundle -Recurse -ErrorAction Stop -WhatIf:$false

@@ -87,7 +87,7 @@ function az {
 
 function Invoke-TestBuild([string]$Directory) {
     & $builder -Scenario 'architecture-docs' -WorkloadName 'architecture-docs' `
-        -Foundation $foundation -OutputDirectory $Directory -Confirm:$false -WarningAction SilentlyContinue | Out-Null
+        -Foundation $foundation -OutputDirectory $Directory -Confirm:$false -WarningAction SilentlyContinue
 }
 
 try {
@@ -95,8 +95,12 @@ try {
         -Foundation $foundation -OutputDirectory $outputDirectory -WhatIf | Out-Null
     Assert-Image ($imageTest.builds.Count -eq 0) 'WhatIf must never queue billable builds.'
     Assert-Image (-not (Test-Path -LiteralPath $outputDirectory)) 'WhatIf must not create success-shaped image receipts.'
+    $dryResult = & $builder -Scenario 'architecture-docs' -WorkloadName 'architecture-docs' `
+        -Foundation $foundation -OutputDirectory $outputDirectory -WhatIf -PassThru
+    Assert-Image ($null -eq $dryResult -and $imageTest.builds.Count -eq 0) 'WhatIf must not return a usable image result.'
 
-    Invoke-TestBuild $outputDirectory
+    $message = Invoke-TestBuild $outputDirectory
+    Assert-Image ($message -is [string] -and $message.StartsWith('Built immutable image values (complete set: True): ')) 'The default human-readable output must remain compatible.'
     $receipts = @(Get-ChildItem -LiteralPath $outputDirectory -Recurse -Filter '*.receipt.json')
     Assert-Image ($receipts.Count -eq 2) 'Both exact build receipts must be persisted.'
     $receiptValues = @($receipts | ForEach-Object {
@@ -112,10 +116,20 @@ try {
     Assert-Image ($sources.ContainsKey('backend/src/docs_api/main.py') -and
         $sources.ContainsKey('toolkit-mcp/server.py')) 'The source receipt must identify both actual application entry points.'
 
+    $typedDirectory = Join-Path $outputDirectory 'typed output'
+    $result = & $builder -Scenario 'architecture-docs' -WorkloadName 'architecture-docs' `
+        -Foundation $foundation -OutputDirectory $typedDirectory -Confirm:$false -PassThru -WarningAction SilentlyContinue
+    Assert-Image (@($result).Count -eq 1 -and $result.Complete) 'PassThru must return exactly one complete build result.'
+    Assert-Image ([IO.Path]::IsPathFullyQualified($result.ImageFile) -and (Test-Path -LiteralPath $result.ImageFile)) 'The result must identify the actual JSON file without caller path guessing.'
+    $typedImages = Get-Content -LiteralPath $result.ImageFile -Raw | ConvertFrom-Json -AsHashtable
+    Assert-Image ($typedImages.Count -eq 2 -and $typedImages.ContainsKey('backend') -and $typedImages.ContainsKey('toolkit')) 'The returned JSON must contain both actual images.'
+    Assert-Image ($result.SourceSha256 -ceq $receiptValues[0].source_sha256) 'Machine-readable output must preserve the frozen build-source identity.'
+
     $before = $imageTest.builds.Count
     $partialDirectory = Join-Path $outputDirectory 'partial'
-    & $builder -Scenario 'architecture-docs' -WorkloadName 'architecture-docs' `
-        -Foundation $foundation -OutputDirectory $partialDirectory -Artifacts toolkit -Confirm:$false | Out-Null
+    $partialResult = & $builder -Scenario 'architecture-docs' -WorkloadName 'architecture-docs' `
+        -Foundation $foundation -OutputDirectory $partialDirectory -Artifacts toolkit -Confirm:$false -PassThru
+    Assert-Image (-not $partialResult.Complete -and (Split-Path -Leaf $partialResult.ImageFile) -ceq 'built-images.json') 'A partial machine-readable result must not claim deployment readiness.'
     Assert-Image ($imageTest.builds.Count -eq $before + 1) 'A subset request must build only the requested artifact.'
     Assert-Image (@(Get-ChildItem -LiteralPath $partialDirectory -Recurse -Filter 'runtime-images.json').Count -eq 0) 'A partial build must never claim a complete deployment image map.'
     $partialFile = @(Get-ChildItem -LiteralPath $partialDirectory -Recurse -Filter 'built-images.json')

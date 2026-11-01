@@ -47,7 +47,7 @@ destruction or moving machines. Remote-state/OIDC integration remains B6 work;
 this is not a shared-team remote backend.
 
 Native Terraform is supported and preferred for transparent review. Follow
-[Module 0](../docs/module-0.md#3-native-foundation-inputs-plan-approval-apply)
+[Module 0](../docs/module-0.md#1-sign-in-and-prepare-inputs)
 for private native variable files, exact saved plans, retained component context
 and approval/apply commands across all three roots. Without variable files,
 Terraform itself prompts for required variables, including profile (which has
@@ -142,8 +142,8 @@ separate Bash deployment implementation. Bash launches it with
 Use native Linux paths and preserve the printed state/backend/data directory.
 Cloud Shell additionally requires approved mounted storage and processing-region
 verification before private inputs are uploaded. Remote ACR builds need no local
-Docker daemon. See [Module 0's Linux/Cloud Shell steps](../docs/module-0.md#linux-workstations-and-azure-cloud-shell)
-for startup, private-source handling and reconnect boundaries.
+Docker daemon. [Module 0](../docs/module-0.md) gives the native Terraform commands;
+use the stages below if selecting the composition route instead.
 
 Use the scenario-selecting entry point with `-Scenario architecture-docs` and
 your private deployment JSON passed as `-Inputs`.

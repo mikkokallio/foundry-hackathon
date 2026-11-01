@@ -112,18 +112,13 @@ group, and shared-service authoring is not hard team isolation.
 - **Costs and lifecycle:** review ongoing service and model costs. Budget
   monitoring and teardown are managed by the subscription owner; the lab does
   not deploy automatic budget- or expiry-based deletion.
-- **Deployment:** run [Module 0](docs/module-0.md)'s read-only
-  preflight, then review separate foundation/access/workload plans before any
+- **Deployment:** follow [Module 0](docs/module-0.md), then review the separate
+  foundation/access/workload plans before any
   apply. Keep state and deployment inputs private. Deployment-specific
   troubleshooting is in the [preview notes](docs/exercise-readiness.md).
 
-Windows deployment components have been exercised; this is not acceptance of
-the new shared human deployment or all-team non-admin access. Five recovered
-reference E2E cycles are historical reference evidence, not five fresh
-deployments or uninterrupted passes. Linux/Cloud Shell alternatives
-are included but have not yet been deployment-tested; see
-[Module 0](docs/module-0.md#linux-workstations-and-azure-cloud-shell).
-Cloud Shell persistent storage is configured separately. B6 remote-state/OIDC
+For Cloud Shell, configure persistent storage separately and keep deployment
+state and private inputs backed up. B6 remote-state/OIDC
 integration is an optional follow-on stage; the B9 reference runs locally.
 
 ## Deployment boundaries
