@@ -78,20 +78,51 @@ try {
     $preparedDirectory = Split-Path -Parent $prepared[-1]
     $oldProfile = $env:AZURE_CONFIG_DIR
     & {
+        $global:LabTestNeedsLogin = $false
+        $global:LabTestTenant = $config.tenant_id
+        $global:LabTestAzCalls = [Collections.Generic.List[object]]::new()
+        function global:az {
+            $global:LabTestAzCalls.Add([string[]]$args)
+            $global:LASTEXITCODE = 0
+            if ($args -contains '--tenant' -and $args -contains '--subscription') {
+                throw 'Azure CLI does not accept tenant and subscription together.'
+            }
+            switch ("$($args[0]) $($args[1])") {
+                'account show' {
+                    if ($global:LabTestNeedsLogin) {
+                        $global:LASTEXITCODE = 1
+                    } else {
+                        Write-Output $global:LabTestTenant
+                    }
+                }
+                'account get-access-token' { Write-Output 'fixture-expiry-not-a-token' }
+                'login --tenant' { $global:LabTestNeedsLogin = $false }
+                'account set' {}
+                default { throw 'Unexpected Azure CLI call in the offline setup test.' }
+            }
+        }
         try {
-            . $starter -Configuration $inputFile -Team alpha -Prefix alpha-p2 -SkipSignIn -WarningAction SilentlyContinue
+            . $starter -Configuration $inputFile -Team alpha -Prefix alpha-p2 -WarningAction SilentlyContinue
             Assert ($global:FoundryLabSession.Prefix -ceq 'alpha-p2') 'Dot-sourced function lost its prefix.'
             & $global:FoundryLabSession.Python -c 'from pathlib import Path; import sys; from workshop.__main__ import load_pack; assert load_pack(Path(sys.argv[1]))["team"] == "alpha"' $global:FoundryLabSession.Pack
             Assert ($LASTEXITCODE -eq 0) 'Python helper rejected assembled inputs.'
             Push-Location $scratch
             try { lab --help | Out-Null } finally { Pop-Location }
             Assert ($LASTEXITCODE -eq 0) 'lab must remain callable from another directory.'
+            Assert (@($global:LabTestAzCalls | Where-Object { $_[0] -ceq 'login' }).Count -eq 0) 'Reuse valid scoped sign-in.'
+            Remove-Item -LiteralPath (Split-Path -Parent $global:FoundryLabSession.Pack) -Recurse
+            $global:LabTestNeedsLogin = $true
+            . $starter -Configuration $inputFile -Team alpha -Prefix alpha-p2 -WarningAction SilentlyContinue
+            $loginCalls = @($global:LabTestAzCalls | Where-Object { $_[0] -ceq 'login' })
+            Assert ($loginCalls.Count -eq 1 -and $loginCalls[0] -contains '--scope' -and $loginCalls[0] -contains '--use-device-code') 'Missing profile requires one explicit scoped device sign-in.'
         } finally {
             if ($global:FoundryLabSession) {
                 Remove-Item -LiteralPath (Split-Path -Parent $global:FoundryLabSession.Pack) -Recurse
                 Remove-Variable FoundryLabSession -Scope Global
                 Remove-Item Function:\lab
             }
+            Remove-Item Function:\az
+            Remove-Variable LabTestNeedsLogin,LabTestTenant,LabTestAzCalls -Scope Global
             $env:AZURE_CONFIG_DIR = $oldProfile
         }
     }
@@ -100,6 +131,19 @@ try {
     Assert-Throws { & $export -Configuration $inputFile -Team beta -OutputDirectory (Join-Path $scratch 'wrong-team') } 'team'
     Assert-Throws { & $export -Configuration $inputFile -Team alpha -OutputDirectory $destination } 'already exists'
     Assert-Throws { & $export -Configuration $inputFile -Team alpha -OutputDirectory (Join-Path $root 'must-not-write-pack') } 'ignored out'
+    $datasetText = (Get-Content -LiteralPath (Join-Path $root 'scenarios\architecture-docs\exercises\evaluation\eval_set.jsonl') -Raw).Replace("`r`n", "`n")
+    foreach ($text in @($datasetText, $datasetText.Replace("`n", "`r`n"))) {
+        $config.evaluation_dataset_sha256 = [Convert]::ToHexString(
+            [Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($text))
+        ).ToLowerInvariant()
+        Write-Config
+        $encodingPack = Join-Path $scratch ([guid]::NewGuid().ToString('N'))
+        & $export -Configuration $inputFile -Team alpha -OutputDirectory $encodingPack -WarningAction SilentlyContinue | Out-Null
+    }
+    $config.evaluation_dataset_sha256 = '0' * 64
+    Write-Config
+    Assert-Throws { & $export -Configuration $inputFile -Team alpha } 'beyond LF/CRLF'
+    $config.Remove('evaluation_dataset_sha256')
     $config.gateway_scope = 'api://bad/Lab.Access'
     Write-Config
     Assert-Throws { & $export -Configuration $inputFile -Team alpha } 'gateway_scope'

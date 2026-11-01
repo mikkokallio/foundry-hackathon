@@ -55,15 +55,24 @@ if ($LASTEXITCODE -ne 0) {
 }
 $env:AZURE_CONFIG_DIR = Join-Path $HOME ".foundry-hackathon-$Prefix"
 if (-not $SkipSignIn) {
-    & az account get-access-token --tenant $context.tenant_id --subscription $context.subscription_id `
-        --scope $context.gateway_scope --query expiresOn --output tsv
-    if ($LASTEXITCODE -ne 0) {
+    $accountTenant = & az account show --subscription $context.subscription_id --query tenantId --output tsv
+    $requiresSignIn = $LASTEXITCODE -ne 0 -or $accountTenant -ine $context.tenant_id
+    if (-not $requiresSignIn) {
+        & az account get-access-token --subscription $context.subscription_id `
+            --scope $context.gateway_scope --query expiresOn --output tsv
+        $requiresSignIn = $LASTEXITCODE -ne 0
+    }
+    if ($requiresSignIn) {
         Write-Host 'This isolated workshop profile needs scoped sign-in. Use your own assigned workshop account.'
         & az login --tenant $context.tenant_id --scope $context.gateway_scope --use-device-code
         if ($LASTEXITCODE -ne 0) { throw 'Workshop sign-in failed.' }
     }
     & az account set --subscription $context.subscription_id
     if ($LASTEXITCODE -ne 0) { throw 'Workshop subscription selection failed.' }
+    $accountTenant = & az account show --subscription $context.subscription_id --query tenantId --output tsv
+    if ($LASTEXITCODE -ne 0 -or $accountTenant -ine $context.tenant_id) {
+        throw 'Workshop account tenant does not match the deployment configuration.'
+    }
 } else {
     Write-Warning 'Sign-in was skipped. Later commands still require the correct workshop identity and scope.'
 }

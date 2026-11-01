@@ -241,9 +241,19 @@ if ($referenceDate -cne $plan.reference_date) {
     throw 'Review the frozen evaluation corpus/ground truths before exporting a different reference date.'
 }
 $dataset = Join-Path $source 'evaluation\eval_set.jsonl'
-if ($PSCmdlet.ParameterSetName -eq 'Configuration' -and $config.evaluation_dataset_sha256 -and
-    $config.evaluation_dataset_sha256 -cne (Get-FileHash -LiteralPath $dataset -Algorithm SHA256).Hash.ToLowerInvariant()) {
-    throw 'Configuration dataset hash differs from this source revision; obtain matching configuration/source.'
+if ($PSCmdlet.ParameterSetName -eq 'Configuration' -and $config.Contains('evaluation_dataset_sha256')) {
+    $datasetText = (Get-Content -LiteralPath $dataset -Raw).Replace("`r`n", "`n")
+    $datasetHashes = @((Get-FileHash -LiteralPath $dataset -Algorithm SHA256).Hash.ToLowerInvariant())
+    foreach ($text in @($datasetText, $datasetText.Replace("`n", "`r`n"))) {
+        $datasetHashes += [Convert]::ToHexString(
+            [Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($text))
+        ).ToLowerInvariant()
+    }
+    if ($config.evaluation_dataset_sha256 -isnot [string] -or
+        $config.evaluation_dataset_sha256 -notmatch '^[0-9a-fA-F]{64}$' -or
+        $config.evaluation_dataset_sha256.ToLowerInvariant() -cnotin $datasetHashes) {
+        throw 'Configuration dataset hash differs from this source revision, beyond LF/CRLF encoding; obtain matching configuration/source.'
+    }
 }
 $cases = @(Get-Content -LiteralPath $dataset | Where-Object { $_.Trim() } |
     ForEach-Object { $_ | ConvertFrom-Json -AsHashtable -Depth 20 })
