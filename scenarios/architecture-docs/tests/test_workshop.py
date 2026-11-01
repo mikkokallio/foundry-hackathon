@@ -808,6 +808,7 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
         assert text.count("<details>") == text.count("</details>"), guide
         articles = re.findall(r"\]\((https://learn\.microsoft\.com/[^)]+)\)", text)
         article_limit = {
+            "b1-knowledge.md": 4,
             "m2-tools.md": 4,
             "m4-discovery.md": 3,
             "m5-evaluation.md": 4,
@@ -824,6 +825,39 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
             if target.startswith(("https://", "#")):
                 continue
             assert (guide.parent / target.split("#")[0]).resolve().exists(), (guide, target)
+
+
+def test_final_proposal_review_uses_participant_facing_closure():
+    text = (ROOT / "docs" / "modules" / "core-approval.md").read_text("utf-8")
+    assert text.startswith("# Review and save your final proposal")
+    assert "Return to the draft you started in M2" in text
+    assert "This is core" not in text and "not B7" not in text
+    assert "Approve -> Approve once" in text and "pending-review" in text
+    assert "<summary>Optional: continue through the local chat helper</summary>" in text
+
+
+def test_knowledge_bonus_makes_portal_queries_primary_and_cli_optional():
+    text = (ROOT / "docs" / "bonus" / "b1-knowledge.md").read_text("utf-8")
+    primary = text.split(
+        "<summary>Optional: test agent retrieval with the CLI helper</summary>", 1
+    )[0]
+    assert "**Search explorer**" in primary
+    assert '{"search":"*","top":3,"select":"title,source_url"}' in primary
+    assert '"search":"interface documentation"' in primary
+    assert "one configured knowledge\nsource" in primary
+    assert "lab knowledge" not in primary and "lab chat" not in primary
+    assert "lab knowledge" in text and "lab chat" in text
+
+
+def test_m5_inspects_actual_cases_before_evaluation_and_portal_results():
+    text = (ROOT / "docs" / "modules" / "m5-evaluation.md").read_text("utf-8")
+    assert text.index("### 1. Inspect the test cases") < text.index(
+        "### 3. Create and test"
+    ) < text.index("### 4. Open the evaluation")
+    assert "exercises/evaluation/eval_set.jsonl" in text
+    assert "exercises/evaluation/plan.json" in text
+    assert "`comparison_case_ids`" in text
+    assert "`ground_truth`, `expected_facts` and `expected_tools`" in text
 
 
 def test_core_guides_use_examples_and_explore_import_before_configuration():

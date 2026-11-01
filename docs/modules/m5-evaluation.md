@@ -39,7 +39,19 @@ relevance and coherence are outside this exercise's current runner.
 
 ## Build and compare
 
-### 1. Choose a configuration
+### 1. Inspect the test cases
+
+Open [the evaluation cases](../../scenarios/architecture-docs/exercises/evaluation/eval_set.jsonl)
+in VS Code or the repository browser. Each line is one case.
+[The selection plan](../../scenarios/architecture-docs/exercises/evaluation/plan.json)
+lists the twelve comparison cases under `comparison_case_ids`.
+
+Choose one factual question and one guardrail case. Read their `query`,
+`ground_truth`, `expected_facts` and `expected_tools`. What would a good answer
+contain? Could another tool call support the same correct answer? Keep these
+expectations beside the Foundry results when you inspect them in Step 4.
+
+### 2. Choose a configuration
 
 Start with one configuration from the table. For the optional four-way
 comparison, divide the configurations among the people present; one person
@@ -66,7 +78,7 @@ team project and use that same owner for all four cells. Your agents still use
 your own prefixes. This controls gateway differences; do not edit that MCP or
 publish documents while collecting results.
 
-### 2. Create and test your chosen configuration
+### 3. Create and test your chosen configuration
 
 **A. Create your comparison agent.** Change `$prefix` to your assigned prefix,
 set `$cell`, `$model` and `$prompt` from your table row, and set `$docsOwner`
@@ -122,7 +134,7 @@ filename link and confirm the file actually appears in your laptop's downloads.
 On your laptop, run `Get-FileHash` on the downloaded file and compare the SHA256
 with the value printed in Cloud Shell. Extract the archive and confirm it includes
 the complete run folder's contents, not only its manifest. Give that complete
-copy to the teammate doing the optional Step 4; keep the original while this shell
+copy to the teammate doing the optional Step 5; keep the original while this shell
 is open. Matching hashes verify the downloaded copy, not the agent's quality.
 If download fails, tell the coach and preserve the current session;
 do not treat archive creation as a successful backup.
@@ -141,7 +153,7 @@ not be presented as a qualified run.
 
 </details>
 
-### 3. Open the evaluation and investigate one result
+### 4. Open the evaluation and investigate one result
 
 Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
 Evaluations**. Open the evaluation created by your command and then its run.
@@ -190,7 +202,7 @@ cancelled, incomplete or failed evidence does not become a pass.
 
 </details>
 
-### 4. Optional: bring together all four results
+### 5. Optional: bring together all four results
 
 <details>
 <summary>Run the four-way comparison</summary>
@@ -238,7 +250,7 @@ incomplete evidence.
 
 </details>
 
-### 5. Record one finding and continue
+### 6. Record one finding and continue
 
 Record one concrete finding from the answer, Foundry score and tool trace.
 Note any helper limitation separately from the agent's behavior. One collected
@@ -297,8 +309,8 @@ tools), missing native provenance, or incomplete collection (for example 429).
 These are different failures, not all a difficult-prompt problem. Actual failed
 results stay failed; incomplete collection stays incomplete, never a pass.
 
-Attempted M5 is sufficient to continue to B1/B3/B6 and to the core human approval
-exercise. It does not qualify an agent or require a backend/evaluator bypass.
+Attempted M5 is sufficient to continue to B1/B3/B6 and to review and save your
+final proposal. It does not qualify an agent or require a backend/evaluator bypass.
 For workshop publication, the authorized human librarian must review the exact
 proposal and explicitly accept the failed/incomplete-evaluation caveat.
 Real projects require their stricter release policy; B6's production-style CI
@@ -325,5 +337,5 @@ errors. Do not remove cases, lower thresholds or reuse fabricated/cached answers
 Publish nothing until **all teams'** frozen-corpus attempts finish or are
 explicitly stopped and the human librarian accepts the workshop caveat.
 
-**Next:** [B1 - Add knowledge](../bonus/b1-knowledge.md), or continue directly to
-the [human approval exercise](core-approval.md).
+**Next:** [B1 - Explore Azure AI Search and knowledge bases](../bonus/b1-knowledge.md),
+or [review and save your final proposal](core-approval.md).

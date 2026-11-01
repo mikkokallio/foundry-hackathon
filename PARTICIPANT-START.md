@@ -46,8 +46,8 @@ what actually happened.
 | [M2: REST -> MCP -> agent](docs/modules/m2-tools.md) | Your own authenticated documentation integration, real inventory lookup and document validation. |
 | [M3: Gateway governance](docs/modules/m3-governance.md) | Routing evidence, separate request/token experiments, tool throttles and usage charts. |
 | [M4: Register, discover and reuse](docs/modules/m4-discovery.md) | A useful catalog entry, then discovery and first use of the independent toolkit. |
-| [M5: Evaluate and choose](docs/modules/m5-evaluation.md) | Four controlled configurations, fresh evaluations, comparison and worst-row investigation. |
-| [Core: review and save](docs/modules/core-approval.md) | Review a draft, approve its exact text, save it and check the saved copy matches. |
+| [M5: Evaluate and investigate](docs/modules/m5-evaluation.md) | Inspect test cases, run an evaluation and investigate an answer and trace; optionally compare configurations. |
+| [Review and save your final proposal](docs/modules/core-approval.md) | Return to your draft, approve its exact text, save it and check the saved copy matches. |
 
 Try building first. If you get stuck, ask the coach or use a working example.
 Compare that example with your own attempt; you do not need to delete your work.
@@ -55,7 +55,8 @@ Compare that example with your own attempt; you do not need to delete your work.
 ## Optional bonus tasks
 
 After the main exercises, you can explore a topic in more depth. Knowledge
-retrieval is the recommended next task: let your agent find answers in documents.
+retrieval is the recommended next task: explore indexed documents and how their
+passages can support an agent's answers.
 The other links cover advanced extensions. Ask the coach which are available
 for this workshop; you do not need to complete them all.
 

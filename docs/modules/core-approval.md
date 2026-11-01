@@ -1,23 +1,23 @@
-# Core - Review, approve and verify the saved proposal
+# Review and save your final proposal
 
-This is core, not B7. Draft/validation began in M2. Attempted M5 is sufficient;
-failed evaluation does not block this workshop exercise. Complete it by saving
-and reading back an approved, valid proposal. No librarian or other team is
-required for your completion. Saving proposals does not publish them.
+Return to the draft you started in M2. Review and validate the final text,
+approve saving it, and retrieve the saved proposal to check its content and
+review status.
 
 ## Understand
 
-The agent prepares a proposal, the human approves **exact text**, and a separately
-authorized human librarian decides publication. Neither another agent's review
-nor clicking "save" authorizes publication.
+The agent prepares a proposal and you approve its **exact text**. Saving places
+it in `pending-review` status for a designated human librarian to review and
+publish.
 
 Suggested reading: [MCP tools and approval requests](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/model-context-protocol).
 
 ## Build and investigate
 
-1. Ask your steward to read the selected system/interfaces, current standard and
-   existing document (if any), draft a complete document, run `validateDocument`
-   and fix errors. Say **do not save**.
+1. Open your M2 steward and return to your draft. Ask it to check the selected
+   system/interfaces, current standard and existing document (if any), run
+   `validateDocument` and fix errors. Keep the document as a draft until you
+   approve saving.
 2. Read the entire final Markdown, validation errors/warnings and factual changes.
    A structural pass does not prove unsupported security claims. Require
    corrections and revalidation of changed text.
@@ -34,19 +34,23 @@ Suggested reading: [MCP tools and approval requests](https://learn.microsoft.com
    proposal by returned ID and compare its raw stored text/status with your
    approval. A validator error or `needs-changes` status is not a successful
    pending-review proposal.
-For the local chat path, `lab chat --binding YOUR_BINDING "YOUR_REQUEST"` starts
+<details>
+<summary>Optional: continue through the local chat helper</summary>
+
+`lab chat --binding YOUR_BINDING "YOUR_REQUEST"` starts
 a fresh conversation. Continue deliberately using `--previous` with the actual
 last response ID when referring to a displayed draft. Approval defaults to no;
 the helper displays exact tool arguments before asking. It records real
 responses/approval decisions under the scenario's `.foundry/results/`.
 
-## Validate core completion
+</details>
+
+## Validate your saved proposal
 
 - Declining saved nothing; explicitly approving saved an actual proposal ID.
 - Stored exact text and `pending-review` status match the reviewed submission.
 - Exact-text approval, structural validation, authenticated team isolation,
-  concurrency checks and stored-text/status readback remain mandatory even
-  when M5 ended with failed/incomplete evidence.
+  concurrency checks and stored-text/status readback protect the submission.
 
 ## Optional coach demonstration: publication
 

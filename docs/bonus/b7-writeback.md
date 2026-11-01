@@ -1,7 +1,7 @@
 # B7 - Challenge the write-back boundaries
 
-**After the [core approval exercise](../modules/core-approval.md).** Saving is
-already core; this bonus explores harder cases.
+**After [reviewing and saving your proposal](../modules/core-approval.md).**
+Explore how approval handles changed text, conflicts and unsafe inputs.
 
 ## Understand
 

@@ -417,7 +417,7 @@ remains unverified. It is not equivalent to completing the API build.
   APIM API appear in telemetry. No publication tool or automatic save approval.
 
 **Discuss:** what did MCP standardize, what did APIM govern, and what still depends
-on the agent's choices? Save/publication happens in the [core approval exercise](core-approval.md)
-after the shared-corpus comparisons.
+on the agent's choices? Return to your draft in
+[Review and save your final proposal](core-approval.md) after evaluation.
 
 **Next:** [M3 - See the traffic and test gateway limits](m3-governance.md).
