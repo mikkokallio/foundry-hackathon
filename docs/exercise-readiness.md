@@ -6,17 +6,17 @@ deployment teams and facilitators.
 
 ## Deployment notes
 
-Foundation and access stages, remote image builds and knowledge initialization
-have been exercised in a fresh environment. Full workload deployment and
-non-admin participant checks are still being completed.
+Complete foundation, access, workload initialization and pack export before
+participant checks. Verify the deployed environment using a participant account;
+successful planning or administrator access does not prove the exercise works.
 
 | Issue | What to do |
 |---|---|
-| APIM native MCP setup | The workload defines all twelve tools together on the MCP API rather than through separate tool writes. The exact synthetic contract and GET/POST transport checks pass in an isolated test; fresh full-workload and non-admin verification remain pending. For an existing state, follow the [native MCP update notes](../infra/README.md#native-documentation-mcp) and review a new plan before resuming. |
+| APIM native MCP setup | The workload defines all twelve tools together on the MCP API rather than through separate tool writes. Check both an actual filtered GET and validator POST. For an existing state, follow the [native MCP update notes](../infra/README.md#native-documentation-mcp) and review a new plan before resuming. |
 | Microsoft Graph timeout during app registration | A timeout can occur after the application has been created. Check the application and Terraform state, then review a new plan before resuming. Avoid creating a duplicate application manually. |
 | Interrupted apply | Confirm the original process has stopped, preserve state and inspect the lock before generating a new plan. Use the same component backend and data directory. |
-| Linux / Cloud Shell | Commands are supplied but have not yet been deployment-tested end to end. The Windows path has been tested. Verify Cloud Shell's processing region and persistent storage before uploading private inputs. |
-| Non-admin access | Role assignments are configured; effective participant sign-in and authoring checks are still in progress. Verify with a participant account before the event. |
+| Linux / Cloud Shell | The main deployment walkthrough uses local PowerShell. If choosing a different deployment shell, verify that route separately. For participant Cloud Shell, check the processing region and persistence choice before uploading inputs, and export results before session expiry. |
+| Non-admin access | Verify actual participant sign-in, project connection creation and service authoring before the event. Inspect effective role scopes if an operation is denied; do not use administrator access as a substitute. |
 
 See [Module 0](module-0.md) for deployment commands and
 [the component/policy checklist](../README.md#customer-deployment-components-and-policy-checklist)
@@ -26,20 +26,20 @@ for subscription preparation.
 
 | Activity | Practical guidance |
 |---|---|
-| M1 models and traces | Direct and gateway-connected requests and native traces have been exercised. Allow ingestion time and inspect the tested agent version. |
-| M2 REST and MCP | Portal import has created all 14 expected REST operations. A non-admin portal agent executed a filtered GET and exact-text validator POST through an owned MCP. Cloud helper creation also passed after an approved Alpha-only connection-write grant. Complete portal authoring and all-team effective access are not yet qualified. |
-| M3 throttling | Model request/token limits and usage charts have been observed. MCP discovery returned 429 and recovered after restoring the owned policy; a business-operation tool-call 429 has not yet been demonstrated. Coordinate any temporary limit changes and restore them afterward. |
+| M1 models and traces | Check direct and gateway-connected models separately. Allow trace ingestion time and inspect the actual tested agent version. Missing cost data is not zero cost. |
+| M2 REST and MCP | Check all 14 imported REST operations, expose only the twelve allowed MCP tools, then execute a filtered inventory read and exact-text validator POST. The deployed participant role includes project connection writes; a disabled Connect button still requires effective-access investigation. |
+| M3 throttling | Distinguish your practice limiter from shared capacity, and discovery throttles from business-tool throttles. Coordinate temporary policy changes, retain the original XML and verify restoration plus recovery. |
 | M4 catalog registration | If the native wizard rejects a generated definition title, shorten it and retry. Generated `/sse` and `/message` examples and missing auth metadata may not describe the actual endpoint: inspect the registered specification and use the pack's real URL/auth settings. |
-| M5 evaluations | One actual Cloud evaluation completed with failed quality/provenance checks, including a toolkit MCP POST 400. All four original immutable candidates were then evaluated locally as organizer: all failed, with native provenance coverage 9/12, 12/12, 9/12 and 12/12. Both local and Cloud comparison commands refused these incomplete manifests and created no ranking. This is not participant-access proof; the full Cloud matrix remains unverified. File-menu download failed, but native `download` plus its filename link preserved both a nested 6 MiB test archive and all 172 files from the four real local result folders after a Cloud round trip. Archive SHA256 and all individual file hashes matched. Export before ephemeral session expiry. Keep actual failures and follow M5's workshop-only stop rule; do not weaken gates. |
-| B1 knowledge | Retrieval through the shared connection and restricted helper has executed in local and Cloud rehearsals. Cloud execution is not full quality/provenance qualification: the answer did not adequately distinguish indexed prose from the current authoritative standard. Approve one short query, inspect source URLs/quotes and compare with the current standard. |
-| Core approval and publication | Teams complete at valid proposal saving/readback. Separately verify human publication for the non-blocking coach demonstration; publish only after all teams have completed or stopped their baseline collection. |
-| B3 multi-agent | Writer/reviewer prompts and workflow helpers are available. Independent reviewer tool use still needs attention; inspect child traces before accepting a review. |
-| B6 CI | Requires the separate delivery stage, GitHub environment and state/identity setup. The live CI path has not yet been verified. |
-| B9 local app | The optional reference has exercised live reads, agent/tool calls, validation, approval controls and rendering. Participant save/readback remains to be verified. Azure hosting is a separate extension. |
+| M5 evaluations | This is an intentionally difficult challenge, not a requirement for four passing candidates. Preserve complete result folders and investigate an actual native trace. Record quality failures separately from service errors, missing provenance or incomplete collection. Do not rank incomplete evidence or weaken gates. Download archives through their filename links and verify local hashes/content before closing Cloud Shell. |
+| B1 knowledge | Approve one short retrieval query, inspect its source URLs/quotes and compare indexed prose with the current authoritative standard. If retrieval is blocked, use B1's existing-index exercise; do not recreate infrastructure. |
+| Core approval and publication | Require exact-text human consent, valid proposal saving and stored-text/status readback. Publication is a separate human action, only after teams have completed or stopped baseline collection. |
+| B3 multi-agent | Inspect child traces to check that the reviewer independently used the necessary tools; a fluent review alone is insufficient. |
+| B6 CI | Requires separate delivery-stage, GitHub environment and state/identity setup. Verify that route separately; failed or incomplete qualification must block production-style promotion. |
+| B9 local app | Verify live data, approval controls and stored-text readback with the intended identity. Azure hosting is a separate extension, not a prerequisite for the local app. |
 
 The [coach guide](coach-guide.md) has module-specific checks and short error triage.
 For workshop progression and evaluation interpretation, see
-[M5](modules/m5-evaluation.md#5-workshop-stopfallback).
+[M5](modules/m5-evaluation.md#5-if-the-tests-fail-record-that-and-continue-the-workshop).
 
 ## Workshop materials
 

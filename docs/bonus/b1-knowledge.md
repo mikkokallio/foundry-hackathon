@@ -133,3 +133,5 @@ a replacement service just to continue this exercise.
 
 **If stuck:** verify the existing endpoint/identity with the coach. Do not reset
 reference indexes, rerun initialization or fabricate a retrieval answer.
+
+**Next:** [Human approval and proposal readback](../modules/core-approval.md).

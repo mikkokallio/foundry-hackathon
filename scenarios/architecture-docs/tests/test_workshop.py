@@ -861,7 +861,7 @@ def test_required_command_guides_cover_both_shells_and_scoped_sign_in():
         assert "Cloud Shell PowerShell" in text
         assert "local PowerShell" in text or "Local PowerShell" in text
     tools = (ROOT / "docs" / "modules" / "m2-tools.md").read_text("utf-8")
-    assert "existing **Rehearsal Architecture Docs API**" in tools
+    assert "existing reference **Architecture Docs API**" in tools
     assert "az login --tenant $context.tenant_id --scope $context.gateway_scope" in tools
     assert "finally" in tools and "$token = $null" in tools
 

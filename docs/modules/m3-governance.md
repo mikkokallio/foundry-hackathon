@@ -194,20 +194,13 @@ does not identify the cause. If neither token test throttles, inspect the policy
 below rather than repeating bursts. Never change shared reference limits or
 bypass the gateway.
 
+APIM limits are not exact counters or guaranteed billing caps.
+
 In Azure portal, open your assigned **API Management services** instance ->
 **APIs**, then select one of the new APIs with your prefix. In **Design ->
 All operations -> Inbound processing -> code editor**, inspect its request and
 token limits. Only edit your own practice APIs; predict the outcome before
 calling again.
-
-<details>
-<summary>Why the measured limit may not be an exact counter</summary>
-
-Rehearsal observed three successes with a 2/minute request
-policy, and 344 tokens with a 256-TPM policy, before the respective 429s.
-Limits are not exact counters or a guaranteed billing hard cap.
-
-</details>
 
 ### 4. Test a tool limit, then restore it
 
@@ -222,8 +215,8 @@ Use the browser for this experiment:
    `calls="1" renewal-period="60"`. Keep authentication/routing
    intact. A unique practice counter suffix avoids reusing an earlier
    experiment's counter; retain API/team isolation. Select **Save**, confirm
-   **Policy saved**, and allow propagation. Rehearsal waited 65 seconds;
-   this is an observed wait, not a propagation guarantee.
+   **Policy saved**, and allow propagation. Wait 1-2 minutes;
+   it is probably enough for the policy to become active.
 3. In Foundry, open your steward, for example `alpha-p2-steward`, then its
    **Playground**. Select a known saved version with the
    intended owned MCP server. Start a **New chat** and ask for exactly one
@@ -313,3 +306,5 @@ Ask the coach about missing telemetry.
 
 401/403 often concern auth, but some token **quota** policies intentionally
 return 403. Inspect the body/policy rather than diagnosing from status alone.
+
+**Next:** [M4 - Find a toolkit](m4-discovery.md).

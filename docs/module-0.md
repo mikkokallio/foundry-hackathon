@@ -16,7 +16,7 @@ New-Item -ItemType Directory -Path .\out -Force | Out-Null
 Copy-Item .\infra\people.example.json .\out\people.private.json
 ```
 
-Edit **`out\people.private.json`**: fill in only `publisher_email`, the monitored APIM contact. Librarians and team members are added in Step 3. Keep this file private. The generator supplies Contoso, five team projects (alpha, beta, gamma, delta, epsilon), France Central, Basic v2 APIM, Standard Search with three replicas, and the shared model/cache/limit defaults.
+Edit **`out\people.private.json`**: fill in `publisher_email`, the monitored APIM contact. Librarians and team members can also be added now, or later in Step 3. Keep this file private. The generator supplies Contoso, five team projects (alpha, beta, gamma, delta, epsilon), France Central, Basic v2 APIM, Standard Search with three replicas, and the shared model/cache/limit defaults.
 
 <details>
 <summary>Sample people.private.json</summary>

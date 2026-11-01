@@ -36,26 +36,14 @@ together, not to finish the day with a production-ready application.
 - **Facilitators:** use the [coach guide](docs/coach-guide.md) and
   [preview notes and troubleshooting](docs/exercise-readiness.md).
 
-### Current deployment handoff
+### Deployment boundaries
 
-Wait for the deployment team to publish the tested candidate before executing
-commands. The first joint rehearsal uses the existing approved test environment
-and test roster, preserving its original backend/state. Native Terraform remains
-preferred for new deployments; the optional composition wrapper is a separate
-route, not a backend migration.
-
-The customer roster is unavailable Sunday and arrives Monday morning; no action
-today requires obtaining it. Customer foundation infrastructure preflight and
-planning may precede it. Customer access/workload require complete real accounts,
-team assignments and the explicitly selected human publisher; infrastructure-only
-checks are not Full preflight. Concrete target and saved-plan approval still
-precede every apply.
-
-Acceptance requires non-admin M2 connection creation/readback **after the new
-deployment containing the targeted IaC fix**. Alpha-only manual access and local
-tests do not close that gate. See the [closeout checklist](DEPLOY-NEXT.md) for
-deadlines and [Module 0](docs/module-0.md) for approval, state retention and
-stop/resume boundaries.
+Use [Module 0](docs/module-0.md) for new deployments, including target approval,
+private roster inputs, state retention and stop/resume boundaries. Native
+Terraform is the main route; the optional composition wrapper is separate.
+Before the event, verify actual sign-in and authoring with a participant
+account, including M2 connection creation; an administrator's successful
+deployment is not a participant-access check.
 
 ## Customer deployment: components and policy checklist
 
@@ -70,7 +58,7 @@ workload, not just the services participants create during exercises.
 |---|---|---|
 | Dedicated resource groups | `Microsoft.Resources/subscriptions/resourceGroups` | Foundation, workload runtime and extension-authoring boundary. Use new lab groups, not production groups. |
 | Microsoft Foundry | `Microsoft.CognitiveServices/accounts`, `/projects`, `/deployments` | AIServices S0 account, team/facilitator projects and workload-owned chat, judge and embedding deployments. Model/version/SKU/capacity are explicit deployment inputs; verify quota and availability. |
-| API Management | `Microsoft.ApiManagement/service` | BasicV2 capacity 1 in the rehearsed `lite` profile; StandardV2 capacity 1 in the alternative profile. Public gateway, managed identity, model/API routes, policies, native MCP APIs/tools and project connections. Not the separate preview AI Gateway resource. |
+| API Management | `Microsoft.ApiManagement/service` | BasicV2 capacity 1 in the default `lite` profile; StandardV2 capacity 1 in the alternative profile. Public gateway, managed identity, model/API routes, policies, native MCP APIs/tools and project connections. Not the separate preview AI Gateway resource. |
 | API Center | `Microsoft.ApiCenter/services` | Free tier; API/MCP catalog registrations, versions, definitions and metadata. |
 | Azure AI Search | `Microsoft.Search/searchServices` | Reference input selects S1, three replicas/one partition and standard semantic/agentic billing; unoverridden native defaults remain Basic, one replica/partition. Entra authentication; indexes, ingestion, embedding/vectorizer and preview knowledge source/base/MCP connection. Required for this scenario even if B1 is not attempted. Review the actual plan. |
 | Blob Storage | `Microsoft.Storage/storageAccounts` | Standard LRS; shared keys and anonymous blob access disabled. Synthetic documents/proposals/templates/glossary and Search ingestion. |

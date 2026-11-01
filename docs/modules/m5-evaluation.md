@@ -1,10 +1,10 @@
-# M5 - Compare four agent versions and investigate their failures
+# M5 - Evaluate an agent and investigate the results
 
 ## What you will do
 
-Compare **two models with two instruction sets**: four configurations in total.
-Each answers the same twelve test cases using the same documentation and toolkit
-tools. Compare the measured results, not just which answer sounds fluent.
+Run twelve test cases, then compare the Foundry score with an actual answer and
+its tool trace. Optionally compare **two models with two instruction sets**:
+four configurations using the same cases and tools.
 
 Use the **PowerShell shell from M3**, where `lab` already works, and inspect
 results in Foundry. No application coding is required. If you need a new shell,
@@ -12,15 +12,22 @@ use [M3's expandable setup](m3-governance.md#2-send-one-normal-model-request).
 Choose **local PowerShell** or **Cloud Shell PowerShell**; keep it open during
 the run. In temporary Cloud Shell, download the results afterward as shown below.
 
-**This is an intentionally difficult final challenge. Passing every evaluation
-is not required.** The goal is to compare actual results and investigate a
-failure, not to obtain four green runs.
+**The CLI comparison workflow is experimental.** It runs real Foundry evaluations
+and adds local lab checks. Some require a particular tool call even when another
+call supports a correct answer. A red CLI result therefore needs interpretation,
+not automatic retries. All-green results are not required.
 
 <details>
-<summary>Optional reading and evaluator background</summary>
+<summary>Optional: explore portal evaluation and evaluator background</summary>
 
 - [Evaluate agents](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/evaluate-agent).
 - [Cloud evaluation](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/cloud-evaluation).
+
+You can explore creating a separate evaluation in the portal: prepare/import
+suitable test data, choose the agent and evaluators, and check the field mappings.
+The helper supplies cases and collected response IDs directly to its evaluation
+run; it does **not** register a reusable dataset ready for a new portal run.
+This optional portal setup is not a tested step-by-step lab path.
 
 The lab pins task-adherence evaluator **v2** on its
 numeric scale, plus custom fact/tool/template/safety/provenance checks. Do not
@@ -32,12 +39,12 @@ relevance and coherence are outside this exercise's current runner.
 
 ## Build and compare
 
-### 1. Assign the four configurations
+### 1. Choose a configuration
 
-Divide these four configurations among the people present. With four people,
-each can own one; with fewer people, someone can own multiple configurations.
-Keep your own participant prefix and use a distinct agent name/output file for
-each cell. Do not impersonate an absent participant.
+Start with one configuration from the table. For the optional four-way
+comparison, divide the configurations among the people present; one person
+can run multiple cells. Use your own participant prefix and a distinct agent
+name/output file for each cell.
 
 | Cell | Model alias | Instructions |
 |---|---|---|
@@ -50,18 +57,20 @@ Use the connected models, not M1's direct deployment. M1's agents without tools
 are **not** these candidates. The helper saves the exact agent version so you
 do not accidentally evaluate a later edit.
 
-Choose **one team member's working M2 documentation MCP** for all four.
-For example, if it belongs to `alpha-p1`, everyone sets `$docsOwner = 'alpha-p1'`.
-If its owner used a longer prefix, include that whole prefix.
-Your agent still uses your own name, such as `alpha-p2`.
-This keeps gateway differences from affecting the model comparison.
-Do not edit that MCP or publish documents while collecting results.
+Use **your own working M2 documentation MCP** when working alone or at your own
+pace: set `$docsOwner = $prefix`. Include the whole prefix if it has a suffix;
+participant `p1` is not required.
 
-### 2. Create and test your assigned configuration
+For a coordinated four-way comparison, choose one working MCP owner in your
+team project and use that same owner for all four cells. Your agents still use
+your own prefixes. This controls gateway differences; do not edit that MCP or
+publish documents while collecting results.
+
+### 2. Create and test your chosen configuration
 
 **A. Create your comparison agent.** Change `$prefix` to your assigned prefix,
 set `$cell`, `$model` and `$prompt` from your table row, and set `$docsOwner`
-to the shared M2 MCP owner's prefix. Then run this block; the helper creates
+to the working M2 MCP owner's prefix. Then run this block; the helper creates
 the agent and saves its version binding. You do not need to create it in the
 portal first.
 
@@ -70,7 +79,7 @@ $prefix = 'alpha-p2'
 $cell = 'small-concise'
 $model = 'chat-small'
 $prompt = 'instructions-concise'
-$docsOwner = 'alpha-p1' # Replace with your team's chosen real practice owner.
+$docsOwner = $prefix # Your working M2 MCP owner; use the shared owner for a team comparison.
 $binding = Join-Path 'out' "$prefix-comparison-$cell.json"
 lab agent --name "$prefix-comparison-$cell" --model $model --prompt $prompt --docs practice --docs-owner $docsOwner --toolkit --reasoning low --output $binding
 ```
@@ -81,14 +90,14 @@ lab agent --name "$prefix-comparison-$cell" --model $model --prompt $prompt --do
 lab eval --binding $binding --comparison
 ```
 
-This sends real requests and runs the evaluator. Expect a result folder under
-`.foundry\results`, plus an evaluation/run in Foundry. A failed quality check is
-an outcome to investigate; an authentication, service or missing-evidence error
-needs separate attention. Do not rerun just to make the status green.
+This collects real agent responses and submits them to Foundry's task-adherence
+evaluator, then checks local facts, tool use, templates and native traces.
+It automates the experiment; it does not replace inspecting the results.
 
-Keep the reported folder and its `manifest.json` for Step 4. The manifest records
-the measured version, inputs and checks; do not edit it. All candidates use the
-same `low` reasoning setting. Coordinate runs if shared capacity is throttled.
+Keep the reported `Evidence:` folder under `.foundry\results` and its
+`manifest.json`, including when checks fail. Early setup failures may not create
+a run folder. The manifest records the version, inputs and checks; do not edit it.
+All candidates use `low` reasoning. Coordinate runs if shared capacity is throttled.
 
 <details>
 <summary>Cloud Shell: download and verify the complete result folder before closing</summary>
@@ -113,7 +122,8 @@ filename link and confirm the file actually appears in your laptop's downloads.
 On your laptop, run `Get-FileHash` on the downloaded file and compare the SHA256
 with the value printed in Cloud Shell. Extract the archive and confirm it includes
 the complete run folder's contents, not only its manifest. Give that complete
-copy to the teammate doing Step 4; keep the original while this shell is open.
+copy to the teammate doing the optional Step 4; keep the original while this shell
+is open. Matching hashes verify the downloaded copy, not the agent's quality.
 If download fails, tell the coach and preserve the current session;
 do not treat archive creation as a successful backup.
 
@@ -135,13 +145,21 @@ not be presented as a qualified run.
 
 Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
 Evaluations**. Open the evaluation created by your command and then its run.
-Inspect one wrong or failed answer and its matching native trace. For an agent's
+Inspect one answer, including a green result if needed, and its matching native
+trace. For an agent's
 traces, use **Build -> Agents -> your comparison agent -> Traces**.
 
 Did it invent a fact, miss a necessary tool, use malformed arguments, encounter
 a service error, or fail to follow the instructions? Write down one concrete
-hypothesis. A run marked `Completed`, even with 100% task adherence, can still
-fail the lab's additional fact, tool, template or trace checks.
+hypothesis. `Completed` means the remote evaluation finished; task adherence is
+not a guarantee of factual completeness. A green score can still accompany an
+unanswered question.
+
+If the CLI is red, inspect `failure_clusters` in `manifest.json`. Distinguish
+missing facts from an exact-tool requirement, a recorded failed tool call,
+authentication/service errors or genuinely missing trace evidence. For example,
+a correct owner lookup using `listSystems` can fail the helper's `getSystem`
+requirement. Do not describe that alone as an incorrect answer or a runner crash.
 
 <details>
 <summary>A trace contains a discovery 400, but tools subsequently work</summary>
@@ -161,7 +179,7 @@ execution evidence still fail verification.
 | Input / activity | Purpose |
 |---|---|
 | `smoke.jsonl` | Four categories, four cases. |
-| `comparison-12.jsonl` | Twelve non-write-back cases: 5 QA, 3 gap, 1 draft, 3 guardrails. Same cases for every matrix cell. |
+| `plan.json` + `eval_set.jsonl` | Select twelve non-write-back comparison cases: 5 QA, 3 gap, 1 draft, 3 guardrails. Same cases for every cell. |
 | `eval_set.jsonl` | All 25 unchanged regression cases. Required for release qualification. |
 | `write-back.jsonl` | Three write-back cases; genuine human approval/persistence checks remain necessary. |
 | Legacy `quick.jsonl` | Four-case smoke compatibility name, **not** the twelve-case teaching comparison. |
@@ -172,7 +190,10 @@ cancelled, incomplete or failed evidence does not become a pass.
 
 </details>
 
-### 4. Bring together the four results
+### 4. Optional: bring together all four results
+
+<details>
+<summary>Run the four-way comparison</summary>
 
 Only when all four manifests have complete collection and required provenance,
 give their actual manifest paths to the comparison command. All four files
@@ -203,9 +224,10 @@ Which configuration would you choose, and what evidence supports that choice?
 <details>
 <summary>How failed or incomplete candidates appear in the report</summary>
 
-An omitted expected tool remains a quality failure even when provenance verifies
-the calls that actually ran. The runner records that omission separately; it
-must neither invent a span for the missing call nor qualify the candidate.
+An omitted expected tool remains a failed helper check even when provenance
+verifies the calls that actually ran. Investigate whether it represents a
+necessary missing operation or an overly specific tool requirement; the report
+does not make that judgment for you. Never invent a span or qualify the candidate.
 
 The report includes fully collected failed candidates without calling them
 qualified. Incomplete runs or missing provenance cannot be included or ranked;
@@ -214,11 +236,16 @@ incomplete evidence.
 
 </details>
 
-### 5. If the tests fail, record that and continue the workshop
+</details>
 
-**This is an intentionally difficult final challenge. Passing every evaluation
-is not required to complete the hackathon.** After recording the original
-comparison, try improving a new agent version:
+### 5. Record one finding and continue
+
+Record one concrete finding from the answer, Foundry score and tool trace.
+Note any helper limitation separately from the agent's behavior. One collected
+run and this investigation are sufficient for the module; no all-green result
+or four-way ranking is required.
+
+If you want to explore an improvement:
 
 - Inspect the worst answer and its tool trace before changing the instructions.
 - Clarify tool-use order and name/ID resolution; add a short example of the
@@ -230,13 +257,13 @@ comparison, try improving a new agent version:
   as a further experiment if available. Review every proposed change; an
   optimization is not proof of improvement. Neither feature is required.
 
-Keep the actual responses, manifests and trace investigation. If a few genuine
-attempts still fail, explicitly stop and record **workshop-only/not qualified**
-with the reason: wrong/missing facts or tools, missing trace evidence, or an
-incomplete run such as a 429 interruption. These are different problems.
+Keep the actual responses, manifests and trace investigation. If collection
+is blocked, record **workshop-only/not qualified** with the actual reason:
+authentication/service error, missing evidence or an incomplete run such as a
+429 interruption. Do not repeatedly rerun to obtain green.
 Failed results stay failed; incomplete results stay incomplete.
 
-You may continue to B1 and the [human approval exercise](core-approval.md) after
+You may continue to [B1](../bonus/b1-knowledge.md) and the [human approval exercise](core-approval.md) after
 an attempted M5. This does not qualify an agent for production, approve a write,
 or authorize publication. Do not rank candidates with incomplete evidence.
 
@@ -286,13 +313,17 @@ not the original baseline; do not compare them as unchanged-corpus evidence.
 
 ## You are done when
 
-- Four actual immutable configurations and comparable real evidence, or recorded
-  genuine attempts and an explicit workshop-only stop with evidence limitations.
-- A numerical choice only with comparable evidence; otherwise no qualified
-  winner and no ranking of incomplete evidence.
-- A real worst-row trace investigation and a reasoned improvement hypothesis.
+- One actual agent version evaluated, with an answer/trace investigation and
+  one concrete finding; or an explicit blocked attempt and its evidence limitation.
+- Foundry scores, additional helper checks and technical/evidence problems
+  distinguished rather than reduced to one green/red verdict.
+- If comparing configurations: a numerical choice only with comparable evidence,
+  never a ranking of incomplete runs or a claim of production qualification.
 
 **If stuck:** the coach helps with actual run IDs, coverage and ingestion/auth
 errors. Do not remove cases, lower thresholds or reuse fabricated/cached answers.
 Publish nothing until **all teams'** frozen-corpus attempts finish or are
 explicitly stopped and the human librarian accepts the workshop caveat.
+
+**Next:** [B1 - Add knowledge](../bonus/b1-knowledge.md), or continue directly to
+the [human approval exercise](core-approval.md).

@@ -31,8 +31,7 @@ Only change objects with your own prefix. Leave the shared reference alone.
 2. Select **APIs**, then **OpenAPI** in the add-API choices.
 3. Select `openapi.json` from your team pack, not the original backend
    specification in the repository. If clicking **Select a file** does nothing,
-   focus the button with **Tab** and press **Enter**. This worked in the human
-   Edge rehearsal.
+   focus the button with **Tab** and press **Enter**.
 4. Choose **Full** and enter:
 
    | Field | Alpha participant 2 example |
@@ -69,7 +68,7 @@ keep the attempt and tell the coach.
 ### 3. Configure, secure and test your API
 
 1. In **Azure portal -> your assigned API Management instance -> APIs**, select
-   the existing **Rehearsal Architecture Docs API**, then open **Settings** and
+   the existing reference **Architecture Docs API**, then open **Settings** and
    copy **Web service URL**. This is the reference REST API, not your
    `alpha-p2-docs-api`, a model API or an MCP server. If the coach uses another
    organisation label, its name ends in **Architecture Docs API**; ask the coach
@@ -310,11 +309,10 @@ Select **Connect**. This creates a RemoteTool connection, visible afterwards in
 **Manage -> Project details -> Connected resources**. That page's **Add connection**
 picker may not offer MCP; use the agent's tool picker above.
 
-If **Connect** is disabled, hover over it to read the explanation. Rehearsal as
-the test participant showed **"You do not have permissions to create a
-connection"**; the CLI catch-up helper also returned 403 for that operation.
-Tell the coach: this is an access defect, not a reason to switch shells,
-remove authentication or borrow an organizer account. The coach must resolve
+If **Connect** is disabled, hover over it to read the explanation.
+**"You do not have permissions to create a connection"** is an access defect.
+Tell the coach rather than switching shells,
+removing authentication or borrowing an organizer account. The coach must resolve
 the access prerequisite before you can finish this step.
 
 Add **only your documentation MCP** at this stage. On its **Actions -> Configure**,

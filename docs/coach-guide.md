@@ -11,7 +11,7 @@ Participants are encouraged to author their own APIs, MCPs, agents, connections,
 catalog records and extension apps. Do not reapply Terraform over their work.
 Do not modify shared references to rescue an exercise.
 
-### Publish the participant source before rehearsal
+### Publish the participant source before the event
 
 Keep the Cloud Shell helper in this repository with its exercises and tests;
 a separate copy would require synchronizing fixes and evaluation inputs.
@@ -47,27 +47,19 @@ Include MCP connection creation in the participant access check: Foundry User
 does not explicitly grant ARM connection writes. If the supported portal path is
 denied, arrange a scoped permission review before the event.
 
-Rehearsal confirmed that both the portal and helper needed
-`Microsoft.CognitiveServices/accounts/projects/connections/write`.
-A separately approved single-action role, assigned only to the test participant
-on Alpha, enabled both routes. This is not an all-team access fix and is not
-encoded in the frozen IaC. Review any rollout with the organizer before changing
-deployment code or assignments.
+Participant-access Terraform includes a single-action role granting
+`Microsoft.CognitiveServices/accounts/projects/connections/write`, assigned at
+each participant's own team project. Verify both native and helper connection
+creation using a real participant; role configuration alone is not effective
+access proof. Do not repair a failure by borrowing an administrator's account.
 
 For Cloud Shell M5, verify a small archive downloads and extracts locally
-**before** starting evaluations. Rehearsal reproduced a server-side
-`FileDownloadError` even for a synthetic archive, then lost undownloaded results
-when the ephemeral session expired. The cause of the download failure is not
-established. The native `download $archive` command, followed by clicking its
-**Download file** filename link, subsequently passed with a nested 6 MiB archive:
-remote/local SHA256 matched and local extraction succeeded. Use that procedure
-and verify participants have an actual local copy. A subsequent round trip of
-four real, locally evaluated result folders also passed: upload, Cloud extraction
-and repacking, native download, matching archive SHA256 and all 172 original
-files matching after local extraction. This verifies result preservation, not
-Cloud execution of those evaluations. No new storage or extra
-permission was needed. Provision or change persistent storage only with
-organizer approval and an equivalent participant-wide access design.
+**before** starting evaluations. Use native `download $archive`, then click the
+filename in its **Download file** notification. Compare remote/local SHA256
+and check the extracted contents. Creating a download link is not a local backup.
+Ephemeral session expiry can lose undownloaded results; use local PowerShell
+or approved persistent storage for long runs. Provision or change storage only
+with organizer approval and an equivalent participant-wide access design.
 
 ## Module facilitation
 
