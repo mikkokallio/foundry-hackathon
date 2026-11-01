@@ -27,12 +27,13 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
    edit the shared reference entries.
 2. Use **Register an asset -> MCP server**. Use a short Title such as
    `alpha-p2-docs`, replacing the prefix with your own. Keep the complete title
-   **at most 24 characters**; put longer explanations in Summary/Description.
-   Add a **Remote** using your actual M2
-   connection endpoint and select your existing development environment. Set
+   **at most 24 characters**. Fill the required **Description** with the owner,
+   intended use, classification and limitations; Summary can be shorter.
+   Add a **Remote** using your actual M2 connection endpoint. Environment is
+   optional: select your assigned environment if available, otherwise leave it
+   blank. Set
    version title/identification, for example `v1`, and Development lifecycle,
-   then **Create**. In the asset's metadata, record its owner, intended use,
-   classification and limitations.
+   then **Create**.
 3. Open the saved version. Check **both definitions** and the deployment runtime
    URL. Compare that URL with the actual `alpha-p2-docs-mcp` URL you copied in
    M2. The saved asset should describe your existing server; registration does
