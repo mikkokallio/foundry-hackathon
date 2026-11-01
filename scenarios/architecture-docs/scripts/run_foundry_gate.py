@@ -335,6 +335,108 @@ def native_span_index(records: list[dict]) -> dict[tuple[str, str], dict]:
     return by_id
 
 
+def discovery_negotiations(records: list[dict], turn: dict, mcp_servers: dict[str, str]) -> list[dict]:
+    """Retain discovery rejections only after native initialization and enumeration recover."""
+    if turn.get("status") != "completed":
+        return []
+    labels = {
+        item.get("server_label") for response in turn.get("responses", [])
+        for item in response.get("output", [])
+        if item.get("type") == "mcp_list_tools" and isinstance(item.get("tools"), list)
+        and item["tools"] and not item.get("error")
+    }
+    urls = {url for label, url in mcp_servers.items() if label in labels}
+
+    def declared_url(record: dict) -> str | None:
+        value = record.get("url")
+        if not isinstance(value, str):
+            return None
+        session = r"\?sessionId=[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}"
+        return next((url for url in urls if value == url or re.fullmatch(re.escape(url) + session, value)), None)
+
+    by_id = native_span_index(records)
+    roots: dict[tuple[str, str], dict] = {}
+    markers = []
+    for key, record in by_id.items():
+        d, url = dimensions(record), declared_url(record)
+        native = d.get("api.type") == "mcp-backend"
+        proxy = d.get("api.type") == "pass-through-mcp"
+        rejected_method = (
+            native and d.get("error.type") == "Bad Request"
+            and d.get("error.message") == "Method server/discover is not supported."
+        ) or (proxy and not d.get("error.type") and not d.get("error.message"))
+        if (
+            not url or not rejected_method or record.get("resultCode") != "400"
+            or span_success(record.get("success")) or d.get("gen_ai.tool.name")
+            or d.get("gen_ai.operation.name") != "server/discover"
+            or d.get("network.protocol.name") != "MCP"
+            or d.get("Service Type") != "API Management" or not d.get("Service ID")
+            or not str(record.get("telemetryTable", "")).endswith(".requests")
+            or record.get("name") != f"POST {urlparse(url).path}"
+        ):
+            continue
+        recovered = set()
+        for candidate in records:
+            c = dimensions(candidate)
+            operation = c.get("gen_ai.operation.name")
+            if (
+                candidate.get("operation_Id") == key[0] and declared_url(candidate) == url
+                and operation in ("initialize", "tools/list") and not c.get("gen_ai.tool.name")
+                and c.get("api.type") == d["api.type"] and c.get("network.protocol.name") == "MCP"
+                and c.get("Service Type") == "API Management" and c.get("Service ID") == d["Service ID"]
+                and not c.get("error.type") and not c.get("error.message")
+                and candidate.get("resultCode") == "200" and span_success(candidate.get("success"))
+                and str(candidate.get("telemetryTable", "")).endswith(".requests")
+                and candidate.get("name") == f"POST {urlparse(url).path}"
+            ):
+                recovered.add(operation)
+        if recovered != {"initialize", "tools/list"}:
+            continue
+        roots[key] = record
+        markers.append({
+            "classification": "recovered_server_discover_400",
+            "operation_id": key[0], "span_id": key[1], "request_span_id": key[1],
+            "server_url": url, "http_status": "400", "recovery_phases": sorted(recovered),
+            "error_message": d.get("error.message", ""),
+        })
+    for key, record in by_id.items():
+        parent_key = (key[0], record.get("operation_ParentId"))
+        parent = roots.get(parent_key)
+        if parent is None:
+            continue
+        d, p = dimensions(record), dimensions(parent)
+        if (
+            record.get("type") != "HTTP" or span_success(record.get("success"))
+            or not str(record.get("telemetryTable", "")).endswith(".dependencies")
+            or record.get("url") not in ("", None) or d.get("error.type") or d.get("error.message")
+            or d.get("gen_ai.operation.name") or d.get("gen_ai.tool.name")
+            or d.get("Source") != "forward-request"
+            or d.get("Service Type") != "API Management" or d.get("Service ID") != p["Service ID"]
+        ):
+            continue
+        native = (
+            p["api.type"] == "mcp-backend" and record.get("name") == "forward-request"
+            and record.get("target") == "forward-request" and record.get("data") == "REQUEST -"
+            and record.get("resultCode") == ""
+        )
+        data = record.get("data", "")
+        target = urlparse(data[7:]) if isinstance(data, str) and data.startswith("POST - https://") else None
+        proxy = (
+            p["api.type"] == "pass-through-mcp" and record.get("resultCode") == "400"
+            and target is not None and not target.username and not target.password
+            and not target.query and not target.fragment
+            and record.get("target") == f"{target.scheme}://{target.netloc}"
+            and record.get("name") == f"POST {target.path}"
+        )
+        if native or proxy:
+            markers.append({
+                "classification": "linked_forwarded_discovery_rejection",
+                "operation_id": key[0], "span_id": key[1], "request_span_id": parent_key[1],
+                "server_url": declared_url(parent), "http_status": record.get("resultCode"),
+            })
+    return markers
+
+
 def mcp_forwarding_markers(
     records: list[dict], exceptions: list[dict], turn: dict, mcp_servers: dict[str, str],
 ) -> list[dict]:
@@ -510,7 +612,8 @@ def match_trace(
     relevant_exceptions = [exc for exc in exceptions if exc.get("operation_Id") in roots]
     cancellations = transport_cancellations(relevant, relevant_exceptions, turn, mcp_servers or {})
     markers = mcp_forwarding_markers(relevant, relevant_exceptions, turn, mcp_servers or {})
-    classified = {(item["operation_id"], item["span_id"]) for item in (*cancellations, *markers)}
+    negotiations = discovery_negotiations(relevant, turn, mcp_servers or {})
+    classified = {(item["operation_id"], item["span_id"]) for item in (*cancellations, *markers, *negotiations)}
     classified_exceptions = {
         index for item in cancellations for index in item["exception_indices"]
     }
@@ -547,7 +650,8 @@ def match_trace(
                 "response_ids": turn["response_ids"], "tool_names": sorted(matched_tools),
                 "expected_tool_names": expected,
                 "missing_expected_tool_names": sorted(set(expected) - matched_tools),
-                "transport_cancellations": cancellations, "native_mcp_forwarding_markers": markers}
+                "transport_cancellations": cancellations, "native_mcp_forwarding_markers": markers,
+                "mcp_discovery_negotiations": negotiations}
     return None
 
 
@@ -598,9 +702,11 @@ union (spans | where operation_Id in (operations)),
         servers = getattr(args, "declared_mcp_servers", {})
         cancellations = transport_cancellations(records, exceptions, turn, servers)
         markers = mcp_forwarding_markers(records, exceptions, turn, servers)
+        negotiations = discovery_negotiations(records, turn, servers)
         write_json(path, {"verified": False, "query": query, "records": records,
                           "exceptions": exceptions, "transport_cancellations": cancellations,
-                          "native_mcp_forwarding_markers": markers})
+                          "native_mcp_forwarding_markers": markers,
+                          "mcp_discovery_negotiations": negotiations})
         proof = match_trace(records, turn, args.agent_name, args.agent_version, case["expected_tools"],
                             exceptions=exceptions, mcp_servers=servers)
         if proof:

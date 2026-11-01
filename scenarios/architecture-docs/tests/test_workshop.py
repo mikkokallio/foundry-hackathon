@@ -807,7 +807,7 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
         ), guide
         assert text.count("<details>") == text.count("</details>"), guide
         articles = re.findall(r"\]\((https://learn\.microsoft\.com/[^)]+)\)", text)
-        assert 1 <= len(articles) <= (4 if guide.name == "m2-tools.md" else 2), guide
+        assert 1 <= len(articles) <= (4 if guide.name in {"m2-tools.md", "m5-evaluation.md"} else 2), guide
     for guide in [
         *guides,
         *bonuses,
@@ -912,7 +912,7 @@ def test_cloud_evaluation_guidance_requires_verified_result_preservation():
     assert "verify that a small file can" in start
     assert "actually be downloaded and opened locally" in start
     assert "do not create storage" in start
-    assert "local PowerShell remains an alternative" in evaluation
+    assert "Choose **local PowerShell** or **Cloud Shell PowerShell**" in evaluation
     assert "download $archive" in evaluation
     assert "Click the archive filename in the **Download file** notification" in evaluation
     assert "Get-FileHash $archive -Algorithm SHA256" in evaluation

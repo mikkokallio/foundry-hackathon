@@ -476,6 +476,201 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(runner.GateError, "failed execution span"):
             runner.match_trace(records, turn, "agent", "7", ["getSystem"])
 
+    def discovery_records(self, api_type="mcp-backend"):
+        records = self.records()
+        url = "https://gateway.invalid/docs-mcp/mcp"
+        dimensions = {
+            "api.type": api_type, "network.protocol.name": "MCP",
+            "gen_ai.operation.name": "server/discover",
+            "Service Type": "API Management", "Service ID": "test-gateway",
+            "error.type": "Bad Request", "error.message": "Method server/discover is not supported.",
+        }
+        records.append({
+            "operation_Id": "a" * 32, "id": "b" * 16, "name": "POST /docs-mcp/mcp",
+            "url": url, "success": "False", "resultCode": "400",
+            "telemetryTable": "app('test').requests", "customDimensions": dimensions,
+        })
+        for span, operation in (("c", "initialize"), ("d", "tools/list")):
+            record = copy.deepcopy(records[2])
+            record.update(id=span * 16, success="True", resultCode="200")
+            record["customDimensions"]["gen_ai.operation.name"] = operation
+            record["customDimensions"].pop("error.type")
+            record["customDimensions"].pop("error.message")
+            records.append(record)
+        child = {
+            "operation_Id": "a" * 32, "id": "e" * 16, "operation_ParentId": "b" * 16,
+            "name": "forward-request", "target": "forward-request", "type": "HTTP",
+            "data": "REQUEST -", "resultCode": "", "success": "False",
+            "telemetryTable": "app('test').dependencies", "customDimensions": {
+                "Source": "forward-request", "Service Type": "API Management",
+                "Service ID": "test-gateway",
+            },
+        }
+        if api_type == "pass-through-mcp":
+            dimensions.pop("error.type")
+            dimensions.pop("error.message")
+            child.update(name="POST /mcp", target="https://backend.invalid",
+                         data="POST - https://backend.invalid/mcp", resultCode="400")
+        records.append(child)
+        turn = {
+            "status": "completed", "response_ids": ["resp_real"],
+            "tool_calls": [{"name": "getSystem", "server_label": "docs", "response_id": "resp_real"}],
+            "responses": [{"output": [{
+                "type": "mcp_list_tools", "server_label": "docs", "tools": [{"name": "getSystem"}],
+            }]}],
+        }
+        return records, turn, {"docs": url}
+
+    def test_recovered_discovery_probe_remains_visible_without_forging_tool_provenance(self):
+        for api_type in ("mcp-backend", "pass-through-mcp"):
+            with self.subTest(api_type=api_type):
+                records, turn, servers = self.discovery_records(api_type)
+                before = copy.deepcopy(records)
+                proof = runner.match_trace(records, turn, "agent", "7", ["getSystem", "getDocument"],
+                                           mcp_servers=servers)
+                self.assertTrue(proof["verified"])
+                self.assertEqual(proof["missing_expected_tool_names"], ["getDocument"])
+                self.assertEqual(len(proof["mcp_discovery_negotiations"]), 2)
+                self.assertEqual(proof["mcp_discovery_negotiations"][0]["http_status"], "400")
+                self.assertEqual(proof["mcp_discovery_negotiations"][0]["recovery_phases"],
+                                 ["initialize", "tools/list"])
+                self.assertEqual(records, before)
+
+    def test_discovery_probe_requires_successful_same_endpoint_and_trace_recovery(self):
+        mutations = [
+            (2, "resultCode", "401"), (2, "resultCode", "403"), (2, "resultCode", "429"),
+            (2, "resultCode", "500"), (2, "url", "https://untrusted.invalid/docs-mcp/mcp"),
+            (3, "operation_Id", "f" * 32), (3, "success", "False"),
+            (4, "operation_Id", "f" * 32), (4, "url", "https://untrusted.invalid/docs-mcp/mcp"),
+        ]
+        for index, key, value in mutations:
+            with self.subTest(index=index, key=key, value=value):
+                records, turn, servers = self.discovery_records()
+                records[index][key] = value
+                with self.assertRaises(runner.GateError):
+                    runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+        for key, value in (
+            ("gen_ai.operation.name", "tools/call"), ("gen_ai.tool.name", "getSystem"),
+            ("error.type", "BackendConnectionFailure"), ("error.message", "Invalid arguments"),
+            ("api.type", "http"), ("network.protocol.name", "HTTP"),
+        ):
+            with self.subTest(dimension=key):
+                records, turn, servers = self.discovery_records()
+                records[2]["customDimensions"][key] = value
+                with self.assertRaises(runner.GateError):
+                    runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+        for index in (3, 4):
+            records, turn, servers = self.discovery_records()
+            records.pop(index)
+            with self.assertRaises(runner.GateError):
+                runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+        for key, value in (("Service ID", "other-service"), ("api.type", "http"),
+                           ("gen_ai.tool.name", "getSystem")):
+            records, turn, servers = self.discovery_records()
+            records[3]["customDimensions"][key] = value
+            with self.assertRaises(runner.GateError):
+                runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+        for change in ("incomplete", "no-tools", "wrong-label", "failed-listing"):
+            with self.subTest(change=change):
+                records, turn, servers = self.discovery_records()
+                if change == "incomplete":
+                    turn["status"] = "failed"
+                else:
+                    listing = turn["responses"][0]["output"][0]
+                    listing.update({"no-tools": {"tools": []}, "wrong-label": {"server_label": "other"},
+                                    "failed-listing": {"error": "failed"}}[change])
+                with self.assertRaises(runner.GateError):
+                    runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+
+    def test_discovery_forwarding_children_require_exact_parent_service_and_http_shape(self):
+        for api_type in ("mcp-backend", "pass-through-mcp"):
+            for key, value in (
+                ("operation_ParentId", "f" * 16), ("resultCode", "500"), ("type", "SQL"),
+                ("data", "unrelated request"), ("telemetryTable", "app('test').requests"),
+            ):
+                with self.subTest(api_type=api_type, key=key):
+                    records, turn, servers = self.discovery_records(api_type)
+                    records[-1][key] = value
+                    with self.assertRaises(runner.GateError):
+                        runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+            for key, value in (
+                ("Service ID", "other-service"), ("Source", "other-policy"),
+                ("error.type", "BackendConnectionFailure"),
+            ):
+                records, turn, servers = self.discovery_records(api_type)
+                records[-1]["customDimensions"][key] = value
+                with self.assertRaises(runner.GateError):
+                    runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+
+    def test_discovery_probe_does_not_hide_real_execution_errors_or_exceptions(self):
+        records, turn, servers = self.discovery_records()
+        records[1]["success"] = False
+        with self.assertRaises(runner.GateError):
+            runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+        records, turn, servers = self.discovery_records()
+        exceptions = [{"operation_Id": "a" * 32, "operation_ParentId": "b" * 16,
+                       "type": "BackendConnectionFailure"}]
+        with self.assertRaisesRegex(runner.GateError, "unclassified execution exception"):
+            runner.match_trace(records, turn, "agent", "7", [], exceptions=exceptions, mcp_servers=servers)
+        records, turn, servers = self.discovery_records()
+        records[1]["customDimensions"]["gen_ai.response.id"] = "other-response"
+        self.assertIsNone(runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers))
+        records, turn, servers = self.discovery_records()
+        records.pop(1)
+        self.assertIsNone(runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers))
+        records, turn, servers = self.discovery_records()
+        failed_call = copy.deepcopy(records[2])
+        failed_call["id"] = "f" * 16
+        failed_call["customDimensions"]["gen_ai.operation.name"] = "tools/call"
+        failed_call["customDimensions"]["gen_ai.tool.name"] = "getSystem"
+        records.append(failed_call)
+        with self.assertRaises(runner.GateError):
+            runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+
+    def test_discovery_diagnostics_and_raw_records_survive_success_and_later_failure(self):
+        from azure.monitor.query import LogsQueryStatus
+
+        for failed in (False, True):
+            with self.subTest(failed=failed):
+                records, turn, servers = self.discovery_records()
+                if failed:
+                    records[1]["success"] = False
+                rows = [{**record, "evidence_kind": "span"} for record in records]
+                columns = list(dict.fromkeys(key for row in rows for key in row))
+                table = SimpleNamespace(columns=columns, rows=[[row.get(key) for key in columns] for row in rows])
+                logs = Mock()
+                logs.query_workspace.return_value = SimpleNamespace(status=LogsQueryStatus.SUCCESS, tables=[table])
+                args = SimpleNamespace(
+                    app_insights_resource_id="/subscriptions/s/resourceGroups/g/providers/Microsoft.Insights/components/a",
+                    workspace_id=str(uuid.uuid4()), started_at="2026-10-29T00:00:00Z",
+                    trace_timeout_seconds=1, agent_name="agent", agent_version="7",
+                    declared_mcp_servers=servers,
+                )
+                path = self.directory / f"discovery-{failed}.json"
+                with redirect_stdout(io.StringIO()):
+                    if failed:
+                        with self.assertRaises(runner.GateError):
+                            runner.verify_trace(logs, args, turn, self.case, path, time.monotonic() + 5)
+                    else:
+                        runner.verify_trace(logs, args, turn, self.case, path, time.monotonic() + 5)
+                saved = json.loads(path.read_text())
+                self.assertEqual(saved["verified"], not failed)
+                self.assertEqual(len(saved["mcp_discovery_negotiations"]), 2)
+                self.assertEqual(saved["records"], [
+                    {key: row.get(key) for key in columns} for row in rows
+                ])
+
+    def test_discovery_session_url_must_match_declared_endpoint_and_uuid_only(self):
+        session = "?sessionId=00000000-0000-0000-0000-000000000001"
+        records, turn, servers = self.discovery_records()
+        records[2]["url"] += session
+        self.assertTrue(runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)["verified"])
+        for suffix in ("?sessionId=unknown", session + "&extra=1", session + "#other"):
+            records, turn, servers = self.discovery_records()
+            records[2]["url"] += suffix
+            with self.assertRaises(runner.GateError):
+                runner.match_trace(records, turn, "agent", "7", [], mcp_servers=servers)
+
     def mcp_phase_records(self, operation="initialize"):
         records = self.records()
         url = "https://gateway.invalid/docs-mcp/mcp"

@@ -137,6 +137,18 @@ hypothesis. A run marked `Completed`, even with 100% task adherence, can still
 fail the lab's additional fact, tool, template or trace checks.
 
 <details>
+<summary>A trace contains a discovery 400, but tools subsequently work</summary>
+
+A client can try `server/discover` before the supported MCP initialization.
+The helper records that rejected probe separately only when the same declared
+endpoint and native trace show successful `initialize` and `tools/list`, and
+the completed response contains the real tool list. Those diagnostics remain
+in the trace file. Failed business-tool calls, authorization errors and missing
+execution evidence still fail verification.
+
+</details>
+
+<details>
 <summary>Which test files and checks does the helper use?</summary>
 
 | Input / activity | Purpose |
