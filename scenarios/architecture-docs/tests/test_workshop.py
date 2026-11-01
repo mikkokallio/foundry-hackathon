@@ -807,7 +807,12 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
         ), guide
         assert text.count("<details>") == text.count("</details>"), guide
         articles = re.findall(r"\]\((https://learn\.microsoft\.com/[^)]+)\)", text)
-        assert 1 <= len(articles) <= (4 if guide.name in {"m2-tools.md", "m5-evaluation.md"} else 2), guide
+        article_limit = {
+            "m2-tools.md": 4,
+            "m4-discovery.md": 3,
+            "m5-evaluation.md": 4,
+        }.get(guide.name, 2)
+        assert 1 <= len(articles) <= article_limit, guide
     for guide in [
         *guides,
         *bonuses,

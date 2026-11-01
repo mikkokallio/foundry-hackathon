@@ -34,10 +34,11 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
    blank. Set
    version title/identification, for example `v1`, and Development lifecycle,
    then **Create**.
-3. Open the saved version. Check **both definitions** and the deployment runtime
-   URL. Compare that URL with the actual `alpha-p2-docs-mcp` URL you copied in
-   M2. The saved asset should describe your existing server; registration does
-   not deploy a new server or grant access.
+3. Open the saved version. Check the generated **definition(s)** and deployment
+   runtime URL. Having only `default-sse` is not, by itself, an error. Compare the
+   runtime URL with the actual `alpha-p2-docs-mcp` URL you copied in M2. The saved
+   asset should describe your existing server; registration does not deploy a
+   new server or grant access.
 
 <details>
 <summary>If registration partly fails, or its generated paths are wrong</summary>
@@ -109,10 +110,15 @@ Inspect both tool results and the matching trace. The toolkit supplements the
 documentation API; it does not replace the authoritative standard or inventory.
 
 <details>
-<summary>Optional Python helper / registration fallback</summary>
+<summary>Optional command-line alternative / registration fallback</summary>
 
-Use the [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) first.
-For these commands, `$prefix` is your own assigned prefix, for example `alpha-p2`.
+**Skip this if the browser steps worked.** Reuse the `lab` command from M3, or
+complete the [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup).
+No Python coding is needed. This route creates a separate toolkit-enabled agent.
+Here `$prefix` is your own assigned prefix, for example `alpha-p2`.
+
+Run `lab catalog register` only if you have not already registered that prefix.
+It refuses to overwrite a differing browser-created record.
 
 ```powershell
 $prefix = $global:FoundryLabSession.Prefix
@@ -148,7 +154,7 @@ permission to export definitions.
 ## You are done when
 
 - Your own useful registration includes a working endpoint and limitations.
-- Native registration has a persisted version, definitions and deployment;
+- Native registration has a persisted version, at least one definition and deployment;
   generated contract paths/authentication are assessed separately from metadata
   creation.
 - You retrieved the actual registered definition and assessed the toolkit.
@@ -161,3 +167,19 @@ The Azure API Center portal is the core discovery surface.
 **If stuck:** inspect the unchanged reference record and connect the toolkit
 through its existing connection. Keep your incomplete registration and identify
 what remains unverified.
+
+<details>
+<summary>Nice to know: toolkit versus Foundry Toolbox</summary>
+
+The lab's toolkit is a regular MCP server exposing the three tools you used.
+Its `<workload>-<team>-toolkit` connection appears under your steward's **Tools**;
+it is not a Foundry Toolbox.
+
+Microsoft Foundry **Toolbox** is a separate capability for curating tools from
+multiple sources behind one managed MCP endpoint, with centralized authentication,
+reuse and tool search. This lab does not provision a Toolbox.
+See [What is Toolbox in Microsoft Foundry?](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/toolbox-overview).
+
+</details>
+
+**Next:** [M5 - Evaluate and choose](m5-evaluation.md).
