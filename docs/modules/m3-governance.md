@@ -51,6 +51,12 @@ APIM connection's traffic dashboard.
 
 ### 2. Send one normal model request
 
+If you have finished Step 1, continue here; do not repeat M1 or M2. If `lab`
+is not available yet, open **Cloud Shell -> PowerShell** and follow the
+[public clone + team JSON setup](../../PARTICIPANT-START.md#1-clone-the-public-tools),
+then return here. Keep the same assigned prefix and your existing M2 MCP server
+and steward. Setup does not recreate them or deploy infrastructure.
+
 Make a normal authenticated request, inspect actual usage/status and available
 remaining-token/retry headers:
 
@@ -127,8 +133,9 @@ Use the browser for this experiment:
    documentation MCP server, for example `alpha-p2-docs-mcp`, then **MCP -> Policies**. Do not select the
    reference or somebody else's server. Copy the complete original policy
    before editing; preserve its exact text for restoration.
-2. Temporarily change its request limiter from 60 calls/minute to a small
-   value, such as `calls="1" renewal-period="60"`. Keep authentication/routing
+2. Locate its inbound `rate-limit-by-key` block and note the existing `calls`
+   and `renewal-period` values. Temporarily use a small limit, such as
+   `calls="1" renewal-period="60"`. Keep authentication/routing
    intact. A unique practice counter suffix avoids reusing an earlier
    experiment's counter; retain API/team isolation. Select **Save**, confirm
    **Policy saved**, and allow propagation. Rehearsal waited 65 seconds;

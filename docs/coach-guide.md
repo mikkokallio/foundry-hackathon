@@ -15,12 +15,14 @@ Do not modify shared references to rescue an exercise.
 
 Keep the Cloud Shell helper in this repository with its exercises and tests;
 a separate copy would require synchronizing fixes and evaluation inputs.
-Participants can clone the public repository themselves, then upload/extract
-their assigned complete team pack. A prepared coach shell is not required.
+Participants can clone the public repository themselves, then supply only their
+assigned team's `workshop.json`. The starter assembles the shared exercise files
+and a new integrity receipt locally. A complete pack upload or prepared coach
+shell is not required.
 
 Public visibility does not mean the source is current. Review and commit the
 participant changes, publish the reviewed revision, then verify an independent
-clone of that exact commit with the complete pack in Cloud Shell. Include new
+clone of that exact commit with only the team JSON in Cloud Shell. Include new
 helper dependencies, not just edits to tracked files. Record the source revision
 with the evidence. Do not claim a local working-tree test validates GitHub's
 published version. Keep private handoffs, customer material, generated packs,

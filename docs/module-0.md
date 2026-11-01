@@ -4,7 +4,7 @@ For the Azure deployment operator. Use **PowerShell 7.5+, Terraform 1.9 to 1.x, 
 
 ## 1. Sign in and prepare inputs
 
-The `git clone` command below downloads this repository into a new local folder, `foundry-lab` (a "checkout"). Nothing needs cloning beforehand. Use a new folder for a new deployment; in Cloud Shell, use mounted persistent storage. Run the blocks in order in the same terminal; review each plan before confirming its apply.
+Start working with a fresh copy of the hackathon repository by running `git clone` as instructed below. This downloads the repository into a new local folder, `foundry-lab`. Run the blocks in order in the same terminal; review each plan before confirming its apply.
 
 ```powershell
 $ErrorActionPreference = 'Stop'

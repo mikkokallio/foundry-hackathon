@@ -162,13 +162,12 @@ Keep this shell open. `lab check` performs real Foundry agent-list and
 authenticated documentation-read checks; it is **not** authoring-permission or
 release acceptance. `lab practice status` reports your own existing practice
 APIs; missing ones are expected until you create them in the exercises.
-Input assembly cannot repair a missing permission. The targeted M2 permission
-fix must be verified with a non-admin account after the new deployment;
-historical Alpha-only access is not proof every team works.
+If a command reports a missing permission, stop and give the coach the operation
+and error. Input assembly cannot repair access; do not borrow an administrator's
+account. Successful read checks do not prove authoring permissions.
 
-Cloud Shell sessions without storage are temporary. Rehearsal lost its workspace
-after a disconnected session expired, and **Manage files -> Download** failed.
-The tested alternative is `download $archive` in Cloud Shell PowerShell, followed
+Cloud Shell sessions without storage are temporary; local files can become
+unavailable after reconnecting. Use `download $archive` in Cloud Shell PowerShell, followed
 by clicking the filename in its **Download file** notification. The command alone
 does not save a copy on your laptop. Do not rely on leaving the browser open or
 merely creating an archive. Before M5, verify that a small file can
