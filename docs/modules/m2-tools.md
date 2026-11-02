@@ -2,17 +2,30 @@
 
 ## What you will do
 
-Import an API into Azure API Management (APIM), turn its operations into MCP
-tools, and connect those tools to your agent. The backend is already running:
-you are building the connection to it, not writing an application.
+Give an agent access to the inventory, documents and documentation standard.
+It can then look up evidence, find gaps and check a draft instead of guessing
+from its general knowledge, as it had to in M1.
 
-Most steps use the browser. One short PowerShell/Azure CLI check is required to
-test your own sign-in; it does not require Python. The Python helper at the end
-is an optional catch-up route.
+The build route imports an API into Azure API Management (APIM), exposes its
+operations as MCP tools, then attaches them to your agent. The backend is already
+running: you are connecting to it, not writing an application. Most steps use
+the browser; Step 3 uses **Cloud Shell** for an authenticated request.
 
 Examples use **Alpha participant 2**, whose prefix is `alpha-p2`. Replace that
 with your own assigned prefix; for example, Beta participant 3 uses `beta-p3`.
 Only change objects with your own prefix. Leave the shared reference alone.
+
+**Shortcut: use the existing team connection.** If you want to focus on the
+agent, or the API build gets you stuck, go straight to
+[Step 5](#5-connect-the-tools-to-a-new-agent). Create your own steward and choose
+the existing team Docs connection there. This route uses only the browser.
+You can still read inventory, draft/check a document, continue through M3-M5
+and save a proposal for human review.
+
+The shortcut skips building your own API/MCP integration; it does not complete
+or verify that work. Keep any unfinished attempt. Do not edit the shared
+connection, API or policy. In M3, skip the optional tool-policy experiment unless
+you have your own MCP server; in M4, use the reference-registration shortcut.
 
 <details>
 <summary>Optional reading: APIs and MCP</summary>
@@ -45,27 +58,33 @@ Only change objects with your own prefix. Leave the shared reference alone.
    your API. The form can remain visible while the import runs; do not repeatedly
    click Create.
 
+**Expected result:** an API with your own name and path. Importing describes the
+available operations; it does not yet configure their backend access.
+
 ### 2. Explore the imported API before changing it
 
-- In **Design**, inspect the **14 operations**. Open `listSystems`, `getSystem`
-  and `validateDocument`. Compare a GET operation with the POST validator:
-  what information goes in the path, query or request body?
-- Read their descriptions. Which operations read information, which save a
-  proposal, and which publish it? You will not expose publication to the agent.
-- Open **Settings** without saving changes yet. Find **API URL suffix**,
-  **Web service URL**, **Subscription required** and **Diagnostics Logs**.
-  The suffix is your gateway address; Web service URL is the backend address.
-  Subscription required asks for an APIM subscription key, not your workshop
-  sign-in.
-- Open **Test** to see how a request is assembled. Import success does not yet
-  prove that requests are authenticated or reach the backend.
+In **Design**, look at these examples from the API's **14 operations**:
+
+| Operation | What it does |
+|---|---|
+| `listSystems` / `getSystem` (GET) | Read the inventory: which systems exist and what is known about one system. |
+| `validateDocument` (POST) | Send draft text for checking without saving it. |
+| `submitProposal` (POST) | Save a proposal for human review, not publication. |
+| `publishProposal` (POST) | Publish after human review. You will not expose this operation to the agent. |
+
+Open `getSystem` and `validateDocument`. Notice how the system ID is part of
+the GET request's path, while the POST validator receives text in a request body.
+GET reads information; POST requests an action, which does not always mean saving.
+
+**Expected result:** you can distinguish reading, checking, saving and publishing.
+An API being imported does not yet prove that any of those requests work.
 
 The operation IDs and display names should match, such as `listSystems`.
 The team pack deliberately makes them match because APIM uses display names
 when creating MCP tools. If you see names such as `listSystemsInTheInventory`,
 keep the attempt and tell the coach.
 
-### 3. Configure, secure and test your API
+### 3. Configure, secure and check your API
 
 1. In **Azure portal -> your assigned API Management instance -> APIs**, select
    the existing reference **Architecture Docs API**, then open **Settings** and
@@ -91,18 +110,21 @@ In **Test**, send `GET /systems` without Authorization. It must be rejected:
 expect **401: A valid workload Entra token is required**. The Test console does
 not automatically send your portal sign-in as a workload token.
 
-Now test an authenticated request. Choose either:
+Now send an authenticated request using **Cloud Shell**:
 
-- **Local PowerShell:** open PowerShell 7 with Azure CLI installed. Use the
-  `workshop.json` file from the same team pack you imported above.
-- **Cloud Shell PowerShell:** in Azure portal select the **Cloud Shell** toolbar
-  button, choose **PowerShell**, then **Manage files -> Upload** your
-  `workshop.json`. Use `./workshop.json` if the file is in your current folder,
-  or its full uploaded path, usually `/home/<your-user>/workshop.json`.
-  Both work when they point to the same file; do not use the path on your laptop. No Python or
-  repository upload is needed for this M2 check.
+1. In Azure portal, select the **Cloud Shell** toolbar button and choose
+   **PowerShell**.
+2. Use **Manage files -> Upload** to upload `workshop.json` from the same team
+   pack you imported above. Upload just that file, not the whole pack.
+3. Use `./workshop.json` if it is in your current folder, or its full uploaded
+   path, usually `/home/<your-user>/workshop.json`. Cloud Shell cannot read a
+   path on your laptop.
 
-Use the following short blocks in the **same PowerShell window**.
+No Python setup or repository upload is needed for this check. Pair up if
+Cloud Shell feels unfamiliar: one person can drive while the others inspect
+the address and response. Use that person's own account, prefix and API.
+
+Use the following short blocks in the **same Cloud Shell session**.
 
 **A. Load your team pack and prefix**
 
@@ -131,7 +153,7 @@ az login --tenant $context.tenant_id --scope $context.gateway_scope --use-device
 if ($LASTEXITCODE -ne 0) { throw 'Workshop sign-in failed.' }
 ```
 
-When a device code appears, open its sign-in page in Edge, enter the code and
+When a device code appears, open its sign-in page in your browser, enter the code and
 finish signing in with **your own workshop account**. If asked to select a
 subscription, choose the one supplied by the coach. If sign-in fails, finish
 this step before continuing; do not remove the API's identity policy.
@@ -179,8 +201,12 @@ sampling and W3C correlation, including **Support custom metrics**. Keep payload
 logging at **0 bytes** and do not log Authorization; these diagnostics are
 needed for M3's owned-route observations. Save only your API's settings.
 
+**Expected result:** your own API rejects the unauthenticated request and returns
+the inventory for your authenticated request. This checks both access protection
+and the connection to the backend.
+
 Observe an actual system ID/name and inspect its interfaces. If this information
-is given to the agent we created in M1, how might its response change?
+is given to an agent, how might its response differ from M1?
 This REST check has not given the information to the agent yet; the next steps
 connect the API as tools.
 
@@ -209,6 +235,9 @@ Then Create. Copy the **actual server URL** displayed by APIM, for example
 `https://<your-gateway>/alpha-p2-docs-mcp/mcp`;
 do not substitute the reference's or the code helper's different path.
 
+**Why another step?** The REST API offers operations to callers. MCP presents
+those operations as tools the agent can discover and choose to call.
+
 Exclude `health` and **`publishProposal`**. Include reads, `validateDocument` and
 `submitProposal`; saving must require human approval when attached to the agent.
 Check the discovered names before connecting: expect `listSystems`, `getSystem`,
@@ -224,7 +253,13 @@ This is the MCP server's policy editor, not the REST API's **Design** page.
 For help with the editor and building policies, see
 [Set or edit APIM policies](https://learn.microsoft.com/en-us/azure/api-management/set-edit-policies).
 
-The policy configures the following things:
+Copying the reference policy keeps the existing authentication, team checks
+and request handling. You will change only the target REST path in your own copy.
+
+<details>
+<summary>Nice to know: what the MCP policy does</summary>
+
+The policy configures:
 
 - **Authentication:** `<validate-jwt>` checks the caller's Entra token. Find
   the tenant, issuer and audience values.
@@ -242,11 +277,13 @@ The policy configures the following things:
   records response/error metadata, not request or response bodies. `<base />`
   keeps inherited policies in effect.
 
-Locate these blocks in the policy XML and observe their configured values.
-**Do not change the reference policy.** These are gateway checks and adapters;
-the agent's human-approval settings are configured separately in Step 5.
+These are gateway checks and adapters; the agent's human-approval settings are
+configured separately in Step 5. You can inspect the configured values without
+changing the reference.
 
-Now copy the policy to your own server:
+</details>
+
+**Do not change the reference policy.** Copy it to your own server:
 
 1. Copy the reference policy's **complete XML**, from `<policies>` through
    `</policies>`. Do not save changes on the reference.
@@ -279,19 +316,46 @@ Do not add response-body logging or expressions that read
 `docsJsonResponse` variable holds the separate REST request's result; leave
 that adapter code intact.
 
-Next, connect the agent in Step 5. Then use the two checks below to verify that
-the tools actually work; seeing tool names alone is not enough.
+**Expected result:** your own MCP server exposes the twelve intended operations,
+and its policy points POST requests to your own REST API. Next, connect an agent
+and check a real read and validation call; seeing tool names alone is not enough.
 
 ### 5. Connect the tools to a new agent
 
-Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
-Agents -> New agent -> Build an agent**. Name it `alpha-p2-steward`, using your
-own prefix. Copy the full text of your pack's `prompts\instructions.md` into
-**Instructions**, select connected `chat-medium`, and remove the default
-Web search tool. In its Playground, choose
-**Tools -> Add -> Add tools -> Custom -> Model Context Protocol (MCP) -> Create**.
-Name it `alpha-p2-docs` and enter your actual MCP URL. Choose **Microsoft Entra ->
-Project Managed Identity** (not the default Agent Identity).
+Both the build route and the shortcut start here. Keep your M1 baseline for
+comparison; create a steward with instructions for using the documentation tools.
+
+**A. Create your own steward**
+
+1. Open [Foundry](https://ai.azure.com), select your team project, then
+   **Build -> Agents -> New agent -> Build an agent**.
+2. Name it `alpha-p2-steward`, using your own prefix.
+3. Copy the full text of your pack's **`prompts/instructions.md`** into
+   **Instructions**. You can preview the
+   [instructions in the repository](../../scenarios/architecture-docs/exercises/prompts/instructions.md);
+   use your pack's ready-to-paste version rather than leaving template
+   placeholders in the agent.
+4. Select **Admin-connected -> `gpt-5.4-mini`**, using the connection ending in
+   `/chat-medium`, and remove the default **Web search** tool. Use the coach's
+   model names if they differ.
+
+**B. Choose one connection route**
+
+**Shortcut: attach the existing team Docs connection**
+
+1. In Playground, choose **Tools -> Add -> Add tools -> Configured**.
+2. Select the existing **`<workload>-<team>-docs`** connection. For Alpha, its
+   name ends in **`-alpha-docs`**, not your personal prefix and not `-toolkit`.
+   Select **Add tool**. Ask the coach to identify it if several names look similar.
+3. Leave the shared connection unchanged and continue to **C** below.
+
+**Build route: connect your own M2 MCP server**
+
+In Playground, choose **Tools -> Add -> Add tools -> Custom ->
+Model Context Protocol (MCP) -> Create**. Name the connection `alpha-p2-docs`,
+using your own prefix, and enter the actual MCP URL you copied in Step 4.
+Choose **Microsoft Entra -> Project Managed Identity**, not the default
+Agent Identity.
 
 For **Audience**, open your team pack's `workshop.json` in a text editor and
 search for **`gateway_scope`**. For example, if it contains:
@@ -311,12 +375,15 @@ picker may not offer MCP; use the agent's tool picker above.
 
 If **Connect** is disabled, hover over it to read the explanation.
 **"You do not have permissions to create a connection"** is an access defect.
-Tell the coach rather than switching shells,
-removing authentication or borrowing an organizer account. The coach must resolve
-the access prerequisite before you can finish this step.
+Tell the coach rather than switching shells, removing authentication or borrowing
+an organizer account. If the existing team connection is available to you, you
+can use the explicit shortcut while keeping your own connection attempt unfinished.
 
-Add **only your documentation MCP** at this stage. On its **Actions -> Configure**,
-under **Allowed ... tools**, paste this **comma-separated** list:
+**C. Limit the tools and require approval**
+
+For either route, add **only the documentation connection you selected** at this
+stage. In your agent's tool **Actions -> Configure**, under **Allowed ... tools**,
+paste this **comma-separated** list:
 
 ```text
 listDocuments,getDocument,listSystems,getSystem,listInterfaces,listDataProducts,findDocumentationGaps,getDocumentationStandard,validateDocument,submitProposal,listProposals,getProposal
@@ -332,10 +399,13 @@ server-side exclusion of `publishProposal`.
 Choose
 **Never auto-approve tools**; this requires confirming reads as well as saves.
 For each expected read, choose **Approve -> Approve once**, not an Always option.
-This keeps the explicit write-approval rule required by the evaluation gate.
-The helper also supports selective read approval. Never choose
-**Always auto-approve all tools**. Apply, Save
+This keeps control of each tool call with you, including any later save.
+Never choose **Always auto-approve all tools**. Apply, Save
 and confirm the new agent version. Publication must not appear at all.
+
+**Expected result:** your own steward has documentation tools and asks before
+using them. Attaching a tool makes it available; the following calls check that
+it actually works.
 
 <details>
 <summary>Optional reading: choosing tools and checking their behavior</summary>
@@ -346,7 +416,10 @@ consequential actions. Tool availability and approval are separate settings.
 
 </details>
 
-**Check the connection before trying the larger tasks:**
+### 6. Read evidence and check a draft
+
+First, check the connection with one read and one validation request. Approve
+only the expected calls; neither request should save anything.
 
 1. Ask: `Call listSystems once with domain "Parts & Logistics". Report the
    returned system IDs and names. Do not submit or publish anything.`
@@ -362,15 +435,19 @@ consequential actions. Tool availability and approval are separate settings.
 
 If either call fails, keep the error and ask the coach before continuing.
 
-Ask:
+Now try the business questions and draft:
 
 1. "Who owns Service Order Management, and what interfaces does it use? Use the inventory."
 2. "Which systems are missing architecture documentation? Do not submit anything."
 3. "Draft a complete document for one missing system. Read inventory and the standard,
    validate the exact complete Markdown and correct errors. Do not save or publish."
 
-Expected: real inventory/gap calls and genuine validator findings, not confident
-guesses. Compare the first answer and trace with M1.
+**Expected result:** actual inventory/gap calls and genuine validator findings,
+not confident guesses. Compare the first answer and trace with M1. What can
+the steward now support with evidence that the baseline could not?
+
+Keep the draft for M4's toolkit checks and the
+[final proposal-saving activity](core-approval.md). Do not save or publish it yet.
 
 The gap tool compares the supplied inventory with published documents. It can
 flag missing documents, old reviews, owner mismatches and missing interfaces.
@@ -382,11 +459,13 @@ SYS-002 **Service Order Management**; an answer that silently aliases the two
 is a quality finding, even when its tool calls succeeded.
 
 <details>
-<summary>Optional Python helper / catch-up route</summary>
+<summary>Optional Cloud Shell helper for building your own integration</summary>
 
-Use the [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup)
-first and keep that PowerShell window open. Here `$prefix` means your assigned
-name, for example `alpha-p2`.
+Use **Cloud Shell -> PowerShell** and follow the Cloud Shell instructions in
+[helper setup](../../PARTICIPANT-START.md#powershell-helper-setup).
+Keep that session open. Here `$prefix` means your assigned name, for example
+`alpha-p2`. The browser-only reference shortcut is in Step 5; these commands
+are an alternative for creating owned resources.
 
 The helper **creates missing prefixed objects from the working reference** and
 refuses differing existing objects instead of overwriting your attempt:
@@ -408,16 +487,25 @@ remains unverified. It is not equivalent to completing the API build.
 
 </details>
 
-## Validate
+## You are done when
 
-- Your own authenticated REST API and MCP exist; real reads succeed and anonymous
-  access is rejected.
-- A genuine POST validation handles the exact submitted text.
-- The agent uses actual documentation tools; native tool spans and the correct
-  APIM API appear in telemetry. No publication tool or automatic save approval.
+- Your own steward has made an actual inventory read and a validation call
+  handling the exact submitted text; inspect their results and matching trace.
+- You can explain how source access changes its answer compared with M1.
+- Publication is not available, and saves still require your explicit approval.
+
+If you built your own integration, also keep the results showing that your REST
+API rejects anonymous requests, accepts your authenticated request and works
+through your own MCP server. If you used the reference shortcut, that owned build
+remains unfinished; you can still continue with the agent activities.
+
+**If stuck:** keep the failed step and actual error. Ask the coach or pair with
+a teammate. Use the reference shortcut rather than deleting an attempt, changing
+shared resources or weakening authentication. Do not treat a failed tool call
+as a successful lookup.
 
 **Discuss:** what did MCP standardize, what did APIM govern, and what still depends
 on the agent's choices? Return to your draft in
 [Review and save your final proposal](core-approval.md) after evaluation.
 
-**Next:** [M3 - See the traffic and test gateway limits](m3-governance.md).
+**Next:** [M3 - Observe gateway traffic and explore limits](m3-governance.md).

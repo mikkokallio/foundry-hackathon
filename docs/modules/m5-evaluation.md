@@ -7,12 +7,20 @@ and scores. Use what you find to suggest an improvement to the agent.
 The goal is to understand its behavior, not to make every result green.
 No shell setup or application coding is required.
 
+**Why?** One convincing answer is not enough to judge an agent. Evaluation asks
+a set of questions and helps you spot patterns: missing facts, unsupported
+claims, tool problems or instructions that need clarification.
+
+Use **your own M2 steward**, with either your own documentation connection or
+the shared-reference shortcut. M3's optional experiments and registering your
+own API in M4 are not prerequisites.
+
 ## Evaluate and investigate
 
 ### 1. Inspect the test cases
 
 Open [the evaluation cases](../../scenarios/architecture-docs/exercises/evaluation/eval_set.jsonl)
-in VS Code or the repository browser. The file contains 25 cases: factual
+in the repository browser. The file contains 25 cases: factual
 questions, missing-document checks, drafting tasks and guardrail tests.
 Each line is one case.
 
@@ -23,31 +31,46 @@ expectations beside the Foundry results. The fact/tool annotations describe
 the expected behavior; uploading them does not automatically turn every
 annotation into an evaluator.
 
+**Expected result:** you can describe what a good answer to your two selected
+cases would contain before looking at a score.
+
 ### 2. Run an evaluation in Foundry
+
+First, download [the evaluation data file](../../scenarios/architecture-docs/exercises/evaluation/eval_set.jsonl):
+on its GitHub page, use **Download raw file**. Keep the filename
+`eval_set.jsonl`. You need the data file, not a saved copy of the GitHub web page;
+you do not need to clone the repository.
 
 Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
 Evaluations -> Create new evaluation**.
 
-- Select the agent/version you want to examine.
-- Add the dataset from your repository checkout:
-  `scenarios\architecture-docs\exercises\evaluation\eval_set.jsonl`.
-  If you are browsing GitHub rather than using a local clone, download the raw
-  file from the link in Step 1 first.
-- Choose ready-made evaluators and explore their descriptions. Start with the
+- Select **your steward** and note the saved version you want to examine.
+- Add the downloaded **`eval_set.jsonl`** as the dataset.
+- Choose ready-made evaluators and read their descriptions. Start with the
   defaults that fit your questions; you do not need to configure every metric.
 - Check the field mappings: `query` is the question and `ground_truth` is the
   reference answer where required. Score actual agent responses, not the
   reference answer copied into the response field.
-- Start the evaluation and open its results.
+- Start the evaluation and open its results. Note which evaluators you chose
+  so you know what the scores measure.
 
 The dataset includes proposal-submission tests. Keep human approval required
 for write tools; do not enable unattended saving to obtain better scores.
+Evaluation does not authorize saving or publishing a document.
+
+**Expected result:** a recorded evaluation of your selected agent version.
+Some cases may score poorly or report errors; those are results to investigate,
+not instructions to keep rerunning until everything passes.
 
 Evaluation and **Optimize** need a supported deployed model. If the portal does
 not accept your connected gateway model, record that setting and temporarily
 select the corresponding direct deployment, such as `architecture-docs-chat-small`.
 Restore the gateway model afterward. A direct-model run does not test the M3
 gateway policies.
+
+**If setup is blocked:** keep the actual error and ask the coach. You can pair
+with a teammate to inspect their evaluation instead. Note that you observed
+their run rather than completing one of your own.
 
 ### 3. Investigate the scores and consider an improvement
 
@@ -66,12 +89,27 @@ or a service call blocked? Distinguish an answer-quality problem from an
 execution error or a metric that measures something different from your goal.
 Record one concrete finding and one possible improvement.
 
-If you want to test the improvement, change one instruction and rerun the same
-cases, keeping the original version and results for comparison. You can also
-explore **Optimize** if available: [Prompt Optimizer](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/prompt-optimizer)
+**Expected result:** a finding such as "the answer omitted an interface even
+though the inventory lookup returned it", plus an idea for improving it.
+There is no single correct conclusion, and you can finish the module here.
+
+**Optional: try your improvement.** Change one instruction in your own agent
+and rerun the same cases, keeping the original version and results for comparison.
+Change one thing at a time so you can explain what differed.
+
+<details>
+<summary>Optional: explore Optimize</summary>
+
+If available, **Optimize** can suggest changes:
+[Prompt Optimizer](https://learn.microsoft.com/en-us/azure/foundry/observability/how-to/prompt-optimizer)
 suggests instruction changes, while [Agent optimizer](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-optimizer-overview)
 supports broader experiments. Review the suggestions and their evidence;
 an optimized prompt is not automatically a better prompt.
+
+Keep the supported-model caveat from Step 2 in mind, and restore your connected
+model if you temporarily switched to a direct deployment.
+
+</details>
 
 <details>
 <summary>Further reading: evaluations and evaluator choices</summary>
@@ -89,11 +127,15 @@ an optimized prompt is not automatically a better prompt.
 Compare **two models with two instruction sets**: four configurations using
 the same twelve non-write-back cases and tools.
 
-Use the **PowerShell shell from M3**, where `lab` already works, and inspect
-results in Foundry. If you need a new shell, use
-[M3's expandable setup](m3-governance.md#2-send-one-normal-model-request).
-Choose **local PowerShell** or **Cloud Shell PowerShell**; keep it open during
-the run. In temporary Cloud Shell, download the results afterward as shown below.
+Use **Cloud Shell -> PowerShell**, where `lab` already works, and inspect results
+in Foundry. If you need setup, follow the Cloud Shell instructions in
+[helper setup](../../PARTICIPANT-START.md#powershell-helper-setup).
+Keep the session open and download the results afterward as shown below.
+
+These commands require a working **owned M2 MCP connection**. If you used the
+shared-reference shortcut, stay with the portal exercise above or pair with
+someone who completed that owned integration. Do not edit the shared connection
+to make these commands work.
 
 **The CLI comparison workflow is experimental.** It runs real Foundry evaluations
 and adds local lab checks. Some require a particular tool call even when another
@@ -186,11 +228,21 @@ Click the archive filename in the **Download file** notification that appears
 in Cloud Shell. **Running `download` alone is not the download:** follow that
 filename link and confirm the file actually appears in your laptop's downloads.
 
-On your laptop, run `Get-FileHash` on the downloaded file and compare the SHA256
-with the value printed in Cloud Shell. Extract the archive and confirm it includes
-the complete run folder's contents, not only its manifest. Give that complete
-copy to the teammate doing the four-way comparison; keep the original while this shell
-is open. Matching hashes verify the downloaded copy, not the agent's quality.
+Open the downloaded archive and confirm it includes the complete run folder's
+contents, not only its manifest. To compare hashes without a local terminal,
+rename the downloaded copy in your file manager, then upload that copy through
+Cloud Shell's **Manage files -> Upload**. Use a different filename so you do not
+overwrite the original archive. Run:
+
+```powershell
+$downloadedCopy = Read-Host 'Cloud Shell path to the uploaded downloaded archive'
+Get-FileHash -LiteralPath $downloadedCopy -Algorithm SHA256
+```
+
+Compare this SHA256 with the value printed for the original archive above.
+Give the complete verified copy to the teammate doing the four-way comparison;
+keep the original while this shell is open. Matching hashes verify the
+downloaded copy, not the agent's quality.
 If download fails, tell the coach and preserve the current session;
 do not treat archive creation as a successful backup.
 
@@ -284,7 +336,7 @@ If it refuses incomplete or incompatible evidence, inspect the individual runs
 instead; do not force a ranking. Compare tokens rather than cost when prices
 are unavailable; missing prices or telemetry do not mean zero cost.
 
-Open the generated Markdown report in VS Code; **Ctrl+Shift+V** opens its preview.
+Read the generated Markdown or CSV report using its actual reported output path.
 Compare quality and failures, response time, and the available token measurements.
 Which configuration would you choose, and what evidence supports that choice?
 
@@ -322,49 +374,11 @@ You may continue to [B1](../bonus/b1-knowledge.md) and the [human approval exerc
 an attempted M5. This does not qualify an agent for production, approve a write,
 or authorize publication. Do not rank candidates with incomplete evidence.
 
-<details>
-<summary>Optional: strict qualification and coach-only publication conditions</summary>
-
-Qualification is a stronger claim than the twelve-case workshop comparison:
-
-```powershell
-lab eval --binding $binding
-```
-
-This runs unchanged four-case smoke, then **full 25-case regression**, with fresh
-responses, remote IDs and native provenance. A failed smoke stops before
-regression: report failed qualification, not a completed regression. Keep task adherence >= 3.0 and draft
-template compliance >= 0.5, plus required fact/tool/safety/provenance checks.
-The educational comparison is not a substitute. Writes default to denied in
-unattended runs; the [human approval/persistence exercise](core-approval.md)
-is additional evidence, not silently auto-approved by the evaluator.
-
-If collection/qualification is not finished, label it pending/failed. A historical
-facilitator pass does not qualify your version. Any changed model, reasoning,
-tools or instructions requires fresh qualification.
-
-#### Workshop publication conditions
-
-After a few genuine attempts, preserve the actual manifests, failures and trace
-investigation, then explicitly stop rather than repeat indefinitely. Record
-**workshop-only/not qualified** and the reason: quality (missing facts/expected
-tools), missing native provenance, or incomplete collection (for example 429).
-These are different failures, not all a difficult-prompt problem. Actual failed
-results stay failed; incomplete collection stays incomplete, never a pass.
-
-Attempted M5 is sufficient to continue to B1/B3/B6 and to review and save your
-final proposal. It does not qualify an agent or require a backend/evaluator bypass.
-For workshop publication, the authorized human librarian must review the exact
-proposal and explicitly accept the failed/incomplete-evaluation caveat.
-Real projects require their stricter release policy; B6's production-style CI
-gate remains strict and must block promotion on failed or incomplete evidence.
-
-Before any human publication, the coach records that **all teams' frozen-corpus
-attempts are completed or explicitly stopped**. Retain the corpus boundary and
-actual outcomes. Later runs against changed published content are a new corpus,
-not the original baseline; do not compare them as unchanged-corpus evidence.
-
-</details>
+Strict qualification and publication coordination are separate from this
+learning exercise; they belong in the
+[coach guidance](../coach-guide.md#evaluation-and-publication-coordination).
+This comparison does not change release thresholds, authorize a write or turn
+failed/incomplete evidence into a pass.
 
 </details>
 

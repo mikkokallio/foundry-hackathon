@@ -1,17 +1,23 @@
-# M3 - See the traffic and test gateway limits
+# M3 - Observe gateway traffic and explore limits
 
 ## What you will do
 
-Find your agent's model request in APIM logs, test separate request and token
-limits on your own APIs, then test a tool limit and restore it.
+Find a model request from your agent in the gateway logs and make a chart of
+token usage. These two activities use the **browser**.
 
-This module uses the **browser and PowerShell commands**. Step 2 includes
-expandable Cloud Shell setup instructions; if `lab` already works, skip setup
-and keep using that shell. You can also use
-[local PowerShell](../../PARTICIPANT-START.md#powershell-helper-setup).
-No application coding is required. For these examples, `$prefix`
-is `alpha-p2`, meaning Alpha participant 2; use your own assigned prefix.
-Never change the shared reference's limits.
+**Why?** The gateway is a checkpoint between the agent and a service. Its logs
+help explain which requests reached it and what happened. Token measurements
+help you understand model usage; limits help protect shared capacity.
+
+**Optional, but worth exploring:** Steps 3-5 let you make a normal request from
+Cloud Shell, try request/token limits, and temporarily change a limit on your
+own tool server. They are not required for M4, portal-based M5 or saving your
+final proposal.
+
+**Pair up if this feels heavy.** One person can drive while the others predict
+what will happen and inspect the results. Watching a teammate or coach is also
+a useful way to learn. Keep experiments on the driver's own practice resources;
+never change shared reference limits or somebody else's resources.
 
 <details>
 <summary>Optional reading: gateway policies</summary>
@@ -26,88 +32,98 @@ Never change the shared reference's limits.
 
 ### 1. Find an agent's model request in the gateway logs
 
-Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
-Agents**. Revisit your M1 direct and connected-small agents, for example
-`alpha-p2-baseline-direct` and `alpha-p2-baseline-small`. Inspect the saved definitions:
-the direct model is a deployment; the connected ID is `<connection>/<alias>`.
-Read that connection's actual target in **Manage -> Project details ->
-Connected resources**.
+1. Open [Foundry](https://ai.azure.com), select your team project, then
+   **Build -> Agents -> your M1 baseline agent**, for example `alpha-p2-baseline`.
+   Check that its selected model is **Admin-connected**, not a direct deployment.
+   You do not need separate direct and connected agents.
+2. Read the selected connection's target in **Manage -> Project details ->
+   Connected resources**. For Alpha, the model selection might be
+   `architecture-docs-alpha-models/chat-small`; use your actual selection.
+   Leave the shared connection unchanged.
+3. In the agent's Playground, start a new conversation and ask one question.
+   Note the time, selected model and available response/trace ID, as in M1.
+4. Open [Azure portal](https://portal.azure.com), search for **Application
+   Insights** and open the instance assigned by the coach. Select **Logs**.
+   If a welcome panel appears, dismiss it. If Logs opens in **Agent** mode,
+   use **Choose working mode -> Simple mode -> KQL mode**; do not start an
+   observability-agent conversation.
+5. Open the [gateway request query](../../scenarios/architecture-docs/exercises/queries/gateway-observations.kql).
+   Copy its text into the Logs editor and select **Run**.
+6. Look for your connected **model** request using its time, API/URL and available
+   correlation identifiers. Do not mistake an MCP tool request for a model request.
 
-In [Azure portal](https://portal.azure.com), search for **Application Insights**
-and open the instance assigned by the coach. Select **Logs**. Use the
-[gateway request query](../../scenarios/architecture-docs/exercises/queries/gateway-observations.kql);
-Step 5 explains switching the editor to KQL mode.
+**Expected result:** a gateway request you can relate to the connected agent run.
+This is stronger evidence of routing than an agent's name or a missing log.
+If you kept a direct-model run from M1, you may compare its saved configuration;
+there is no need to recreate it.
 
-Find the **connected model request** in APIM/Application Insights using its API,
-timestamp and available correlation identifiers. Do not mistake an MCP request
-for the agent's model request. The direct deployment bypasses this explicit
-route unless another routing mechanism applies; absence of a log alone is not
-proof. The unconfigured native **Manage -> AI Gateway** view is not this custom
-APIM connection's traffic dashboard.
+The direct deployment bypasses this explicit gateway route unless another routing
+mechanism applies. The native **Manage -> AI Gateway** view is not the traffic
+dashboard for this workshop's custom APIM connection.
 
-### 2. Send one normal model request
+### 2. Make a token-use chart
 
-If you have finished Step 1, continue here; do not repeat M1 or M2.
-Keep the same assigned prefix and your existing M2 MCP server and steward.
-If `lab` is not available in your shell, expand the instructions below.
+**Why?** Requests can use different amounts of text. Tokens measure that model
+input/output usage; counting requests alone does not tell you how much was used.
 
-<details>
-<summary>Set up Cloud Shell PowerShell here (skip if lab already works)</summary>
+1. In the same Application Insights **Logs** editor, replace the previous query
+   with the [token discovery query](../../scenarios/architecture-docs/exercises/queries/token-usage.kql)
+   and select **Run**.
+2. Inspect the returned `name`, `team` and `api` columns. Find the model route for
+   your team, using the request/connection you inspected above. Keep its exact
+   `api` value.
+3. Copy the chart query below. Replace `alpha` with your team and
+   `PASTE_API_VALUE_HERE` with that exact `api` value, keeping the quotes.
+   The example uses the metric name `Total Tokens`; if your discovery results
+   show a different token-total name, use that actual name.
+4. Select **Run** to render the chart. If needed, make one more question in the
+   connected agent, allow time for telemetry to arrive, then rerun the query.
+   Adjust the query's `ago(1h)` window if your earlier call was more than an hour ago.
 
-In [Azure portal](https://portal.azure.com), open **Cloud Shell** using the
-terminal icon in the top bar, then choose **PowerShell**.
-Cloud Shell runs separately from your laptop; files on your laptop are not
-automatically available there. Keep this shell open through the exercises.
-
-**A. Clone the public tools**
-
-No GitHub sign-in is needed. Run:
-
-```powershell
-Set-Location $HOME
-git clone --depth 1 https://github.com/mikkokallio/foundry-hackathon.git
-if ($LASTEXITCODE -ne 0) { throw 'Workshop repository download failed.' }
-Set-Location (Join-Path $HOME 'foundry-hackathon')
-git rev-parse HEAD
+```kusto
+let team = "alpha";
+let modelApi = "PASTE_API_VALUE_HERE";
+customMetrics
+| where timestamp > ago(1h) and name == "Total Tokens"
+| where tostring(customDimensions["Team"]) == team
+| where tostring(customDimensions["API"]) == modelApi
+| summarize Tokens=sum(valueSum) by bin(timestamp, 1m), API=tostring(customDimensions["API"])
+| render timechart
 ```
 
-If `foundry-hackathon` already exists, enter that checkout instead of cloning
-over it. Do not overwrite your work or pull changes during an exercise.
+**Expected result:** a chart of the selected model API's token usage for your
+team. With only a few calls it may contain just one or two points. This works
+with the shared connected-model route; you do not need to create practice APIs
+or use Cloud Shell first.
 
-**B. Upload your team configuration**
+The team can include several participants: this is not necessarily your personal
+usage. Reference routes emit Team/API dimensions; inspect the actual dimensions
+before drawing conclusions. If you later create owned practice APIs, you can
+chart one by selecting its actual API value instead.
 
-Use **Manage files -> Upload** in Cloud Shell to upload the coach-supplied
-**`workshop.json`** for your team. You supply only that JSON file, not a ZIP or
-complete pack. Keep it private; do not commit it to Git.
-For an upload to your home directory, run:
+Use one metric family. Adding `Total Tokens` to its input/output token-detail
+metrics would count the same usage twice. Tokens are not the Azure bill; pricing
+and detailed caller attribution belong in [B5](../bonus/b5-cost-identity.md).
 
-```powershell
-$configuration = Join-Path $HOME 'workshop.json'
-if (-not (Test-Path -LiteralPath $configuration)) {
-  throw 'Upload your team workshop.json to your Cloud Shell home directory first.'
-}
-$team = 'alpha'       # Replace with your assigned team.
-$prefix = 'alpha-p2'  # Use the same prefix as your M2 MCP server and steward.
-```
+**Shortcut:** after these observations, you can continue to
+[M4 - Find a toolkit](m4-discovery.md). The following experiments are optional.
 
-**C. Enable the lab commands and sign in**
+### 3. Optional: send a normal request from Cloud Shell
 
-Run this from the checkout's root. The **dot followed by a space** matters:
+This calls the gateway directly so you can inspect its response and headers
+without an agent in between. Pair up if you prefer: one person runs the commands,
+and you inspect the results together.
 
-```powershell
-. ./workshop/Start-Lab.ps1 -Configuration $configuration -Team $team -Prefix $prefix
-lab check
-```
+Open **Cloud Shell** from the top bar of [Azure portal](https://portal.azure.com)
+and choose **PowerShell**. Follow the Cloud Shell instructions in
+[helper setup](../../PARTICIPANT-START.md#powershell-helper-setup) using your own
+team configuration and prefix. If `lab` already works in your Cloud Shell session,
+reuse it; do not repeat setup.
 
-The starter prepares the exercise files and installs missing declared Python
-dependencies. It does not deploy infrastructure or recreate your agents/APIs.
-If it prints a device-login code, open the printed login page and sign in as
-**your own workshop account**. Cloud Shell's automatic sign-in may not include
-the gateway scope; the starter uses an isolated profile for your prefix.
-If setup or `lab check` fails, keep the error and ask the coach before continuing.
-A successful read check does not prove authoring permissions.
-
-</details>
+For these examples, `$prefix` is `alpha-p2`, meaning Alpha participant 2.
+Use your own assigned prefix throughout. Keep the shell open. If setup or
+`lab check` fails, keep the error and ask the coach; do not borrow an administrator's
+account. A successful read check does not prove authoring permissions.
 
 Make a normal authenticated request, inspect actual usage/status and available
 remaining-token/retry headers:
@@ -124,7 +140,14 @@ or service errors stop the command instead. It does not create missing routes.
 `lab gateway` directly exercises the model gateway. It is useful policy evidence,
 but **not** substitute proof that your agent's model traffic uses that route.
 
-### 3. Test request and token limits separately
+**Expected result:** a real gateway response with usage/status and any available
+limit headers. Missing headers are not evidence of an unlimited allowance.
+
+### 4. Optional: test request and token limits separately
+
+Complete the Cloud Shell setup in Step 3 first. These practice routes let you
+compare two different protections: a request limit counts calls; a token limit
+measures model usage. You do not need an owned M2 MCP server for this experiment.
 
 **Run this command first.** It creates both practice APIs and configures their
 limits; no manual API creation or policy editing is needed beforehand.
@@ -202,9 +225,15 @@ All operations -> Inbound processing -> code editor**, inspect its request and
 token limits. Only edit your own practice APIs; predict the outcome before
 calling again.
 
-### 4. Test a tool limit, then restore it
+### 5. Optional: test a tool limit, then restore it
 
-Use the browser for this experiment:
+**Requires your own working M2 MCP server and steward.** If you used the shared
+reference connection as a shortcut, skip this experiment or watch a teammate
+who has an owned server. Never edit the shared server's policy.
+
+Use the browser for this experiment. You do not need to complete the Cloud Shell
+experiments first. The aim is to see how a tool limit affects an agent, then
+restore normal access:
 
 1. In **Azure portal -> your APIM instance -> MCP Servers**, select **your**
    documentation MCP server, for example `alpha-p2-docs-mcp`, then **MCP -> Policies**. Do not select the
@@ -262,38 +291,6 @@ separate allowances. Different API IDs can have separate counters.
 
 </details>
 
-### 5. Make a token-use chart
-
-Open the assigned Application Insights **Logs** context and inspect the
-[request query](../../scenarios/architecture-docs/exercises/queries/gateway-observations.kql)
-and [token query](../../scenarios/architecture-docs/exercises/queries/token-usage.kql).
-Run a fresh call before querying. Discover real metric names/dimensions first.
-Dismiss the first-time **Welcome to Log Analytics** panel if shown. Logs may
-open in **Agent** mode: leave that unused chat, then choose **Simple mode ->
-KQL mode** using **Choose working mode**. Discard only an empty welcome chat,
-not any analysis you want to keep. This exercise runs KQL, not an observability
-agent conversation.
-
-Reference routes emit Team/API. The owned model practice policy also emits Model
-and Project, derived from the validated model route and assigned team project.
-Filter to your API and render a token-use chart. Project identity is not the
-human caller; detailed caller attribution and money estimates belong in B5.
-For example, Alpha participant 2 uses this filter. Replace `alpha-p2-` with your
-own prefix followed by `-`:
-
-```kusto
-customMetrics
-| where timestamp > ago(1h) and name == "Total Tokens"
-| where tostring(customDimensions["API"]) startswith "alpha-p2-"
-| summarize Tokens=sum(valueSum) by bin(timestamp, 1m), API=tostring(customDimensions["API"])
-| render timechart
-```
-
-Select one metric family; summing both `Total Tokens` and all token-detail
-metrics would count the same usage more than once.
-
-What would be misleading about pricing all tokens with one model's rate?
-
 <details>
 <summary>Diagnostic settings vs Application Insights</summary>
 
@@ -333,13 +330,19 @@ Further reading:
 
 ## You are done when
 
-- Positive evidence for a connected agent's **model** request through APIM.
-- Actual model and tool throttles, identified limiter and recovery behavior.
-- A real chart with honest available dimensions. Empty telemetry is not zero.
+- You can relate a connected agent's **model** request to a gateway log entry.
+- You have made a token-use chart and can explain whose traffic it includes.
+- You can describe why request counts and token usage are different.
 
-**If stuck:** inspect the prebuilt normal/tight route using `lab gateway --route
-models-tight --burst`, recording that it does not prove your own policy.
-Ask the coach about missing telemetry.
+The limit experiments are optional, not completion requirements. If you tried
+one, keep the actual result even if no 429 occurred. If you edited a policy,
+restoring it and checking recovery remain required.
+
+**If stuck:** check the selected connected model, Application Insights instance,
+time window and query filters with a teammate or coach. Missing telemetry is not
+zero usage. If access or telemetry still blocks you, keep the error and continue
+to M4; do not create monitoring resources, disable authentication or repeatedly
+send requests to force a result.
 
 401/403 often concern auth, but some token **quota** policies intentionally
 return 403. Inspect the body/policy rather than diagnosing from status alone.

@@ -2,12 +2,25 @@
 
 ## What you will do
 
-Register your M2 integration in Azure API Center, inspect a published tool
-description, then add the independent diagram/checking toolkit to your agent.
-API Center describes endpoints; it does not grant access or make them work.
+Find a reusable toolkit in Azure API Center and add it to your M2 steward.
+The toolkit can draw a system's connections and check a draft against the
+inventory. You can also register the integration you built in M2.
 
-The main route is **browser-only**. The commands at the end are optional.
-Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix.
+**Why?** An agent does not need every capability built from scratch. A catalog
+helps people find existing tools, understand their purpose and decide whether
+to use them. API Center is that directory; it is not in the agent's request
+path and does not grant access to the tools it describes.
+
+Use the **browser** for this module. You do not need to have completed M3's
+optional experiments. Examples use `alpha-p2` for Alpha participant 2; replace
+it with your own prefix.
+
+**Shortcut:** if your own M2 integration is unfinished, or you want to focus on
+discovery and tool use, skip registration in Step 1 and start at Step 2.
+Inspect the shared reference entry without editing it, then add the toolkit to
+**your own steward**. You still need that steward's working documentation tools
+for inventory lookups. Skipping registration does not block M5 or saving a
+proposal; it does not mean you completed your own registration.
 
 <details>
 <summary>Optional reading: API Center and authenticated tools</summary>
@@ -21,6 +34,10 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
 
 ### 1. Open API Center and register your integration
 
+**Do this if you have your own working M2 MCP server.** Otherwise use the
+shortcut above. Registration makes your integration discoverable; it does not
+deploy another server.
+
 1. Open [Azure portal](https://portal.azure.com), search for **API Centers**, and
    select the instance assigned by the coach. Open **Inventory/Assets**.
    You will register your own M2 MCP server in the following steps; do not
@@ -29,6 +46,9 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
    `alpha-p2-docs`, replacing the prefix with your own. Keep the complete title
    **at most 24 characters**. Fill the required **Description** with the owner,
    intended use, classification and limitations; Summary can be shorter.
+   For example: your team owns it, it reads the workshop inventory and prepares
+   documentation proposals, it uses workshop data, and publication requires
+   separate human review.
    Add a **Remote** using your actual M2 connection endpoint. Environment is
    optional: select your assigned environment if available, otherwise leave it
    blank. Set
@@ -39,6 +59,10 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
    runtime URL with the actual `alpha-p2-docs-mcp` URL you copied in M2. The saved
    asset should describe your existing server; registration does not deploy a
    new server or grant access.
+
+**Expected result:** a saved entry for your own server with a version, definition
+and deployment URL. Check the URL and generated definition rather than treating
+the entry's existence as proof that the integration works.
 
 <details>
 <summary>If registration partly fails, or its generated paths are wrong</summary>
@@ -60,13 +84,21 @@ Examples use `alpha-p2` for Alpha participant 2; replace it with your own prefix
 
 ### 2. Inspect the registered toolkit description
 
-Open the **reference documentation entry** in API Center. Find its independent
-toolkit discovery link and note the endpoint, owner and limitations.
+1. Open [Azure portal](https://portal.azure.com), search for **API Centers**, and
+   select the instance assigned by the coach. Open **Inventory/Assets** if you
+   are not already there.
+2. Open the **shared reference documentation entry**, not your own registration.
+   Ask the coach which entry to use if it is unclear. Leave the reference unchanged.
+3. Find its toolkit discovery link and note the toolkit's endpoint, owner and
+   limitations.
+4. Under **Versions**, expand the version's chevron, then select **OpenAPI
+   definition -> Download**. Clicking the version title opens its metadata
+   editor instead. Open the downloaded file and inspect its contents and toolkit
+   link. Use this actual catalog export, not the repository's copy.
 
-Under **Versions**, expand the version's chevron, then select **OpenAPI
-definition -> Download**. Clicking the version title opens its metadata editor
-instead. Inspect the downloaded definition and toolkit link; use the actual
-catalog export, not the repository's copy.
+**Expected result:** you can explain what the toolkit offers and where its
+description came from. A catalog entry helps discovery; it is not proof that
+the tool is suitable, authorized or working.
 
 Would this description give you enough information to attach the toolkit to
 a production agent? Identify one missing detail.
@@ -75,6 +107,10 @@ a production agent? Identify one missing detail.
 
 Open [Foundry](https://ai.azure.com), select your team project, then **Build ->
 Agents -> your steward**, for example `alpha-p2-steward`.
+
+The workshop already provides an authenticated toolkit connection in your team
+project. You will attach that connection to your own agent, not change the
+shared connection or create a toolkit server.
 
 1. In Playground, select **Tools -> Add -> Add tools -> Configured**.
 2. Select the existing `<workload>-<team>-toolkit` connection and **Add tool**.
@@ -90,9 +126,13 @@ Agents -> your steward**, for example `alpha-p2-steward`.
    proposal-approval requirement.
 4. Select **Save** to create the updated steward version.
 
+**Expected result:** your steward has both the documentation tools from M2 and
+the three toolkit operations. Adding the toolkit does not authorize saving or
+publishing documents.
+
 ### 4. Try the tools and inspect their results
 
-Ask:
+**First, generate a diagram.** Ask:
 
 > Read the inventory record for SYS-011, then use the toolkit to generate its
 > context diagram. Explain the systems and interfaces shown. Do not save or publish.
@@ -100,20 +140,33 @@ Ask:
 Expect an inventory lookup followed by a `generate_context_diagram` call.
 Expand the tool results and check that the diagram's systems/interfaces match
 the inventory; a fluent description alone is not evidence that the toolkit ran.
+The layout can vary. Look for correct systems and connections, not one
+particular arrangement.
 
-Then paste your M2 draft into the conversation and ask:
+**Then, check a draft.** Paste your M2 draft into the conversation and ask:
 
-> Check the draft you produced in M2 with lint_document and
+> Check the Markdown I pasted above with lint_document and
 > compare_with_inventory. Explain the findings. Do not save or publish.
 
 Inspect both tool results and the matching trace. The toolkit supplements the
 documentation API; it does not replace the authoritative standard or inventory.
 
-<details>
-<summary>Optional command-line alternative / registration fallback</summary>
+**No draft yet?** You can explore the diagram now and return to the draft checks
+after [M2's drafting activity](m2-tools.md#5-connect-the-tools-to-a-new-agent).
+You do not need to rebuild an API to continue exploring the toolkit.
 
-**Skip this if the browser steps worked.** Reuse the `lab` command from M3, or
-complete the [helper setup](../../PARTICIPANT-START.md#powershell-helper-setup).
+**Expected result:** you can point to an actual toolkit call and explain what
+it added to the agent's answer. A finding in your draft is something to investigate,
+not a requirement to get everything green before continuing.
+
+<details>
+<summary>Optional Cloud Shell alternative / registration fallback</summary>
+
+**Skip this if the browser steps worked.** These commands require your own
+working M2 `<prefix>-docs` connection; they are not the shared-reference shortcut.
+Use **Cloud Shell -> PowerShell** and reuse `lab` if it is already set up, or
+follow the Cloud Shell instructions in
+[helper setup](../../PARTICIPANT-START.md#powershell-helper-setup).
 No Python coding is needed. This route creates a separate toolkit-enabled agent.
 Here `$prefix` is your own assigned prefix, for example `alpha-p2`.
 
@@ -153,20 +206,30 @@ permission to export definitions.
 
 ## You are done when
 
-- Your own useful registration includes a working endpoint and limitations.
-- Native registration has a persisted version, at least one definition and deployment;
-  generated contract paths/authentication are assessed separately from metadata
-  creation.
-- You retrieved the actual registered definition and assessed the toolkit.
-- Your agent demonstrably used the newly discovered toolkit.
+- You have inspected the reference entry and its actual exported definition,
+  and can explain what the toolkit offers.
+- Your own steward has used a toolkit operation, and you have inspected its result.
+- You can explain why finding a tool in a catalog is different from having
+  permission to call it.
 
-**Discuss:** what must be governed at registration time versus invocation time?
-Native Foundry private-catalog/APIM synchronization is not assumed configured.
-The Azure API Center portal is the core discovery surface.
+If you also registered your integration, keep its actual status: check the
+saved version, definition and deployment URL, and note any generated-contract
+problems. An unfinished or skipped registration does not block continuing.
 
-**If stuck:** inspect the unchanged reference record and connect the toolkit
-through its existing connection. Keep your incomplete registration and identify
-what remains unverified.
+**If stuck:** use the reference-entry shortcut rather than repeatedly creating
+catalog entries. If access or a tool call fails, keep the error and ask the coach,
+or inspect a teammate's result together. Do not edit shared resources, replace
+authentication or claim that a failed call succeeded.
+
+<details>
+<summary>Nice to know: catalog discovery versus automatic connection</summary>
+
+This workshop uses the Azure API Center inventory in Azure portal. Registering
+an entry does not automatically add it to Foundry, and native Foundry
+private-catalog/APIM synchronization is not assumed configured. You explicitly
+attached the existing toolkit connection in Step 3.
+
+</details>
 
 <details>
 <summary>Nice to know: toolkit versus Foundry Toolbox</summary>

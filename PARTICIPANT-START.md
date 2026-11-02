@@ -1,64 +1,59 @@
 # Participant: start here
 
-A full-day hackathon with **4.5 hours of hands-on work**. Build an agent that
-answers questions about systems and helps write their documentation. Connect it
-to real tools, investigate traffic limits and compare its answers across models.
-The workshop's business data is made up, not real customer data.
+Build an agent that answers questions about business systems and helps write
+their documentation. Give it access to evidence, explore reusable tools and
+investigate how well its answers hold up.
 
-**Preview:** minor updates to the M1-M5 exercises are likely.
-Your coach provides the environment details and helps with any setup issues.
-
-**Start with [M1](docs/modules/m1-foundry.md) in Microsoft Edge.**
-M1 explains how to open Foundry and choose your team's project. You do not need
-Python, a terminal or a Copilot license for M1.
+**Start with [M1](docs/modules/m1-foundry.md) in your browser.**
+It explains how to open Foundry and choose your team's project; no developer
+tools need installing to begin.
 
 ## Before you start
 
-Your coach has already set up the shared services, projects, models and working
-example integrations.
-**You are encouraged to build your own APIs, MCP servers, agents and catalog
-entries.** Do not run the infrastructure deployment or change the coach's shared
-resources and example integrations.
+Your coach provides:
 
-Four people share each project. Your coach assigns a team and participant number.
-For example, **team Alpha, participant 2 uses `alpha-p2`** at the start of names:
-`alpha-p2-baseline-direct`. Participant 1 uses `alpha-p1`; participants 3 and 4
-use `alpha-p3` and `alpha-p4`.
+1. **Your workshop account, directory and team project.** Sign in with your own
+   assigned account.
+2. **Your team's pack.** Unzip it so you can open the ready-to-paste prompts and
+   your team's `workshop.json`.
+3. **Your team and participant number.** Use them at the start of names:
+   Alpha participant 2 uses **`alpha-p2`**, for example `alpha-p2-baseline`.
 
-You will see other people's agents in the same project. These names identify
-your work; they do not restrict access. Only edit agents and practice resources
-you created. Changes to shared services can affect other teams too.
+The shared services and working examples are already set up. You are encouraged
+to create your own agents, APIs, MCP servers and catalog entries, but **only edit
+resources you created**. Leave shared examples and other participants' work alone.
+Names help identify your work; they are not access barriers. Changes to shared
+services can affect other teams.
 
-Your coach provides the sign-in account/directory, project and service names, and
-an exercise folder containing prompts, test questions and your team's
-`workshop.json` configuration. Sign in with **your own assigned account**.
-If something is missing or you cannot access it, ask the coach. Do not use an
-administrator's account or create a replacement service.
+## Choose your pace
+
+- **Pair up or observe.** One person can drive while others discuss the answers
+  and inspect results. If you have no environment access, follow a teammate
+  or the coach's demonstration.
+- **Use the marked shortcuts.** They let you continue with an existing
+  integration if building takes longer. You can return to your own attempt later.
+- **Focus on learning.** Useful findings and questions matter more than finishing
+  every task. You do not need a production-ready application or every bonus completed.
 
 ## The learning journey
 
-Follow these guides in order. Each asks you to build something, try it and check
-what actually happened.
+Follow these guides in order. Each explains the purpose, actions and expected
+observations. The module tells you when an activity is optional or can be skipped.
 
 | Module | What you build or investigate |
 |---|---|
-| [M1: Foundry, models and traces](docs/modules/m1-foundry.md) | Create three agents, compare their answers and inspect a conversation record. |
-| [M2: REST -> MCP -> agent](docs/modules/m2-tools.md) | Your own authenticated documentation integration, real inventory lookup and document validation. |
-| [M3: Gateway governance](docs/modules/m3-governance.md) | Routing evidence, separate request/token experiments, tool throttles and usage charts. |
-| [M4: Register, discover and reuse](docs/modules/m4-discovery.md) | A useful catalog entry, then discovery and first use of the independent toolkit. |
+| [M1: Create an agent and compare answers](docs/modules/m1-foundry.md) | Use one agent, switch its model connection and inspect a conversation record. |
+| [M2: Connect inventory and documents](docs/modules/m2-tools.md) | Build your own integration or attach the existing team connection; look up evidence and check a draft. |
+| [M3: Observe traffic and explore limits](docs/modules/m3-governance.md) | Find a model request and chart token usage; optionally explore request, token and tool limits. |
+| [M4: Discover and reuse a toolkit](docs/modules/m4-discovery.md) | Find and use diagram/checking tools; register your own integration if you want to. |
 | [M5: Evaluate and investigate](docs/modules/m5-evaluation.md) | Inspect test cases, run a Foundry portal evaluation and investigate the scores; consider a prompt improvement. |
 | [Review and save your final proposal](docs/modules/core-approval.md) | Return to your draft, approve its exact text, save it and check the saved copy matches. |
 
-Try building first. If you get stuck, ask the coach or use a working example.
-Compare that example with your own attempt; you do not need to delete your work.
-
 ## Optional bonus tasks
 
-After the main exercises, you can explore a topic in more depth. Knowledge
-retrieval is the recommended next task: explore indexed documents and how their
-passages can support an agent's answers.
-The other links cover advanced extensions. Ask the coach which are available
-for this workshop; you do not need to complete them all.
+Pick a topic that interests you. Knowledge retrieval is a recommended next task:
+explore indexed documents and how their passages can support an agent's answers.
+Ask the coach which extensions are available for this workshop.
 
 [Knowledge retrieval](docs/bonus/b1-knowledge.md) /
 [build your own MCP server](docs/bonus/b2-own-mcp.md) /
@@ -70,24 +65,23 @@ for this workshop; you do not need to complete them all.
 [coding client](docs/bonus/b8-coding-client.md) /
 [local app](docs/bonus/b9-local-app.md).
 
-## PowerShell helper setup
+<a id="powershell-helper-setup"></a>
+
+## Optional Cloud Shell helper setup
 
 <details>
-<summary>Setup for M3 traffic commands and optional CLI exercises</summary>
+<summary>Expand only when an exercise asks you to use the lab commands</summary>
 
-M3 uses `lab` commands to generate bounded test traffic. M5 uses the Foundry
-portal; its CLI comparison is optional. M1, M2 and M4 also have browser routes
-without the Python helper. You do not need to write application code.
+This enables the `lab` commands when an exercise asks for them. You can pair
+with someone rather than set up a second session.
 
-If your coach already enabled `lab`, keep that shell open. Otherwise use
-**Cloud Shell PowerShell**, or local **PowerShell 7.5+** with Git, Azure CLI and
-Python 3.11+. Cloud Shell has these tools already and runs Linux; it cannot see
-your laptop's files.
+If `lab` already works in your Cloud Shell session, keep using it. Otherwise
+open [Azure portal](https://portal.azure.com), select the **Cloud Shell** toolbar
+button and choose **PowerShell**. Cloud Shell has the required tools and runs
+separately from your laptop; files on your laptop are not automatically available.
 
-For optional M5 CLI runs, prefer local PowerShell or already-mounted persistent Cloud
-Shell storage. Temporary-session files can become unavailable after a reconnect;
-keep the shell open and download each complete result folder using the
-[M5 preservation steps](docs/modules/m5-evaluation.md#b-create-and-test-your-chosen-configuration).
+Keep the session open. Temporary-session files can become unavailable after a
+reconnect; download any results you want to keep before closing it.
 
 ### 1. Clone the public tools
 
@@ -99,20 +93,16 @@ Set-Location $HOME
 git clone --depth 1 https://github.com/mikkokallio/foundry-hackathon.git
 if ($LASTEXITCODE -ne 0) { throw 'Workshop repository download failed.' }
 Set-Location (Join-Path $HOME 'foundry-hackathon')
-git rev-parse HEAD
 ```
 
 If that folder already exists, reuse the workshop checkout rather than cloning
 over it. Do not overwrite an existing exercise or pull changes during a run.
-Record the printed source revision with your results. A clone contains the
-published commit, not unpublished changes on somebody else's laptop.
+### 2. Upload your team configuration
 
-### 2. Supply only your deployment configuration
-
-You need only the coach-supplied **`workshop.json`**, not a ZIP, prompts,
-evaluation files or an integrity receipt. In Cloud Shell use
-**Manage files -> Upload** for that one JSON file. Locally, use its existing
-path. `./workshop.json` works when that file is in your current directory.
+Use **Manage files -> Upload** for the coach-supplied **`workshop.json`** from
+your own team pack. You need only that file, not the ZIP or the rest of the pack.
+`./workshop.json` works when the uploaded file is in your current directory;
+otherwise use its full Cloud Shell path.
 Keep configuration private; do not commit it to the repository.
 
 ```powershell
@@ -121,12 +111,10 @@ $team = 'alpha'       # Your assigned team.
 $prefix = 'alpha-p2'  # Your assigned team and participant.
 ```
 
-Use the JSON from the **same deployment and team** you are rehearsing.
-Matching exercise files alone do not prove that your account has access.
-If the coach supplies a common deployment JSON instead, its `projects` map must
-declare your actual team endpoint. Do not invent a team or edit model bindings.
+Check that `$team` and `$prefix` match your assigned team and participant.
+Do not change the configuration's endpoints or model bindings to bypass an error.
 
-### 3. Assemble the local inputs and enable `lab`
+### 3. Enable the lab commands
 
 From the clone's root run the following. The **dot followed by a space** matters:
 it keeps the command available in this PowerShell session.
@@ -135,23 +123,15 @@ it keeps the command available in this PowerShell session.
 . ./workshop/Start-Lab.ps1 -Configuration $configuration -Team $team -Prefix $prefix
 ```
 
-The starter assembles the prompts, portal OpenAPI, unchanged evaluation inputs
-and a new integrity receipt from this checkout under ignored `out/`.
-It prints their location and records the source revision. It uses `.venv`,
-installing the declared dependencies only when required modules are missing.
-It installs prebuilt wheels, not local compiler builds. If compatible wheels
-are unavailable on your computer, keep the error and use Cloud Shell; do not
-install Rust or change package versions to get past it.
-It does not deploy infrastructure, create agents or run evaluations.
+The starter prepares the exercise inputs and installs missing declared Python
+dependencies. It does not deploy infrastructure, create agents or run evaluations.
+If setup fails, keep the error and ask the coach rather than changing packages.
 
-If sign-in is needed, open the printed device-login page in Edge and use
-**your own workshop account**. The starter uses a separate Azure CLI profile for
-your prefix, not the organizer's login. Cloud Shell's automatic sign-in does not
-necessarily include the required `Lab.Access` scope. A token acquisition error
-before the sign-in prompt means this isolated profile needs authentication;
-if sign-in itself fails, stop and report that error.
+If sign-in is requested, open the printed device-login page in your browser and
+use **your own workshop account**. Cloud Shell's automatic sign-in is not always
+enough for these commands. If sign-in fails, keep the error and ask the coach.
 
-### 4. Check access, then continue M3
+### 4. Check access, then return to your exercise
 
 ```powershell
 lab check
@@ -159,34 +139,23 @@ lab practice status
 ```
 
 Keep this shell open. `lab check` performs real Foundry agent-list and
-authenticated documentation-read checks; it is **not** authoring-permission or
-release acceptance. `lab practice status` reports your own existing practice
+authenticated documentation-read checks. It does not prove that you can create
+or edit resources. `lab practice status` reports your own existing practice
 APIs; missing ones are expected until you create them in the exercises.
-If a command reports a missing permission, stop and give the coach the operation
-and error. Input assembly cannot repair access; do not borrow an administrator's
-account. Successful read checks do not prove authoring permissions.
+If a command reports a missing permission, keep the operation and error and ask
+the coach. Do not borrow an administrator's account.
 
-Cloud Shell sessions without storage are temporary; local files can become
-unavailable after reconnecting. Use `download $archive` in Cloud Shell PowerShell, followed
-by clicking the filename in its **Download file** notification. The command alone
-does not save a copy on your laptop. Do not rely on leaving the browser open or
-merely creating an archive. Before an optional M5 CLI run, verify that a small file can
-actually be downloaded and opened locally. Then archive each complete result
-folder and verify its downloaded copy before ending the session. A manifest path
-alone is not a copy of the results. M5 shows the archive and hash commands. If
-download fails, keep the current shell open and tell the coach; do not create storage,
-share links or change access permissions as an improvised workaround.
-
-The helper checks the generated files against their receipt. If they change,
-keep the error and rerun setup from the correct unchanged source/configuration.
-Do not edit the receipt or change `runtime_accepted`. New setup creates a fresh
-input directory rather than overwriting old evidence.
+Return to [M3's optional requests](docs/modules/m3-governance.md#3-optional-send-a-normal-request-from-cloud-shell)
+or the exercise that sent you here.
 
 </details>
 
 ## When something fails
 
-Record operation, endpoint, timestamp, status and response/trace ID, without
-credentials. Respect `Retry-After` on throttling; separate agents still share
-capacity and some counters. Do not retry indefinitely, disable auth or substitute
-fake responses. Longer diagnostics belong in the [coach guide](docs/coach-guide.md).
+Keep the step, selected project, error message and time, plus any available
+response/trace ID. Do not include credentials. Ask the coach or inspect the
+problem with a teammate.
+
+If throttled, respect `Retry-After`; separate agents still share capacity and
+some counters. Do not retry indefinitely, disable authentication or substitute
+invented results.

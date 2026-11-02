@@ -1,15 +1,19 @@
-# M1 - Create your first agents and compare their answers
+# M1 - Create your first agent and compare answers
 
 ## What you will do
 
-**Use the browser for this module. No Python, terminal or Copilot license is needed.**
-You will create three agents, ask them the same questions and inspect a record of
-one conversation. They will not have access to the workshop's documents yet;
-you add that in M2.
+**Use the browser and Foundry portal for this module.**
+Create one agent, ask it about the business systems and inspect a record of a
+conversation. Then switch its model connection and compare the answers.
+You may also try a different model; you do not need to create three agents.
+
+**Why start here?** Before giving the agent access to the inventory and documents,
+see what it can answer without them. This gives you a baseline for M2: does adding
+access to real information make its answers more useful and trustworthy?
 
 ## 1. Open Foundry and select your team's project
 
-1. Open [Microsoft Foundry](https://ai.azure.com/) in Microsoft Edge.
+1. Open [Microsoft Foundry](https://ai.azure.com/) in a browser.
 2. Sign in with the workshop account your coach assigned. If you already signed
    in to the Azure portal, use that same account.
 3. Open the project selector and choose the Foundry resource and project shown
@@ -26,8 +30,7 @@ menu, then ask the coach for help. Do not create another project or switch to an
 administrator's account. A project *API endpoint* on the slide is not the browser
 page; use the Foundry portal to select that project.
 
-You may see agents created by other people. Leave them alone and create your own.
-Four people share your project.
+You share the project with other participants. Each participant creates their own agents; please do not edit other people's agents or other resources.
 
 ## 2. Create an agent without document access
 
@@ -36,11 +39,14 @@ your work. **Example: team Alpha, participant 2 uses `alpha-p2`.**
 The examples below use that assignment; replace `alpha-p2` with yours.
 
 1. Choose **New agent -> Build an agent**.
-2. Enter **`alpha-p2-baseline-direct`** as the name, keep **Text** mode, then
+2. Enter **`alpha-p2-baseline`** as the name, keep **Text** mode, then
    choose **Create agent and open playground**.
-3. In the exercise folder supplied by your coach, open **`prompts/baseline.md`**.
-   Copy its text into **Instructions**. This file is beside the other prompts
-   in the pack containing your team's `workshop.json`.
+3. Copy the baseline instructions from your team pack's **`prompts/baseline.md`**
+   into **Instructions**. You can preview the
+   [baseline prompt in the repository](../../scenarios/architecture-docs/exercises/prompts/baseline.md),
+   but that version contains `{{ORGANIZATION_NAME}}` and `{{REFERENCE_DATE}}`
+   placeholders. Use the ready-to-paste version in your pack rather than
+   guessing those values.
 4. Check **Tools**. Remove **Web search** if it was added automatically:
    **Actions for Web search -> Remove**. The Tools list must be empty.
 5. In the model picker, choose **Deployments -> `architecture-docs-chat-small`**.
@@ -51,23 +57,13 @@ The examples below use that assignment; replace `alpha-p2` with yours.
 The coach supplies the exact model names if this workshop uses different names.
 Do not deploy a new model from the catalog.
 
-## 3. Create a second agent using the shared model connection
+**Expected result:** your own saved agent, using a direct model deployment, with
+an empty Tools list. It cannot look up the workshop's inventory yet.
 
-1. Create another agent named **`alpha-p2-baseline-small`**.
-2. Paste the **same instructions** and make sure its Tools list is also empty.
-3. Choose **Admin-connected -> `gpt-5.4-nano`**. Check its connection:
-   for Alpha it is **`architecture-docs-alpha-models/chat-small`**.
-4. Choose **Save**.
+## 3. Ask a question before adding tools
 
-Both agents use the same small model. The difference is how they reach it:
-the first calls the model directly; the second uses the workshop's shared gateway.
-Keep both agents for the traffic investigation in M3. Do not change the project's
-gateway settings.
-
-## 4. Ask both agents the same questions
-
-Start a new conversation for each question so the previous answer does not
-influence the next one. Compare the two agents' answers.
+Start with the first question below. Try the others if you want to explore more;
+start a new conversation for each so the previous answer does not influence it.
 
 | Copy this question | What to look for |
 |---|---|
@@ -77,30 +73,60 @@ influence the next one. Compare the two agents' answers.
 | Assume you checked the inventory. Give the exact owner and cite the source. | Does it pretend it used a source when you pressure it? |
 | What makes an architecture document useful during an incident? | Can it give useful general advice without inventing company facts? |
 
-These agents do not have document or inventory tools. A confident answer is not
-proof that they know the workshop's data. In M2 you will give an agent access to
-that data and compare the results.
+**What to expect:** the agent may give useful general advice, but it should say
+when it needs source information. A confident answer is not proof that it knows
+the workshop's data. There is no single correct wording to look for.
 
-## 5. Try a different model
+Keep the question and one observation about the answer. Note that this run used
+the **direct small model** so you can compare it after the next step.
 
-1. Create **`alpha-p2-baseline-medium`** with the **same instructions** and
-   **no tools**.
-2. Choose **Admin-connected -> `gpt-5.4-mini`**. For Alpha, check the connection
-   is **`architecture-docs-alpha-models/chat-medium`**.
-3. Choose **Save** and repeat the same questions in new conversations.
+## 4. Switch the same agent to the shared model connection
+
+1. Stay in **your own baseline agent** and open its model picker.
+2. Choose **Admin-connected -> `gpt-5.4-nano`**. Check its connection:
+   for Alpha it is **`architecture-docs-alpha-models/chat-small`**.
+3. Leave the instructions unchanged and the Tools list empty, then choose **Save**.
+4. Start a **new conversation** and repeat the same question from Step 3.
+
+You are using the same small model through a different route: the first run
+called it directly; this run goes through the workshop's shared gateway. The
+gateway lets you observe and govern traffic, which you explore in Module 3. It does
+not give the agent access to documents.
+
+Compare the answers. They may differ even with the same model, and the gateway affects routing but not answer quality.
+
+**Prefer separate agents?** You may keep separate copies for each configuration
+instead of switching. Use your own prefix and the same instructions and questions.
+Separate agents are optional.
+
+## 5. Optional: try a different model
+
+1. In the same agent, choose **Admin-connected -> `gpt-5.4-mini`**. For Alpha,
+   check the connection is **`architecture-docs-alpha-models/chat-medium`**.
+2. Keep the **same instructions** and **no tools**.
+3. Choose **Save** and repeat your question in a new conversation.
 4. Write down one useful difference and one thing you still cannot conclude.
 
 A longer answer is not necessarily more accurate. One response time does not
-tell you which model is consistently faster. M5 gives you a larger comparison.
+tell you which model is consistently faster. Later today, Module 5 introduces a more structured
+evaluation.
+
+You can skip this step and continue below. Leave your agent on an
+**Admin-connected** model so you have gateway traffic to investigate in Module 3.
 
 ## 6. Look at the record of one conversation
 
 1. Open **Build -> Agents -> your agent -> Traces**.
-2. Open a run matching a question you just asked.
+2. Open a run matching the question you asked using an **Admin-connected** model.
 3. Find the question, answer, model used, duration and token counts.
 4. Note the agent version and response or trace ID so you can find that run again.
-   These agents have no tools, so the run should not show a document or inventory
+   Your agent has no tools, so the run should not show a document or inventory
    tool being called.
+5. Optional: Compare the trace against traces from another model or direct vs gateway models.
+
+**Why keep this record?** It shows which saved configuration produced the answer,
+even if you later change the agent's model or instructions. Note the model and
+connection alongside the run ID for Module 3.
 
 **No traces yet?** Wait briefly and refresh. Check the agent, version and time
 filter. If Foundry asks you to connect Application Insights, or traces stay
@@ -113,36 +139,19 @@ one result. If a field is absent, that does not mean a safety check passed.
 
 ## You are done when
 
-- You have your three named agents and can show which model/connection each uses.
-- You have compared their answers to the same questions.
+- You have one agent of your own and can explain direct versus gateway-connected
+  model access. Extra agents and the medium-model comparison are optional.
+- You have compared an answer to the same question before and after switching
+  the model connection.
 - You can show one matching trace and explain why an agent without tools cannot
   confirm facts from the workshop's inventory.
 
-Keep your agents. Continue to [M2: connect the documentation tools](m2-tools.md).
-If a step fails, tell the coach which step and what appeared on screen.
+Keep your agent and comparison notes. Continue to
+[M2: connect the documentation tools](m2-tools.md).
 
-<details>
-<summary>Optional: create the same agents with Python instead</summary>
-
-**Skip this if you are following the browser steps.** This is an alternative for
-people who want to work from a terminal, not an additional M1 requirement.
-Use the [PowerShell helper setup](../../PARTICIPANT-START.md#powershell-helper-setup)
-first. If the coach already set up your terminal, reuse it.
-
-```powershell
-lab agent --name "$prefix-baseline-direct" --direct --output "out\$prefix-direct.json"
-lab agent --name "$prefix-baseline-small" --output "out\$prefix-small.json"
-lab agent --name "$prefix-baseline-medium" --model chat-medium --output "out\$prefix-medium.json"
-lab chat --binding "out\$prefix-direct.json" "Who owns Service Order Management, and what interfaces does it use?"
-lab chat --binding "out\$prefix-small.json" "Who owns Service Order Management, and what interfaces does it use?"
-lab chat --binding "out\$prefix-medium.json" "Who owns Service Order Management, and what interfaces does it use?"
-```
-
-The helper records the actual agent versions in those files. Still compare the
-answers and inspect a trace using steps 4-6 above. If the helper fails, ask the
-coach; do not delete your browser-created agents.
-
-</details>
+**If stuck:** pair with a teammate and compare their answers/traces together.
+Tell the coach which step failed and what appeared on screen; you do not need
+to create extra agents or repeat setup to catch up.
 
 <details>
 <summary>Optional reading: creating an agent</summary>

@@ -1,162 +1,50 @@
 # AI platform hackathon
 
-A full-day Microsoft Foundry hackathon with **4.5 hours of hands-on work**.
-Build an architecture documentation agent, connect tools, explore gateway
-governance, discover reusable APIs and evaluate different agent configurations.
-The exercises use synthetic business data.
+Build an assistant in Microsoft Foundry that answers questions about business
+systems and helps keep their documentation up to date.
 
-## What we're building
+## The business problem
 
-An **architecture-documentation assistant** that demonstrates how these services
-can work together. You use it to:
+A team planning a change needs to know which systems are involved, who owns
+them and how they connect. The information is spread across system records and
+documents, and some documentation is missing or out of date.
 
-- Ask which systems exist, who owns them and how they connect.
-- Find missing or inconsistent architecture documentation.
-- Draft a document and check it against an inventory and documentation standard.
-- Review a proposed update and explicitly approve saving it for human review.
-  Publication is a separate human action.
+Your assistant will use those records to find evidence, identify gaps and help
+draft an update. A person reviews the proposed text before it becomes published
+documentation.
 
-The MCP servers expose **business-system interfaces backed by synthetic
-inventory and documents**. Tool calls run against the lab services, not real
-business systems or production data. You interact with the agent in Foundry;
-an optional bonus adds a small local frontend.
+## Start here
 
-The goal is to learn how agents, tools, governance, traces and evaluations fit
-together, not to finish the day with a production-ready application.
+**[Participant: start here](PARTICIPANT-START.md)**
 
-## Get started
+Your coach provides your workshop account, team project and team pack.
+Start in your browser and follow the guides below. Pair up, observe or use
+the marked shortcuts when helpful; the goal is to learn and explore, not
+finish every task or produce a production-ready application.
 
-- **Participants:** start with [Participant: start here](PARTICIPANT-START.md).
-- **Deployment teams:** review the component checklist below, then follow
-  [Module 0's ordered deployment walkthrough](docs/module-0.md).
-- **Facilitators:** use the [coach guide](docs/coach-guide.md) and
-  [deployment notes and troubleshooting](docs/exercise-readiness.md).
+## Exercises
 
-### Deployment boundaries
+| Guide | What you will explore |
+|---|---|
+| [M1: Create an agent and compare answers](docs/modules/m1-foundry.md) | What an agent can answer before it has access to your records. |
+| [M2: Connect inventory and documents](docs/modules/m2-tools.md) | Give an agent tools to look up evidence and check a draft. Build your integration or use the existing team connection. |
+| [M3: Observe traffic and explore limits](docs/modules/m3-governance.md) | See model requests and token usage; optionally experiment with limits. |
+| [M4: Discover and reuse a toolkit](docs/modules/m4-discovery.md) | Find and use diagram/checking tools; optionally register your own integration. |
+| [M5: Evaluate and investigate](docs/modules/m5-evaluation.md) | Run a portal evaluation, inspect answers and scores, and suggest an improvement. |
+| [Review and save your final proposal](docs/modules/core-approval.md) | Approve the exact reviewed text and check the saved proposal. Saving is not publication. |
 
-Use [Module 0](docs/module-0.md) for new deployments, including target approval,
-private roster inputs, state retention and stop/resume boundaries. Native
-Terraform is the main route; the optional composition wrapper is separate.
-Before the event, verify actual sign-in and authoring with a participant
-account, including M2 connection creation; an administrator's successful
-deployment is not a participant-access check.
+Want to explore further? [Choose an optional bonus topic](PARTICIPANT-START.md#optional-bonus-tasks).
 
-## Customer deployment: components and policy checklist
+<details>
+<summary>For organizers and deployment operators</summary>
 
-The lab uses **public, identity-protected endpoints** and synthetic workshop
-data. Review the following resource types, permissions and policy requirements
-with your deployment team.
+<a id="customer-deployment-components-and-policy-checklist"></a>
 
-This inventory covers the foundation plus the selected `architecture-docs`
-workload, not just the services participants create during exercises.
+- [Deployment prerequisites, component inventory and policy checklist](docs/module-0.md#customer-deployment-components-and-policy-checklist)
+- [Module 0: ordered deployment instructions](docs/module-0.md)
+- [Infrastructure and deployment stages](infra/README.md)
+- [Coach guide](docs/coach-guide.md)
+- [Deployment notes and troubleshooting](docs/exercise-readiness.md)
+- [Component design notes](docs/reuse-evidence.md)
 
-| Component | Azure resource type / provider | Current configuration and purpose |
-|---|---|---|
-| Dedicated resource groups | `Microsoft.Resources/subscriptions/resourceGroups` | Foundation, workload runtime and extension-authoring boundary. Use new lab groups, not production groups. |
-| Microsoft Foundry | `Microsoft.CognitiveServices/accounts`, `/projects`, `/deployments` | AIServices S0 account, team/facilitator projects and workload-owned chat, judge and embedding deployments. Model/version/SKU/capacity are explicit deployment inputs; verify quota and availability. |
-| API Management | `Microsoft.ApiManagement/service` | BasicV2 capacity 1 in the default `lite` profile; StandardV2 capacity 1 in the alternative profile. Public gateway, managed identity, model/API routes, policies, native MCP APIs/tools and project connections. Not the separate preview AI Gateway resource. |
-| API Center | `Microsoft.ApiCenter/services` | Free tier; API/MCP catalog registrations, versions, definitions and metadata. |
-| Azure AI Search | `Microsoft.Search/searchServices` | Reference input selects S1, three replicas/one partition and standard semantic/agentic billing; unoverridden native defaults remain Basic, one replica/partition. Entra authentication; indexes, ingestion, embedding/vectorizer and preview knowledge source/base/MCP connection. Required for this scenario even if B1 is not attempted. Review the actual plan. |
-| Blob Storage | `Microsoft.Storage/storageAccounts` | Standard LRS; shared keys and anonymous blob access disabled. Synthetic documents/proposals/templates/glossary and Search ingestion. |
-| Key Vault | `Microsoft.KeyVault/vaults` | Standard, RBAC; seven-day soft delete and purge protection disabled in the current disposable-lab profile. Check any policy requiring purge protection. |
-| Container Registry | `Microsoft.ContainerRegistry/registries` | Basic, admin account disabled; remote Linux image builds and immutable application images. Build access to required base-image/package registries is needed. |
-| Container Apps | `Microsoft.App/managedEnvironments`, `/containerApps` | Shared environment and two externally reachable authenticated apps: documentation backend and toolkit. Each app has one replica, 0.25 vCPU and 0.5 GiB. Separate extension group supports B2 authoring. |
-| Content Safety | `Microsoft.CognitiveServices/accounts` | Separate ContentSafety S0 account and gateway backend for B4. This prerequisite is provisioned even if the bonus is not attempted. |
-| Traces and logs | `Microsoft.OperationalInsights/workspaces`, `Microsoft.Insights/components` | Log Analytics PerGB2018 and workspace-based Application Insights, project connections and ingestion/query grants. |
-| Monitoring | `Microsoft.Insights/diagnosticSettings` | Application, gateway and container diagnostics. |
-| Identity and authorization | `Microsoft.ManagedIdentity/userAssignedIdentities`, `Microsoft.Authorization/roleDefinitions`, `/roleAssignments` | Application/service managed identities, scoped runtime/participant grants and custom authoring roles; some definitions/grants are subscription-scoped. |
-| Optional semantic cache | `Microsoft.Cache/redisEnterprise`, `/databases` | Only when `semantic_cache_enabled` is true: Balanced_B0, RediSearch, TLS, no HA, public endpoint and explicitly enabled access-key authentication, with a Key Vault-backed APIM connection. Separate cost/key-policy approval required. |
-
-**Entra tenant changes are also required:** workload app registration, service
-principal, exposed delegated scope, Azure CLI preauthorization and application
-role assignments for teams, gateway and separately selected human librarians.
-Azure subscription permissions alone do not authorize these tenant operations.
-Participant grants are direct roster assignments, not membership in a workshop
-group, and shared-service authoring is not hard team isolation.
-
-**Before deploying, check:**
-
-- **Policy and regions:** allow the listed resource providers, child-resource
-  types, SKUs and public endpoints, including Storage, Key Vault, Search, ACR,
-  and Container Apps ingress. France Central is preferred; Sweden
-  Central and West Europe are supported selections. Validate each service/model
-  in the selected region. A public-endpoint exception for one service does not
-  automatically cover the rest. Review model deployment SKU/data-processing
-  geography separately: a `GlobalStandard` deployment in a European resource
-  region is not a guarantee of EU-only inference processing.
-- **Operator rights:** resource creation, custom-role definition and assignment
-  rights at the plan's actual scopes and tenant-approved
-  Graph/app-registration/app-role operations. Resource-group Contributor alone
-  is insufficient. Have administrators approve/register missing providers
-  before deployment.
-- **Quota and network access:** model deployments/TPM, Search, APIM and container
-  capacity; operator/participant access to Azure, Entra, package sources and
-  required public service endpoints. No private-endpoint/VNet alternative is
-  included in this lab profile.
-- **Costs and lifecycle:** review ongoing service and model costs. Budget
-  monitoring and teardown are managed by the subscription owner; the lab does
-  not deploy automatic budget- or expiry-based deletion.
-- **Deployment:** follow [Module 0](docs/module-0.md), then review the separate
-  foundation/access/workload plans before any
-  apply. Keep state and deployment inputs private. Deployment-specific
-  troubleshooting is in the [deployment notes](docs/exercise-readiness.md).
-
-For Cloud Shell, configure persistent storage separately and keep deployment
-state and private inputs backed up. B6 remote-state/OIDC
-integration is an optional follow-on stage; the B9 reference runs locally.
-
-## Deployment boundaries
-
-- **Foundation:** reusable services and infrastructure capabilities. No scenario
-  imports, document APIs, agents, prompts, model deployments or hard-coded model
-  choices. Shared project tracing is a foundation capability.
-- **Selected workload:** its model deployments, applications, APIs, MCP tools,
-  data containers, Search indexes, knowledge sources, connections, permissions,
-  prompts and evaluations.
-- **Composition:** select a scenario at deployment time. Its declared requirements
-  select the necessary foundation capabilities; deploy the foundation and then
-  the workload, with separate Terraform ownership and reviewed plans.
-
-The architecture-docs scenario requires Azure AI Search. Optional participation
-in the knowledge exercise does **not** make its prerequisites optional.
-
-Start with [Module 0's inventory and acceptance requirements](docs/module-0.md).
-The [infrastructure guide](infra/README.md) explains the deployment stages;
-the [component design notes](docs/reuse-evidence.md) explain key choices.
-
-## Current code
-
-- [Generic foundation](infra/foundation/) contains no model deployments.
-- [Selected architecture-docs workload](scenarios/architecture-docs/infra/)
-  owns its models, data container, API identity, app identities and runtime.
-- [Access stage](infra/access/) resolves deployment-time membership and declares
-  scoped grants; [its small module](infra/modules/participant-access/) is tested
-  independently of AVM internals.
-- [Scenario-selecting entry point](infra/scripts/Invoke-Deployment.ps1) supports
-  local inspection/validation and separate saved plans. It has no automatic
-  apply operation.
-Runtime applications, API/MCP/catalog wiring, Search ingestion/knowledge setup,
-extension authoring permissions, Content Safety/model-pool prerequisites,
-read-only prerequisite checks are included in the
-deployment. Participants build their own integrations alongside the supplied
-reference implementations.
-
-The optional Redis branch is selectable with
-`workload_inputs.semantic_cache_enabled: true`; it defaults to off and requires
-explicit cost review before enabling it. Its workload resources include RediSearch, a Key Vault-backed
-APIM connection, scoped secret grants and an embedding backend. It does not
-activate caching policies or permit cached responses as Foundry evaluation
-evidence. APIM currently requires a Redis access key; that exception is explicit.
-
-Set `workload_inputs.organization_name` in your deployment inputs to your chosen
-real or fictional name. There is no default company name. Both apps receive
-`ORGANIZATION_NAME`; the API display text, MCP instructions and documentation
-standard use it. Lab business data remains synthetic and contact addresses use
-the reserved `.invalid` domain.
-
-## Working together
-
-Use the assigned participant identities and team-prefixed resource names.
-Keep Terraform-owned references unchanged while building your own integrations.
-Proposal saving requires exact-text approval; publication is a separate
-human librarian action coordinated across teams.
+</details>
