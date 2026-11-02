@@ -810,6 +810,7 @@ def test_all_guides_have_learning_structure_and_valid_local_links():
         article_limit = {
             "b1-knowledge.md": 4,
             "m2-tools.md": 4,
+            "m3-governance.md": 5,
             "m4-discovery.md": 3,
             "m5-evaluation.md": 4,
         }.get(guide.name, 2)

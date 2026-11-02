@@ -294,6 +294,43 @@ metrics would count the same usage more than once.
 
 What would be misleading about pricing all tokens with one model's rate?
 
+<details>
+<summary>Diagnostic settings vs Application Insights</summary>
+
+APIM offers complementary monitoring options. This workshop uses **Application Insights**
+to demonstrate several use cases through one integration: performance monitoring,
+troubleshooting model and MCP requests, and token-use charts. The token metrics
+are emitted by gateway policies.
+
+**Diagnostic settings** provide another route: exporting APIM resource logs,
+including the **generative AI gateway** and **MCP server usage** categories, to
+destinations such as Log Analytics.
+
+| Capability | Application Insights integration | Resource logs via Diagnostic settings |
+|---|---|---|
+| Performance and failures | Requests, dependencies, exceptions and correlated traces | Gateway request timings, status and error details |
+| Token usage | Policy-emitted token metrics with configured dimensions | Detailed LLM request records, including model and token usage |
+| MCP monitoring | MCP operations, tool names, latency and success/failure telemetry | MCP-specific request and usage records |
+| Consumption reporting | Aggregate usage by the dimensions you configure | Per-request analysis that can support allocation and reconciliation |
+
+Both can use the same Log Analytics workspace; they do not necessarily require
+separate monitoring infrastructures.
+
+For **cost allocation or chargeback**, either approach needs trustworthy consumer
+attribution, appropriate model/deployment pricing, and checks for missing or
+sampled telemetry. Token consumption is not automatically equivalent to the Azure bill.
+
+The default **Metrics** view remains useful for request volumes, latency and
+errors. The richer token attribution and MCP analysis used here come from
+configured telemetry.
+
+Further reading:
+- [Monitor Azure API Management](https://learn.microsoft.com/en-us/azure/api-management/monitor-api-management)
+- [Integrate Azure API Management with Application Insights](https://learn.microsoft.com/en-us/azure/api-management/api-management-howto-app-insights?tabs=rest)
+- [Monitor MCP server traffic](https://learn.microsoft.com/en-us/azure/api-management/monitor-mcp-servers)
+
+</details>
+
 ## You are done when
 
 - Positive evidence for a connected agent's **model** request through APIM.
