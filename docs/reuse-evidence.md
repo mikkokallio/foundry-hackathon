@@ -19,30 +19,6 @@ Use the [infrastructure guide](../infra/README.md) for state and stage ownership
 [Module 0](module-0.md) for deployment steps, and the
 [preview notes](exercise-readiness.md) for current deployment/exercise details.
 
-## What the evidence does and does not close
-
-- **Reference E2E:** five recovered cycles are historical reference evidence.
-  Preserve the recovery context; do not describe them as five fresh deployments
-  or clean uninterrupted passes.
-- **Local checks:** contract/regression tests and Terraform validation establish
-  source properties, not Azure provisioning or effective participant rights.
-- **Live deployment:** preflight, approved saved-plan apply, image/build receipts
-  and real service checks have separate meanings. Infrastructure-only preflight
-  defers roster/publisher identity checks; even Full preflight is not apply
-  approval or acceptance.
-- **Required new-deployment check:** after the user's new deployment includes
-  the targeted IaC fix, a non-admin participant must create an M2 Foundry MCP
-  connection and read it back. Verify the intended grant covers the actual
-  roster/team scopes. The historical Alpha-only grant and local tests do not
-  close this gate. Keep it open until the new deployment provides live evidence.
-
-Today's current-reference E2E and improved deployment rehearsal use the existing
-approved test environment and existing test roster. Customer foundation planning
-can precede Monday morning's customer roster, but access/workload cannot use
-fabricated identities, incomplete teams or a substitute publisher.
-Only begin the walkthrough after the deployment team publishes its tested
-candidate and confirms the concrete target; each apply still requires approval.
-
 ## Further reading
 
 - [Microsoft Entra trace ingestion](https://learn.microsoft.com/azure/foundry/observability/how-to/trace-ingestion-entra-authentication).
